@@ -1,0 +1,348 @@
+{
+  "_meta": {
+    "about": "Провенанс иллюстраций для guide.html: чем и по какому промпту сделана каждая картинка, и заготовленные промпты для точек, у которых картинки пока нет. Два регистра: generated — стилизация под Ghibli, generated_documentary — сдержанный документальный вид для мемориалов Хиросимы. Файл ничего не собирает сам, он делает ассеты воспроизводимыми.",
+    "source_session": {
+      "provider": "Higgsfield",
+      "date": "2026-09-18",
+      "time_utc": "06:17:43 – 06:18:33",
+      "model": "gpt_image_2_5",
+      "params": {
+        "aspect_ratio": "1:1",
+        "width": 1024,
+        "height": 1024,
+        "quality": "low",
+        "resolution": "1k",
+        "remove_bg": false,
+        "image_to_image": "да — каждой генерации подавалась референсная фотография места"
+      },
+      "note": "quality=low и resolution=1k — причина мягкости исходников. Поднять качество можно только перегенерацией, перекодировка этого не лечит."
+    },
+    "templates_found": {
+      "B_dominant": {
+        "used_for": 14,
+        "pattern": "A Studio Ghibli-style hand-painted anime {time?} scene of {SUBJECT} — {DETAILS}, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark.",
+        "notes": "Время суток вписано в само предложение. Есть негативная оговорка про текст и вотермарк."
+      },
+      "A_minority": {
+        "used_for": 3,
+        "used_on": [
+          "sannenzaka",
+          "todaiji",
+          "fushimi"
+        ],
+        "pattern": "Studio Ghibli anime movie still of {SUBJECT}, {LIGHT}, painterly background art, Miyazaki film aesthetic.",
+        "notes": "Свет вынесен в конец. Негативной оговорки нет — для японских улиц с вывесками это риск лишних надписей."
+      }
+    },
+    "template_canonical": {
+      "pattern": "Studio Ghibli anime movie still of {SUBJECT} — {DETAILS}, {LIGHT}, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark.",
+      "rationale": [
+        "«movie still» и «painterly background art» из шаблона A дают более киношный кадр",
+        "негативная оговорка из шаблона B остаётся обязательной",
+        "добавлено «mid-October early autumn» — поездка 17–27 октября, а исходные 17 картинок сезонно нейтральные или летние",
+        "1:1 сохраняется: карточка в попапе квадратная"
+      ],
+      "recommended_params": {
+        "quality": "high",
+        "resolution": "2k",
+        "aspect_ratio": "1:1",
+        "reference_image": "по возможности подавать фото места, как в прошлой сессии"
+      }
+    },
+    "encoding": {
+      "tool": "cwebp",
+      "command": "cwebp -q 75 -resize 768 768 <in>.png -o img/<stem>.webp",
+      "rationale": "картинка в карточке 260 CSS-px, на 3x это 780 device-px — 768 попадает точно, брать больше смысла нет",
+      "result": "20 файлов, 1575 КБ (17 стилизованных + 3 документальных); страница 698 КБ → 2,60 МБ; время до интерактивности ~255 мс при ×4 замедлении CPU"
+    },
+    "documentary": {
+      "about": "Три точки в Хиросиме — мемориал, а не достопримечательность. Стилизация под Ghibli здесь неуместна, поэтому у них отдельный регистр: сдержанный документальный вид. В карточке они подписаны «Документальный вид места», жёлтой обводки на метке у них нет, и игровых заданий на них тоже нет.",
+      "session": {
+        "provider": "Higgsfield",
+        "date": "2026-09-18",
+        "model_requested": "nano_banana_2",
+        "model_served": "nano_banana_flash",
+        "aspect_ratio": "1:1",
+        "size": "1024x1024"
+      },
+      "template": "Documentary architectural photograph of {SUBJECT} — {WHAT IS ACTUALLY THERE}, flat overcast autumn daylight, level straight-on framing, muted neutral colour, empty of visitors. Absolutely no stylisation, no illustration, no painterly effect, no anime, no dramatic lighting. No text, no letters, no watermark.",
+      "rules": [
+        "пасмурный ровный свет, никакого золотого часа",
+        "кадр фронтальный, горизонт ровный — это протокол, не композиция",
+        "людей в кадре нет",
+        "цвет приглушённый, без грейдинга",
+        "запрет на стилизацию прописан явно, иначе модель тянет в живопись"
+      ]
+    }
+  },
+  "generated": {
+    "sannenzaka": {
+      "place": "Sannenzaka / Ninenzaka 🛍",
+      "template": "A_minority",
+      "generation_id": "82fc7489-5403-4cf1-8b3d-c32862ffd693",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061833_82fc7489-5403-4cf1-8b3d-c32862ffd693.png",
+      "prompt": "Studio Ghibli anime movie still of a traditional stone-paved hillside lane lined with old wooden shopfronts in the Higashiyama district of Kyoto, Japan, soft warm daylight, painterly background art, Miyazaki film aesthetic."
+    },
+    "todaiji": {
+      "place": "Todai-ji 📍",
+      "template": "A_minority",
+      "generation_id": "a29e51d5-e0ea-47be-af8b-28cfe26480f2",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061832_a29e51d5-e0ea-47be-af8b-28cfe26480f2.png",
+      "prompt": "Studio Ghibli anime movie still of the Great Buddha Hall temple building of Todaiji in Nara, Japan, wooden architecture with a curved tiled roof, wide courtyard, a couple of gentle park deer grazing at a distance, soft daytime lighting, painterly background art, Miyazaki film aesthetic."
+    },
+    "fushimi": {
+      "place": "Fushimi Inari Taisha 📍",
+      "template": "A_minority",
+      "generation_id": "5ac0d248-b30c-405e-b95e-1d1d03346b6e",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061832_5ac0d248-b30c-405e-b95e-1d1d03346b6e.png",
+      "prompt": "Studio Ghibli anime movie still of a mountainside tunnel of vermillion wooden shrine gates (torii) at Fushimi Inari shrine in Kyoto, Japan, dappled sunlight, painterly background art, Miyazaki film aesthetic."
+    },
+    "kyotostation": {
+      "place": "Kyoto hotel area – Kyoto Station 🏨",
+      "template": "B_dominant",
+      "generation_id": "41d2d9ca-f622-4614-962c-37252a5f7139",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061758_41d2d9ca-f622-4614-962c-37252a5f7139.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Kyoto Station's vast modern glass-and-steel atrium, dramatic architectural lines, soft light streaming through the glass roof, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "hommachi": {
+      "place": "Osaka hotel area – Hommachi 🏨",
+      "template": "B_dominant",
+      "generation_id": "4108d729-4e69-4bf8-8622-d51b8e07cf9d",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061758_4108d729-4e69-4bf8-8622-d51b8e07cf9d.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of a quiet Hommachi street in Osaka — modern low-rise office buildings and small shops lining a tree-planted avenue, soft daylight, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "kobe": {
+      "place": "Kobe Airport (UKB) ✈️",
+      "template": "B_dominant",
+      "generation_id": "069df509-10e5-4f48-ab6f-ce950c257845",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061757_069df509-10e5-4f48-ab6f-ce950c257845.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Kobe Airport's small terminal building beside the sea, a plane on the tarmac, calm blue sky, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "asakusa": {
+      "place": "Tokyo hotel area – Asakusa 🏨",
+      "template": "B_dominant",
+      "generation_id": "eeae6745-6c6e-4c85-9f19-bc1b7889e3fb",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061757_eeae6745-6c6e-4c85-9f19-bc1b7889e3fb.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Nakamise shopping street in Asakusa leading toward Sensō-ji temple — traditional stalls with red awnings, cheerful crowds, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "haneda": {
+      "place": "Haneda Airport (HND) ✈️",
+      "template": "B_dominant",
+      "generation_id": "43914636-0e61-423e-85f4-4e15f3a414e7",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061757_43914636-0e61-423e-85f4-4e15f3a414e7.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Haneda Airport's modern terminal building, an airplane taking off into a soft evening sky glowing with sunset colors, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "ginza": {
+      "place": "Ginza 🛍",
+      "template": "B_dominant",
+      "generation_id": "4d59a64c-ac74-44e2-965c-a73ac8bc22ea",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_4d59a64c-ac74-44e2-965c-a73ac8bc22ea.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime night scene of Ginza, Tokyo — elegant department store facades glowing with lights, a wide clean boulevard, gentle city bustle, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "sensoji": {
+      "place": "Senso-ji / Asakusa 📍",
+      "template": "B_dominant",
+      "generation_id": "1a282190-91d2-4a47-9aa1-1b152bbad9b2",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_1a282190-91d2-4a47-9aa1-1b152bbad9b2.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Sensō-ji temple in Asakusa, Tokyo — the great red Kaminarimon lantern gate with the pagoda in the background, a lively temple approach, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "pontocho": {
+      "place": "Pontocho & Kamo River 🍜",
+      "template": "B_dominant",
+      "generation_id": "d7339bad-ad93-4a8a-b729-2f3b5d6f7100",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_d7339bad-ad93-4a8a-b729-2f3b5d6f7100.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime evening scene of the narrow lantern-lit Pontochō alley in Kyoto beside the Kamo River, traditional wooden machiya buildings, warm lantern glow, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "narapark": {
+      "place": "Nara Park 🌿",
+      "template": "B_dominant",
+      "generation_id": "e4ed6cf1-2601-493a-8dcd-fe040224a1fb",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_e4ed6cf1-2601-493a-8dcd-fe040224a1fb.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Nara Park — wide green lawns, wild sika deer grazing among visitors, old stone lanterns, soft afternoon light, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "tsukiji": {
+      "place": "Tsukiji Outer Market 🍜",
+      "template": "B_dominant",
+      "generation_id": "8e8e9022-5929-4fda-b40f-d80ffa38de8e",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_8e8e9022-5929-4fda-b40f-d80ffa38de8e.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of Tsukiji Outer Market in Tokyo — narrow lively lanes lined with food stalls, steam rising from grills, colorful awnings, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "arashiyama": {
+      "place": "Arashiyama Bamboo Grove 🌿",
+      "template": "B_dominant",
+      "generation_id": "a487b1dc-0d10-4d71-ae57-13919609e73f",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_a487b1dc-0d10-4d71-ae57-13919609e73f.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene inside the Arashiyama bamboo grove in Kyoto — towering green bamboo stalks lining a narrow path, dappled sunlight filtering through, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "gion": {
+      "place": "Gion / Hanamikoji 🛍",
+      "template": "B_dominant",
+      "generation_id": "9f31cc8b-bc89-44b9-8def-0ba354bee59e",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_9f31cc8b-bc89-44b9-8def-0ba354bee59e.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime evening scene of Hanamikoji Street in Gion, Kyoto — traditional wooden teahouse facades, lantern light, quiet cobblestone lane, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "dotonbori": {
+      "place": "Dotonbori 🍜",
+      "template": "B_dominant",
+      "generation_id": "460a6c59-7079-461b-acc3-48e3c0bbc8ed",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_460a6c59-7079-461b-acc3-48e3c0bbc8ed.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime night scene of Dōtonbori canal in Osaka — glowing neon signs reflecting on the water, the giant Glico running-man billboard, bustling crowds on the bridge, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    },
+    "itsukushima": {
+      "place": "Itsukushima Shrine & Torii 🌿",
+      "template": "B_dominant",
+      "generation_id": "9a2e55d4-d4e3-4511-b7d9-4d1dbfac7201",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_061743_9a2e55d4-d4e3-4511-b7d9-4d1dbfac7201.png",
+      "prompt": "A Studio Ghibli-style hand-painted anime scene of the floating red torii gate of Itsukushima Shrine on Miyajima island, calm sea water around it, forested mountain behind, soft dusk light, warm painterly colors, Miyazaki-esque atmosphere, no text or watermark."
+    }
+  },
+  "planned": {
+    "hozenji": {
+      "place": "Hozenji Yokocho 📍",
+      "prompt": "Studio Ghibli anime movie still of a tiny stone-paved alley in Osaka barely two metres wide — wooden shopfronts and paper lanterns on both sides, a small stone Buddha statue completely covered in thick green moss and glistening with poured water, evening lantern glow, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "namba": {
+      "place": "Namba / Shinsaibashi 🛍",
+      "prompt": "Studio Ghibli anime movie still of a long covered shopping arcade in Osaka — an arched translucent roof overhead, shop awnings and hanging banners receding far into the distance, shoppers moving in both directions, bright diffused daylight, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "shinsekai": {
+      "place": "Shinsekai 🍜",
+      "prompt": "Studio Ghibli anime movie still of the Tsutenkaku tower rising above the retro Shinsekai district of Osaka — dense hand-painted signboards and skewer-shop lanterns crowding the street below, tangled overhead wires, dusk with the tower lit, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "osakacastle": {
+      "place": "Osaka Castle Park 🌿",
+      "prompt": "Studio Ghibli anime movie still of Osaka Castle seen across its wide moat — white walls, green tiled roofs and gold trim, an enormous cyclopean stone wall at the water's edge, park trees just starting to turn, clear bright afternoon, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "nakazakicho": {
+      "place": "Nakazakicho / Tenjinbashisuji 🍜",
+      "prompt": "Studio Ghibli anime movie still of a narrow lane of surviving pre-war wooden houses in Nakazakicho, Osaka — several converted into tiny cafés, potted plants crowding the doorsteps, bicycles leaning on walls, soft low morning sun, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "kasuga": {
+      "place": "Kasuga Taisha 🌿",
+      "prompt": "Studio Ghibli anime movie still of the forest approach to Kasuga Taisha in Nara — hundreds of moss-covered stone lanterns in rows under towering cedar trunks, vermillion shrine buildings glimpsed behind them, a deer standing among the lanterns, misty morning light in shafts, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "naramachi": {
+      "place": "Naramachi 🍜",
+      "prompt": "Studio Ghibli anime movie still of a quiet lane of old merchant townhouses in Naramachi, Nara — latticed wooden facades, narrow frontages, clusters of small red cloth monkey charms hanging in bunches above the doorways, soft afternoon daylight, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "okonomimura": {
+      "place": "Okonomimura / Hiroshima okonomiyaki 🍜",
+      "prompt": "Studio Ghibli anime movie still of a cramped okonomiyaki floor in Hiroshima — cooks working a long row of hot iron griddles, thin pancakes layered with mountains of shredded cabbage and noodles, steam rising, customers on stools right at the griddle edge, warm interior light, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "yasaka": {
+      "place": "Yasaka Shrine 📍",
+      "prompt": "Studio Ghibli anime movie still of the dance hall at Yasaka Shrine in Kyoto — hundreds of square paper lanterns hung in tiers under its roof, all lit, vermillion shrine buildings around a dark courtyard, evening, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "kiyomizu": {
+      "place": "Kiyomizu-dera 📍",
+      "prompt": "Studio Ghibli anime movie still of the great wooden veranda of Kiyomizu-dera in Kyoto — the hall standing on tall interlocking timber pillars high above a wooded hillside, the city spread out far below, trees only beginning to turn, clear early morning with low sun and almost no visitors, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "maruyama": {
+      "place": "Gion / Maruyama area 🍜",
+      "prompt": "Studio Ghibli anime movie still of Maruyama Park in Kyoto in autumn — the huge old weeping cherry tree bare of blossom, its branches lit from below, stone paths, teahouse lanterns among the trees, quiet October evening, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "imperialpalace": {
+      "place": "Kyoto Imperial Palace 📍",
+      "prompt": "Studio Ghibli anime movie still of the Kyoto Imperial Palace grounds — a vast empty raked-gravel courtyard, long low halls with deep cypress-bark roofs, an earthen wall with a tiled coping, ancient pines, clear bright autumn day, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "jidaimatsuri": {
+      "place": "Jidai Matsuri route 📍",
+      "prompt": "Studio Ghibli anime movie still of a historical costume procession filling a wide Kyoto avenue — marchers in Heian-era court robes, Edo-era armour and Meiji-era uniforms one group after another, ox carts and banners, spectators packed along the kerb, bright midday, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "heianjingu": {
+      "place": "Heian Jingu 📍",
+      "prompt": "Studio Ghibli anime movie still of the enormous vermillion torii gate of Heian Jingu in Kyoto — the gate towering over a broad approach avenue so tall it barely fits the frame, the shrine's bright orange and green hall small in the distance, afternoon light, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "pontochodinner": {
+      "place": "Pontocho / local dinner 🍜",
+      "prompt": "Studio Ghibli anime movie still of the inside of a tiny Kyoto restaurant on Pontochō — six seats at a worn wooden counter, the chef working directly opposite the guests, bottles and small dishes on shelves behind him, warm low lamplight, night, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "togetsukyo": {
+      "place": "Togetsukyo Bridge 🌿",
+      "prompt": "Studio Ghibli anime movie still of the long low Togetsukyo bridge across the Katsura River at Arashiyama — the forested mountain behind it still mostly green with the first hints of colour, small boats on the water, golden hour light along the river, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "sensojinight": {
+      "place": "Senso-ji at night 📍",
+      "prompt": "Studio Ghibli anime movie still of Sensō-ji in Asakusa at night — the five-storey pagoda and main hall floodlit against a dark sky, the Nakamise shopping street shuttered and completely empty, the lit Tokyo Skytree standing far behind, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "shinjukugyoen": {
+      "place": "Shinjuku Gyoen 🌿",
+      "prompt": "Studio Ghibli anime movie still of Shinjuku Gyoen in Tokyo — broad open lawns, a pond with a small wooden bridge and a traditional pavilion, mixed English and Japanese garden planting, the Shinjuku skyscrapers rising behind the treeline, early autumn afternoon, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "meijijingu": {
+      "place": "Meiji Jingu 📍",
+      "prompt": "Studio Ghibli anime movie still of the long gravel approach to Meiji Jingu in Tokyo — a huge plain unpainted cypress torii gate, dense planted forest pressing in on both sides, shafts of light falling between the trunks, a few people walking, quiet morning, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "harajuku": {
+      "place": "Harajuku / Cat Street 🛍",
+      "prompt": "Studio Ghibli anime movie still of Cat Street in Harajuku, Tokyo — a narrow winding lane following the curve of a buried river, small boutiques in low buildings, young people walking and sitting on steps, bright afternoon, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "shibuyasky": {
+      "place": "Shibuya Sky 📍",
+      "prompt": "Studio Ghibli anime movie still of the view from a rooftop observation deck high above the Shibuya scramble crossing in Tokyo — streets and railway lines radiating outward, the crowd crossing in all directions far below, the city stretching to the horizon with Mount Fuji faint at the edge, blue hour, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "omoideyokocho": {
+      "place": "Shibuya / Omoide Yokocho 🍜",
+      "prompt": "Studio Ghibli anime movie still of Omoide Yokocho in Tokyo — an alley barely a metre wide packed with tiny yakitori bars, six stools to a counter, smoke rising off the grills, red lanterns and hanging bulbs overhead, night, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "ameyoko": {
+      "place": "Ueno / Ameyoko 🍜",
+      "prompt": "Studio Ghibli anime movie still of Ameyoko market under the railway viaduct at Ueno, Tokyo — dense stalls of dried food, sweets and cheap clothing, hanging signs and awnings crowding overhead, a train passing on the elevated tracks above, busy afternoon, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "yanaka": {
+      "place": "Yanaka Ginza 🛍",
+      "prompt": "Studio Ghibli anime movie still of Yanaka Ginza in old Tokyo — a short sloping shopping street of low pre-war shopfronts with fabric awnings, a cat asleep on a roof, the sun setting straight down the length of the street, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "nezu": {
+      "place": "Nezu Shrine 📍",
+      "prompt": "Studio Ghibli anime movie still of a short tunnel of small closely-spaced red torii gates climbing a mossy hillside at Nezu Shrine in Tokyo — stone steps, dense green around it, completely empty of people, soft filtered daylight, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "tokyostation": {
+      "place": "Tokyo Station / Marunouchi 📍",
+      "prompt": "Studio Ghibli anime movie still of the red-brick Marunouchi facade of Tokyo Station — its two restored domes and long symmetrical front, the glass towers of the business district rising immediately behind, evening with the building lit and office lights coming on, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "kiyosumi": {
+      "place": "Kiyosumi-Shirakawa 🌿",
+      "prompt": "Studio Ghibli anime movie still of the strolling garden at Kiyosumi in Tokyo — flat stepping stones laid in a line across a still pond, large landscape rocks brought from all over the country set along the banks, a wooden teahouse standing out over the water, carp below the surface, soft early autumn morning, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "monzennakacho": {
+      "place": "Monzen-Nakacho 🍜",
+      "prompt": "Studio Ghibli anime movie still of the approach to Tomioka Hachimangu shrine in Tokyo — a stone torii gate, the tall stone monument to sumo grand champions standing in the precinct, and a side street of small izakaya with lanterns already lit, evening, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "kappabashi": {
+      "place": "Asakusa / last walk or shopping 🛍",
+      "prompt": "Studio Ghibli anime movie still of Kappabashi kitchenware street in Tokyo — shopfronts packed with rows of chef's knives, stacked ceramics and trays of glossy plastic food samples, a quiet weekday morning with the shutters just up, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "lima": {
+      "place": "LIMA — izakaya 🍺",
+      "prompt": "Studio Ghibli anime movie still of a small basement izakaya in Gotanda, Tokyo — a handful of office workers along a short counter, bottles crowding the shelves behind the bar, a dartboard in the corner, low warm late-night light down a narrow staircase, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    },
+    "uniqlo": {
+      "place": "UNIQLO TOKYO — Ginza 🛍",
+      "prompt": "Studio Ghibli anime movie still of a tall multi-floor glass flagship clothing store on a Ginza corner in Tokyo — every floor bright and visible through the facade, racks and mannequins in neat rows, shoppers on the crossing outside, evening, mid-October early autumn in Japan, hand-painted painterly background art, warm colours, Miyazaki film aesthetic, no text or watermark."
+    }
+  },
+  "generated_documentary": {
+    "abdome": {
+      "place": "Atomic Bomb Dome 📍",
+      "style": "documentary",
+      "generation_id": "f3230ea4-9d03-4242-9ba2-73a2837ea8e8",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_204254_f3230ea4-9d03-4242-9ba2-73a2837ea8e8.png",
+      "prompt": "Documentary architectural photograph of the Atomic Bomb Dome in Hiroshima, Japan. The preserved brick ruin of the former Prefectural Industrial Promotion Hall, its empty window openings and the bare steel framework of the collapsed dome left exactly as they stood. Seen from across the Motoyasu River, straight-on, level horizon. Flat overcast autumn daylight, no direct sun. Muted neutral colour, no colour grading, no lens flare, no dramatic sky. No people in frame. Sober, factual, archival record of a preserved ruin. Absolutely no stylisation, no illustration, no painterly effect, no anime. No text, no letters, no watermark."
+    },
+    "peacepark": {
+      "place": "Hiroshima Peace Memorial Park 📍",
+      "style": "documentary",
+      "generation_id": "74ae65f3-ff00-4381-b012-82f3086b78c3",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_204254_74ae65f3-ff00-4381-b012-82f3086b78c3.png",
+      "prompt": "Documentary photograph of the Hiroshima Peace Memorial Park, Japan, along its central axis. The low arched concrete cenotaph in the foreground, the Flame of Peace behind it, and the Atomic Bomb Dome aligned directly beyond, all on one straight line. Trimmed lawns, paved walkways, mature trees at the edges. Flat overcast autumn daylight. Muted neutral colour, restrained and factual. Empty of visitors. Absolutely no stylisation, no illustration, no painterly effect, no anime, no dramatic lighting. No text, no letters, no watermark."
+    },
+    "peacemuseum": {
+      "place": "Hiroshima Peace Memorial Museum 📍",
+      "style": "documentary",
+      "generation_id": "b23f9177-d1d2-43b6-a524-439c1ec47585",
+      "raw_url": "https://d8j0ntlcm91z4.cloudfront.net/user_34EE9yH0HSVgjFlqQ1g3Cx05cLL/hf_20260918_204254_b23f9177-d1d2-43b6-a524-439c1ec47585.png",
+      "prompt": "Documentary architectural photograph of the Hiroshima Peace Memorial Museum in Japan. The long horizontal modernist concrete building raised on tall square pilotis, its bare underside forming an open passage at ground level, and through that opening the cenotaph and the distant Atomic Bomb Dome visible on the park's axis. Flat overcast autumn daylight, level straight-on framing, concrete texture visible. Muted neutral colour. Empty of visitors. Absolutely no stylisation, no illustration, no painterly effect, no anime. No text, no letters, no watermark."
+    }
+  }
+}

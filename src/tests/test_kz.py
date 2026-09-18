@@ -196,7 +196,104 @@ async def main():
         r["errors"] = errs
         r["blocked_requests"] = len(net)   # expected offline: tiles + weather
         await b.close()
+
+    # 14. the spec asks for interactivity within 2s on an iPhone 12 with no network.
+    # The page carries ~1.4 MB of base64 illustrations, so this is measured, not assumed:
+    # the data URIs are only strings until a card opens, which is why it stays cheap.
+    r["14_time_to_interactive_ms"] = await measure_tti()
+    r["15_panel_mode"] = await check_panel_mode()
     print(json.dumps(r, ensure_ascii=False, indent=1))
+
+
+async def check_panel_mode():
+    """Cards can move out of the popup into a right-hand panel. Checked on both widths:
+       36% of a desktop screen with the map keeping the left, a near-full sheet on a
+       phone, every fact expanded, and the choice remembered across a reload."""
+    out = {}
+    goto = ('(l)=>{const i=DATA.places.findIndex(p=>p.label===l);'
+            ' map.setView([DATA.places[i].lat,DATA.places[i].lng],16); return i;}')
+    open_ = ('(i)=>new Promise(r=>{cluster.zoomToShowLayer(markers[i],'
+             '()=>{openPlace(markers[i]); setTimeout(r,150);})})')
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        for name, vp, mob in (("desktop", {"width": 1280, "height": 800}, False),
+                              ("phone", {"width": 390, "height": 844}, True)):
+            ctx = await b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
+            await ctx.route("**://**", lambda rt: rt.abort()
+                            if rt.request.url.startswith("http") else rt.continue_())
+            pg = await ctx.new_page()
+            errs = []
+            pg.on("pageerror", lambda e: errs.append(str(e)))
+            await pg.goto(FILE, wait_until="load")
+            await pg.wait_for_timeout(1500)
+
+            await pg.locator("#btnCard").click()
+            await pg.wait_for_timeout(250)
+            i = await pg.evaluate(goto, "Ginza")
+            await pg.wait_for_timeout(450)
+            await pg.evaluate(open_, i)
+            await pg.wait_for_timeout(400)
+
+            o = {"popups": await pg.locator(".leaflet-popup").count(),
+                 "panel_open": await pg.evaluate("cardEl.classList.contains('open')"),
+                 "facts_shown": await pg.evaluate(
+                     "document.querySelectorAll('.cardpanel .kzi, .cardpanel .kzg').length"),
+                 "more_button": await pg.locator(".cardpanel [data-kzmore]").count()}
+            box = await pg.evaluate("()=>{const b=cardEl.getBoundingClientRect();"
+                                    " return {x:Math.round(b.x), w:Math.round(b.width)};}")
+            o["width_pct"] = round(box["w"] / vp["width"] * 100)
+            o["map_left_px"] = box["x"]
+            if not mob:   # only meaningful where the panel does not cover the map
+                await pg.evaluate("fitDay(10)")
+                await pg.wait_for_timeout(600)
+                o["pins_under_panel"] = await pg.evaluate(
+                    """()=>{const b=cardEl.getBoundingClientRect();
+                    return [...document.querySelectorAll('.pin,.cl')].filter(e=>{
+                      const p=e.getBoundingClientRect();
+                      return p.left > b.left-6 && p.top < b.bottom && p.bottom > b.top;
+                    }).length;}""")
+            await pg.locator("#btnInfo").click()
+            await pg.wait_for_timeout(250)
+            o["card_closed_by_info"] = not await pg.evaluate(
+                "cardEl.classList.contains('open')")
+            await pg.reload(wait_until="load")
+            await pg.wait_for_timeout(1400)
+            o["mode_after_reload"] = await pg.evaluate("PANEL_MODE")
+            await pg.locator("#btnCard").click()
+            await pg.wait_for_timeout(250)
+            i = await pg.evaluate(goto, "Ginza")
+            await pg.wait_for_timeout(450)
+            await pg.evaluate(open_, i)
+            await pg.wait_for_timeout(400)
+            o["popup_restored"] = await pg.locator(".leaflet-popup").count()
+            o["errors"] = errs
+            out[name] = o
+            await ctx.close()
+        await b.close()
+    return out
+
+
+async def measure_tti(runs=3, cpu_rate=4):
+    """Median ms from navigation to markers on the map, offline, CPU throttled 4x."""
+    out = []
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        for _ in range(runs):
+            ctx = await b.new_context(viewport={"width": 390, "height": 844},
+                                      is_mobile=True, has_touch=True)
+            await ctx.route("**://**", lambda rt: rt.abort()
+                            if rt.request.url.startswith("http") else rt.continue_())
+            pg = await ctx.new_page()
+            cdp = await ctx.new_cdp_session(pg)
+            await cdp.send("Emulation.setCPUThrottlingRate", {"rate": cpu_rate})
+            await pg.goto(FILE, wait_until="load")
+            await pg.wait_for_function(
+                "() => document.querySelectorAll('.cl, .pin').length > 0", timeout=30000)
+            out.append(await pg.evaluate("performance.now()"))
+            await ctx.close()
+        await b.close()
+    out.sort()
+    return round(out[len(out) // 2])
 
 
 asyncio.run(main())

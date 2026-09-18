@@ -64,6 +64,15 @@ GHIBLI = {
     "Kobe Airport (UKB) ✈️": "kobe",
     "Haneda Airport (HND) ✈️": "haneda",
 }
+# The Hiroshima memorials are deliberately not stylised: a Ghibli-style illustration
+# of an atomic bombing memorial would be tasteless. These are restrained documentary
+# views, and the card labels them differently so the two registers never get confused.
+DOCUMENTARY = {
+    "Atomic Bomb Dome 📍": "abdome",
+    "Hiroshima Peace Memorial Park 📍": "peacepark",
+    "Hiroshima Peace Memorial Museum 📍": "peacemuseum",
+}
+
 IMG_DIR = pathlib.Path("img")
 
 
@@ -291,8 +300,9 @@ _kz_orphans = sorted(KZ_FACTS.keys() - {place_label(s["name"]) for s in STOPS})
 assert not _kz_orphans, f"kz_facts.json keys with no stop: {_kz_orphans}"
 
 for s in STOPS:
-    key = GHIBLI.get(s["name"])
+    key = GHIBLI.get(s["name"]) or DOCUMENTARY.get(s["name"])
     s["img"] = data_uri(key) if key else None
+    s["img_style"] = "doc" if s["name"] in DOCUMENTARY else ("art" if key else None)
     s["color"] = CITY_COLOR.get(s["city"], "#475569")
     s["emoji"] = CAT_META.get(s["category"], {}).get("emoji", "📍")
     # strip the trailing emoji from the display name — the marker carries it
@@ -309,7 +319,7 @@ for s in STOPS:
         index[key] = len(places)
         places.append({
             "label": s["label"], "city": s["city"], "category": s["category"],
-            "lat": s["lat"], "lng": s["lng"], "img": s["img"],
+            "lat": s["lat"], "lng": s["lng"], "img": s["img"], "imgStyle": s["img_style"],
             "color": s["color"], "emoji": s["emoji"], "days": [], "visits": [],
             "kz": KZ_FACTS.get(s["label"], []),
         })
@@ -611,6 +621,35 @@ HTML = """<!DOCTYPE html>
   .legend .bingo-note { font-size: 11.5px; color: var(--warn-fg); background: var(--warn-bg);
     border-radius: 8px; padding: 6px 8px; margin-top: 6px; }
 
+  /* ---------- place card as a panel ----------
+     Same markup as the popup, more room to read it. Under 900px it becomes a nearly
+     full-height sheet, which is also the answer to "make the blocks bigger" on a phone;
+     from 900px it is a right-hand column and the map keeps the left. */
+  .cardpanel { position: fixed; z-index: 1002; display: none; overflow: auto;
+    -webkit-overflow-scrolling: touch; padding: 12px 14px 16px;
+    left: 8px; right: 8px; top: calc(140px + var(--safe-t)); bottom: calc(26px + var(--safe-b));
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: var(--shadow); backdrop-filter: saturate(160%) blur(12px); }
+  .cardpanel.open { display: block; }
+  .cardpanel .cardclose { float: right; margin: -2px -4px 4px 10px; border: 0; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 11px; background: var(--chip);
+    color: var(--text); font: inherit; font-size: 16px; }
+  .cardpanel .pop { font-size: 13.5px; line-height: 1.5; }
+  .cardpanel .pop h4 { font-size: 19px; margin-bottom: 2px; }
+  .cardpanel .pop .meta { font-size: 13px; margin-bottom: 10px; }
+  .cardpanel .pop img { aspect-ratio: 16 / 10; max-height: 320px; }
+  .cardpanel .pop .vrow span { font-size: 13.5px; }
+  .cardpanel .pop .wxline, .cardpanel .pop .bkbox { font-size: 13px; }
+  .cardpanel .pop .links a { font-size: 13.5px; padding: 11px 6px; }
+  .cardpanel .pop .kzi b { font-size: 14px; }
+  .cardpanel .pop .kzi span, .cardpanel .pop .kzg p,
+  .cardpanel .pop .kzab, .cardpanel .pop .kzrev { font-size: 13px; }
+  .cardpanel .pop .kzbtn { font-size: 13px; padding: 7px 13px; }
+  @media (min-width: 900px) {
+    .cardpanel { left: auto; right: 12px; top: calc(142px + var(--safe-t)); bottom: 14px;
+      width: clamp(360px, 36vw, 560px); }
+  }
+
   /* ---------- flights ---------- */
   .lbl { font-size: 11px; font-weight: 600; color: #6b7785; white-space: nowrap;
     text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 5px var(--bg);
@@ -637,7 +676,11 @@ HTML = """<!DOCTYPE html>
   <button class="btn" id="btnDays" type="button">📋<span class="lbl"> Дни</span></button>
   <button class="btn" id="btnBook" type="button">🎫<span class="lbl"> Брони</span></button>
   <button class="btn" id="btnInfo" type="button">ℹ️<span class="lbl"> Инфо</span></button>
+  <button class="btn" id="btnCard" type="button" title="Карточки места в боковой панели"
+    >◧<span class="lbl"> Панель</span></button>
 </div>
+
+<aside class="cardpanel" id="cardPanel"></aside>
 
 <div class="rail">
   <div class="scroller" id="dayChips"></div>
@@ -659,6 +702,7 @@ HTML = """<!DOCTYPE html>
   <h3>Иконка — категория</h3>
   <div class="row" id="legendCats"></div>
   <div class="row">🎨 жёлтая обводка — есть Ghibli-версия места (17 точек)</div>
+  <div class="row">Три точки в Хиросиме показаны сдержанным документальным видом, без стилизации — это мемориал, а не достопримечательность</div>
   <div class="row">🎫 значок на метке — место требует брони, детали в панели «Брони»</div>
   <div class="row">🛬 зелёная дуга — прилёт 17 окт, 🛫 красная — вылет 27 окт</div>
   <div class="row">В каждом попапе есть ссылки «Google Maps» (адрес места) и «Маршрут» (проезд на транспорте)</div>
@@ -749,11 +793,12 @@ DATA.transfers.forEach(t => {
 const esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-function popupHtml(p) {
+function popupHtml(p, all) {
+  const doc = p.imgStyle === 'doc';
   const img = p.img
-    ? `<img src="${esc(p.img)}" alt="Ghibli-версия: ${esc(p.label)}" loading="lazy"
+    ? `<img src="${esc(p.img)}" alt="${doc ? 'Документальный вид' : 'Ghibli-версия'}: ${esc(p.label)}" loading="lazy"
             onerror="this.style.display='none';this.nextElementSibling.style.display='none';">
-       <div class="cap">🎨 Ghibli-версия места</div>`
+       <div class="cap">${doc ? 'Документальный вид места' : '🎨 Ghibli-версия места'}</div>`
     : '';
   const rows = p.visits.map(v => `<div class="vrow"><b>Д${v.day}</b>
       <span>${esc(v.time)}${v.notes ? ' — ' + esc(v.notes) : ''}${v.overnight ? ' 🌙 ' + esc(v.overnight) : ''}</span>
@@ -771,7 +816,7 @@ function popupHtml(p) {
     <div class="sched">${rows}</div>
     ${wx}
     ${bk}
-    ${kzHtml(p)}
+    ${kzHtml(p, all)}
     <div class="links">
       <a href="${gmapsPlace(p)}" target="_blank" rel="noopener">📍 Google Maps</a>
       <a href="${gmapsDir(p)}" target="_blank" rel="noopener">🧭 Маршрут</a>
@@ -845,11 +890,12 @@ function kzItem(f) {
     <span>${esc(f.text)}</span></div>`;
 }
 
-function kzHtml(p) {
+function kzHtml(p, all) {
   const list = p.kz || [];
   if (!list.length) return '';
-  const head = list.slice(0, 2).map(kzItem).join('');
-  const rest = list.slice(2);
+  // in the panel there is room, so nothing hides behind a button
+  const head = (all ? list : list.slice(0, 2)).map(kzItem).join('');
+  const rest = all ? [] : list.slice(2);
   const more = rest.length
     ? `<button class="kzmore" type="button" data-kzmore>Ещё ${rest.length} ${plural2(rest.length)} ↓</button>
        <div class="kzrest">${rest.map(kzItem).join('')}</div>`
@@ -918,19 +964,26 @@ function gmapsDir(p) {
    the screen to the card: on a 844px phone that is ~580px instead of a fixed cap. */
 function popupMaxH() { return Math.max(300, window.innerHeight - 264); }
 
+// built on open, not on load: the weather arrives later and the card must show it
+function bindCard(m, p) {
+  m.bindPopup(() => popupHtml(p), { maxWidth: 286, maxHeight: popupMaxH(),
+    autoPanPaddingTopLeft: [16, 136], autoPanPaddingBottomRight: [16, 28] });
+}
+
 const markers = DATA.places.map((p, i) => {
   const m = L.marker([p.lat, p.lng], {
     icon: L.divIcon({
       className: 'pin-wrap',
-      html: `<div class="pin${p.img ? ' art' : ''}" style="background:${p.color}">${p.emoji}${
+      html: `<div class="pin${p.imgStyle === 'art' ? ' art' : ''}" style="background:${p.color}">${p.emoji}${
         p.booking && p.booking.level !== 'info' ? '<i class="bk">🎫</i>' : ''}</div>`,
       iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14]
     }),
     title: p.label,
     riseOnHover: true
-  // built on open, not on load: the weather arrives later and the popup must show it
-  }).bindPopup(() => popupHtml(p), { maxWidth: 286, maxHeight: popupMaxH(),
-      autoPanPaddingTopLeft: [16, 136], autoPanPaddingBottomRight: [16, 28] });
+  });
+  bindCard(m, p);
+  // in panel mode the popup is unbound, so the tap has to be handled here
+  m.on('click', () => { if (PANEL_MODE) showCard(p); });
   m._place = p; m._idx = i;
   return m;
 });
@@ -1003,7 +1056,7 @@ const cluster = L.markerClusterGroup({
     let art = 0;
     kids.forEach(m => {
       tally[m._place.color] = (tally[m._place.color] || 0) + 1;
-      if (m._place.img) art++;
+      if (m._place.imgStyle === 'art') art++;
     });
     const color = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
     const size = n < 5 ? 38 : n < 12 ? 46 : 54;
@@ -1106,12 +1159,15 @@ function renderSheet() {
   });
   const visible = merged.map(x => ({ s: DATA.places[x.p], i: x.p, x }));
   const days = [...new Set(visible.map(({ x }) => x.day))].sort((a, b) => a - b);
-  const artCount = new Set(visible.filter(({ s }) => s.img).map(({ i }) => i)).size;
+  const artCount = new Set(visible.filter(({ s }) => s.imgStyle === 'art').map(({ i }) => i)).size;
+  const docCount = new Set(visible.filter(({ s }) => s.imgStyle === 'doc').map(({ i }) => i)).size;
 
   let html = `<h2>Маршрут по дням</h2>
     <div class="sub">${activeDay === 'all'
         ? `${new Set(visible.map(v => v.i)).size} мест · ${visible.length} остановок`
-        : `день ${activeDay} · ${visible.length} ${plural(visible.length)}`} · 🎨 ${artCount} с Ghibli-версией</div><!--WX-->`;
+        : `день ${activeDay} · ${visible.length} ${plural(visible.length)}`}${
+        artCount ? ` · 🎨 ${artCount} с Ghibli-версией` : ''}${
+        docCount ? ` · ${docCount} документальных` : ''}</div><!--WX-->`;
 
   days.forEach(d => {
     const meta = DATA.days.find(x => x.n === d) || {};
@@ -1120,7 +1176,7 @@ function renderSheet() {
       const times = x.times.join(' · ');
       html += `<button class="stop-row" type="button" data-idx="${i}">
         <span class="dot" style="background:${s.color}">${s.emoji}</span>
-        <span><span class="nm">${esc(s.label)}</span>${s.img ? ' <span class="art-tag">🎨</span>' : ''}
+        <span><span class="nm">${esc(s.label)}</span>${s.imgStyle === 'art' ? ' <span class="art-tag">🎨</span>' : ''}
         <br><span class="mt">${esc(times)} · ${esc(s.city)}${x.overnight ? ' · 🌙 ' + esc(x.overnight) : ''}</span></span></button>`;
     });
     html += `</div>`;
@@ -1132,7 +1188,7 @@ function renderSheet() {
       const m = markers[+btn.dataset.idx];
       if (!cluster.hasLayer(m)) return;
       // zoomToShowLayer expands whatever cluster is hiding the marker, then opens it
-      cluster.zoomToShowLayer(m, () => m.openPopup());
+      cluster.zoomToShowLayer(m, () => openPlace(m));
       if (window.matchMedia('(max-width: 767px)').matches) toggleSheet(false);
     });
   });
@@ -1294,8 +1350,56 @@ function renderBooking() {
       applyFilters();
     }
     if (window.matchMedia('(max-width: 899px)').matches) showPanel(bookEl, false);
-    cluster.zoomToShowLayer(m, () => m.openPopup());
+    cluster.zoomToShowLayer(m, () => openPlace(m));
   }));
+}
+
+/* ---------- place card: popup or side panel ----------
+   One content function serves both. The popup is for a glance, the panel for reading:
+   in the panel every fact is expanded and the image gets a wider crop. The choice is
+   remembered per device, like the task ticks. */
+const CARD_MODE_KEY = 'japan2026.cardpanel.v1';
+let PANEL_MODE = false;
+
+function openPlace(m) {
+  if (PANEL_MODE) showCard(m._place); else m.openPopup();
+}
+
+function showCard(p) {
+  // the panel lives on the right, so whatever else sits there has to go first
+  if (window.matchMedia('(max-width: 899px)').matches) {
+    PANELS.forEach(x => { if (x.el.classList.contains('open')) showPanel(x.el, false); });
+  } else if (legendEl.classList.contains('open')) {
+    showPanel(legendEl, false);
+  }
+  cardEl.innerHTML =
+    '<button class="cardclose" type="button" data-cardclose aria-label="Закрыть">✕</button>' +
+    popupHtml(p, true);
+  cardEl.scrollTop = 0;
+  cardEl.classList.add('open');
+  document.body.classList.add('pl-right');
+}
+
+function closeCard() {
+  if (!cardEl.classList.contains('open')) return;
+  cardEl.classList.remove('open');
+  cardEl.innerHTML = '';
+  document.body.classList.remove('pl-right');
+}
+
+function setPanelMode(on, remember) {
+  PANEL_MODE = on;
+  btnCard.classList.toggle('on', on);
+  if (on) {
+    map.closePopup();
+    markers.forEach(m => m.unbindPopup());
+  } else {
+    closeCard();
+    markers.forEach((m, i) => { if (!m.getPopup()) bindCard(m, DATA.places[i]); });
+  }
+  if (remember) {
+    try { localStorage.setItem(CARD_MODE_KEY, on ? '1' : '0'); } catch (e) { /* private mode */ }
+  }
 }
 
 /* ---------- view helpers ---------- */
@@ -1306,7 +1410,8 @@ function viewPad() {
   if (wide) {
     // on a wide screen the itinerary is a left-hand panel, so it eats width, not height
     const left = sheetOpen ? sheetEl.offsetWidth + 28 : 40;
-    return { paddingTopLeft: [left, topChrome], paddingBottomRight: [40, 60] };
+    const right = cardEl.classList.contains('open') ? cardEl.offsetWidth + 28 : 40;
+    return { paddingTopLeft: [left, topChrome], paddingBottomRight: [right, 60] };
   }
   const bottomChrome = sheetOpen ? Math.min(window.innerHeight * 0.62, 560) + 24 : 40;
   return { paddingTopLeft: [40, topChrome], paddingBottomRight: [40, bottomChrome + 14] };
@@ -1324,6 +1429,8 @@ function fitDay(n) {
 const sheetEl = document.getElementById('sheet');
 const bookEl = document.getElementById('booking');
 const legendEl = document.getElementById('legend');
+const cardEl = document.getElementById('cardPanel');
+const btnCard = document.getElementById('btnCard');
 const btnDays = document.getElementById('btnDays');
 const btnBook = document.getElementById('btnBook');
 const btnInfo = document.getElementById('btnInfo');
@@ -1341,6 +1448,8 @@ function showPanel(target, force) {
     x.el.classList.toggle('open', on);
     x.btn.classList.toggle('on', on);
   });
+  // the card panel shares the right edge on wide screens and the whole screen on a phone
+  if (open && (target === legendEl || window.matchMedia('(max-width: 899px)').matches)) closeCard();
   document.body.classList.toggle('pl-left', open && (target === sheetEl || target === bookEl));
   document.body.classList.toggle('pl-right', open && target === legendEl);
   if (open && target === bookEl) renderBooking();
@@ -1364,6 +1473,8 @@ function toggleSheet(force) { showPanel(sheetEl, force); }
 btnDays.addEventListener('click', () => showPanel(sheetEl));
 btnBook.addEventListener('click', () => showPanel(bookEl));
 btnInfo.addEventListener('click', () => showPanel(legendEl));
+btnCard.addEventListener('click', () => setPanelMode(!PANEL_MODE, true));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 document.getElementById('btnRoute').addEventListener('click', () => {
   routeView = !routeView;
   if (routeView) map.fitBounds(routeLine.getBounds(), viewPad());
@@ -1392,6 +1503,8 @@ if (window.matchMedia('(min-width: 900px)').matches) toggleSheet(true);
 /* Popups are destroyed and rebuilt on every open and the task list is re-rendered on
    every tick, so both are driven by one delegated listener instead of per-node handlers. */
 document.addEventListener('click', e => {
+  if (e.target.closest('[data-cardclose]')) { closeCard(); return; }
+
   const tick = e.target.closest('[data-kzdone]');
   if (tick) {
     const id = tick.dataset.kzdone;
@@ -1415,7 +1528,7 @@ document.addEventListener('click', e => {
       applyFilters();
     }
     if (window.matchMedia('(max-width: 899px)').matches) showPanel(legendEl, false);
-    cluster.zoomToShowLayer(m, () => m.openPopup());
+    cluster.zoomToShowLayer(m, () => openPlace(m));
     return;
   }
 
@@ -1450,6 +1563,7 @@ function boot() {
   map.invalidateSize({ animate: false });
   kzLoadDone();
   renderBingo();
+  try { if (localStorage.getItem(CARD_MODE_KEY) === '1') setPanelMode(true, false); } catch (e) {}
   fitAll();
   syncZoomLayers();
   syncLabels();
@@ -1475,7 +1589,9 @@ open("Japan_Guide_2026.html", "w", encoding="utf-8").write(out)
 _size = pathlib.Path("Japan_Guide_2026.html").stat().st_size
 print(f"written: {_size} bytes ({_size / 1024:.0f} KiB), {len(out)} chars")
 print("places:", len(payload["places"]), "| visits:", len(payload["visits"]),
-      "| places with art:", sum(1 for s in payload["places"] if s["img"]))
+      "| with illustration:", sum(1 for s in payload["places"] if s["img"]),
+      "(art:", sum(1 for s in payload["places"] if s["imgStyle"] == "art"),
+      "| documentary:", sum(1 for s in payload["places"] if s["imgStyle"] == "doc"), ")")
 _kz_n = sum(len(s["kz"]) for s in payload["places"])
 print("kz facts:", _kz_n,
       "| places covered:", sum(1 for s in payload["places"] if s["kz"]), "/", len(payload["places"]),
