@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build a lean, self-contained Leaflet trip guide from the extracted stop data."""
 import base64
+import hashlib
 import json
 import pathlib
 import re
@@ -261,16 +262,41 @@ DAY_NOTES = {
     11: "Утро в Асакусе, вылет из Ханэды",
 }
 
+KZ_EMOJI = ("📍", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
+
+
+def place_label(name: str) -> str:
+    """Marker name minus its trailing category emoji — the join key for every side table."""
+    for e in KZ_EMOJI:
+        name = name.replace(e, "")
+    return name.strip()
+
+
+# Kazakh-Japanese fact layer: same keys as stops.json, joined on the stripped label.
+KZ_RAW = json.loads(pathlib.Path("kz_facts.json").read_text(encoding="utf-8"))["places"]
+KZ_FACTS = {place_label(k): v["facts"] for k, v in KZ_RAW.items()}
+
+# "Find it on the spot" tasks are ticked off and the tick is remembered on the device,
+# so each one needs an id that survives a rebuild. Hashing place+text means reordering
+# the list keeps every tick, while rewriting a task correctly retires the old one.
+KZ_SPOTS = 0
+for _label, _facts in KZ_FACTS.items():
+    for _f in _facts:
+        _g = _f.get("game")
+        if _g and _g.get("type") == "spot":
+            _g["id"] = hashlib.sha1(
+                (_label + "|" + _g["task"]).encode("utf-8")).hexdigest()[:10]
+            KZ_SPOTS += 1
+_kz_orphans = sorted(KZ_FACTS.keys() - {place_label(s["name"]) for s in STOPS})
+assert not _kz_orphans, f"kz_facts.json keys with no stop: {_kz_orphans}"
+
 for s in STOPS:
     key = GHIBLI.get(s["name"])
     s["img"] = data_uri(key) if key else None
     s["color"] = CITY_COLOR.get(s["city"], "#475569")
     s["emoji"] = CAT_META.get(s["category"], {}).get("emoji", "📍")
     # strip the trailing emoji from the display name — the marker carries it
-    label = s["name"]
-    for e in ("📍", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶"):
-        label = label.replace(e, "")
-    s["label"] = label.strip()
+    s["label"] = place_label(s["name"])
 
 DAYS = sorted({s["day"] for s in STOPS})
 DAY_DATES = {s["day"]: s["date"] for s in STOPS}
@@ -285,6 +311,7 @@ for s in STOPS:
             "label": s["label"], "city": s["city"], "category": s["category"],
             "lat": s["lat"], "lng": s["lng"], "img": s["img"],
             "color": s["color"], "emoji": s["emoji"], "days": [], "visits": [],
+            "kz": KZ_FACTS.get(s["label"], []),
         })
     pl = places[index[key]]
     if s.get("gmaps_id"):
@@ -326,6 +353,7 @@ payload = {
     ],
     "labels": [{"n": n, "lat": la, "lng": ln, "z": z, "trip": t} for n, la, ln, z, t in PLACE_LABELS],
     "wxBaked": WX_BAKED,
+    "kzSpots": KZ_SPOTS,
     "tripStart": "2026-10-17",
     "tripEnd": "2026-10-27",
 }
@@ -351,6 +379,7 @@ HTML = """<!DOCTYPE html>
     --chip-on-text: #ffffff;
     --shadow: 0 6px 24px rgba(15,23,42,.16);
     --warn-bg: #fff0d4; --warn-fg: #9a5b00;
+    --kz-bg: #eef7f1; --kz-line: #cbe4d6; --kz-fg: #17663f;
     --radius: 14px;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
@@ -362,6 +391,7 @@ HTML = """<!DOCTYPE html>
       --chip-on: #eef1f5; --chip-on-text: #11151b;
       --shadow: 0 6px 24px rgba(0,0,0,.5);
       --warn-bg: #4a3512; --warn-fg: #ffd08a;
+      --kz-bg: #10201a; --kz-line: #204034; --kz-fg: #7fd3a6;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -525,6 +555,62 @@ HTML = """<!DOCTYPE html>
   .pop .bkbox span { display: block; opacity: .85; margin-top: 3px; font-size: 11.5px; }
   .pop .wxline { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 
+  /* ---------- Kazakh-Japanese layer ---------- */
+  .pop .kzbox { margin: 9px 0 0; padding: 8px 9px; border-radius: 10px;
+    background: var(--kz-bg); border: 1px solid var(--kz-line); }
+  .pop .kzhead { display: flex; align-items: center; gap: 5px; margin-bottom: 7px;
+    font-size: 11.5px; font-weight: 750; color: var(--kz-fg); letter-spacing: .01em; }
+  .pop .kzhead i { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 999px; background: var(--kz-fg); color: var(--kz-bg); }
+  .pop .kzi { margin: 0 0 8px; }
+  .pop .kzi:last-child, .pop .kzrest .kzi:last-child { margin-bottom: 0; }
+  .pop .kzi b { display: block; font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .pop .kzi span { display: block; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+  .pop .kzrest { display: none; }
+  .pop .kzbox.open .kzrest { display: block; }
+  .pop .kzbox.open .kzmore { display: none; }
+  .pop .kzmore, .pop .kzbtn { border: 0; cursor: pointer; font: inherit; font-weight: 650;
+    border-radius: 8px; background: var(--chip); color: var(--text); }
+  .pop .kzmore { width: 100%; margin-top: 2px; font-size: 11.5px; padding: 7px 6px; }
+  .pop .kzbtn { margin-top: 6px; font-size: 11.5px; padding: 5px 11px; }
+  .pop .kzg { border: 1px dashed var(--kz-line); border-radius: 9px;
+    padding: 7px 9px; margin: 0 0 8px; }
+  .pop .kzg > b { display: block; font-size: 10px; font-weight: 750; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--kz-fg); margin-bottom: 3px; }
+  .pop .kzg p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text); }
+  .pop .kzab { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+  .pop .kzrev { display: none; margin-top: 6px; padding-top: 6px; font-size: 11.5px;
+    line-height: 1.5; color: var(--text); border-top: 1px solid var(--kz-line); }
+  .pop .kzg.open .kzrev { display: block; }
+  .pop .kzg.open .kzbtn { display: none; }
+  .pop .kzbtn.kzdone { background: transparent; border: 1px solid var(--kz-line);
+    color: var(--kz-fg); margin-left: 6px; }
+  .pop .kzbtn.kzdone.on { background: var(--kz-fg); color: var(--kz-bg); border-color: var(--kz-fg); }
+  .pop .kzg.open .kzbtn.kzdone { display: inline-block; margin-left: 0; }
+
+  /* ---------- task list in the info panel ---------- */
+  .legend .bingo-n { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+    background: var(--chip); color: var(--muted); margin-left: 5px; }
+  .legend .bingo-n.full { background: var(--kz-fg); color: var(--kz-bg); }
+  .legend .bingo-row { display: flex; align-items: flex-start; gap: 4px; }
+  .legend .bingo-tick { flex: 1; display: flex; gap: 8px; align-items: flex-start; text-align: left;
+    border: 0; background: none; font: inherit; color: var(--text); cursor: pointer;
+    padding: 7px 5px; border-radius: 8px; min-height: 44px; }
+  .legend .bingo-tick:hover { background: var(--chip); }
+  .legend .bingo-tick .box { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px;
+    border-radius: 5px; border: 1.5px solid var(--line); display: inline-block; }
+  .legend .bingo-row.done .box { background: var(--kz-fg); border-color: var(--kz-fg); }
+  .legend .bingo-row.done .box::after { content: "✓"; display: block; text-align: center;
+    line-height: 15px; font-size: 12px; font-weight: 800; color: var(--kz-bg); }
+  .legend .bingo-tick span { font-size: 12px; line-height: 1.4; color: var(--muted); }
+  .legend .bingo-tick span b { display: block; font-size: 11.5px; font-weight: 650; color: var(--text); }
+  .legend .bingo-row.done .bingo-tick span { opacity: .45; text-decoration: line-through; }
+  .legend .bingo-go { flex: 0 0 auto; width: 34px; min-height: 44px; border: 0; cursor: pointer;
+    background: none; color: var(--muted); font: inherit; font-size: 15px; border-radius: 8px; }
+  .legend .bingo-go:hover { background: var(--chip); color: var(--text); }
+  .legend .bingo-note { font-size: 11.5px; color: var(--warn-fg); background: var(--warn-bg);
+    border-radius: 8px; padding: 6px 8px; margin-top: 6px; }
+
   /* ---------- flights ---------- */
   .lbl { font-size: 11px; font-weight: 600; color: #6b7785; white-space: nowrap;
     text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 5px var(--bg);
@@ -562,6 +648,9 @@ HTML = """<!DOCTYPE html>
 <div class="sheet" id="booking"></div>
 
 <div class="legend" id="legend">
+  <h3>🎯 Задания «Степной след»<span class="bingo-n" id="bingoCount">0 / 0</span></h3>
+  <div id="bingoList"></div>
+  <hr>
   <h3>Базы проживания</h3>
   <div class="row" style="color:var(--text)">✈️ Кобе → 🏨 Осака (3 ночи) → 🏨 Киото (3 ночи) → 🏨 Токио / Асакуса (4 ночи) → ✈️ Ханэда</div>
   <hr>
@@ -682,12 +771,129 @@ function popupHtml(p) {
     <div class="sched">${rows}</div>
     ${wx}
     ${bk}
+    ${kzHtml(p)}
     <div class="links">
       <a href="${gmapsPlace(p)}" target="_blank" rel="noopener">📍 Google Maps</a>
       <a href="${gmapsDir(p)}" target="_blank" rel="noopener">🧭 Маршрут</a>
     </div>
   </div>`;
 }
+/* ---------- Kazakh-Japanese layer ----------
+   Facts carry an honesty level and are glyphed by it, so a joke can never read as
+   history. Built with the popup, on open — never at load. */
+const KZ_GLYPH = { fact: '✅', parallel: '🔗', joke: '😄', note: '⚠️' };
+
+/* Ticked-off tasks live on this device only — there is no account and no sync, so
+   each of the four keeps their own progress. Safari in private mode throws on every
+   localStorage call, so the probe decides up front whether ticks will survive a
+   reload; either way they keep working in memory for the current session. */
+const KZ_DONE_KEY = 'japan2026.kzdone.v1';
+const KZ_STORAGE_OK = (() => {
+  try {
+    localStorage.setItem('japan2026.probe', '1');
+    localStorage.removeItem('japan2026.probe');
+    return true;
+  } catch (e) { return false; }
+})();
+let KZ_DONE = {};
+function kzLoadDone() {
+  try {
+    const raw = localStorage.getItem(KZ_DONE_KEY);
+    KZ_DONE = raw ? (JSON.parse(raw) || {}) : {};
+  } catch (e) { KZ_DONE = {}; }
+}
+function kzSaveDone() {
+  try { localStorage.setItem(KZ_DONE_KEY, JSON.stringify(KZ_DONE)); } catch (e) { /* private mode */ }
+}
+function kzToggleDone(id) {
+  if (KZ_DONE[id]) delete KZ_DONE[id]; else KZ_DONE[id] = Date.now();
+  kzSaveDone();
+}
+const KZ_GAME_TITLE = { tf: '🎲 Верю / не верю', order: '🎲 Что было раньше',
+                        guess: '🎲 Угадай', spot: '📸 Задание на месте' };
+
+function kzGame(g) {
+  let body = '', reveal = '';
+  if (g.type === 'tf') {
+    body = `<p>${esc(g.q)}</p>`;
+    reveal = (g.answer ? 'Правда. ' : 'Неправда. ') + g.reveal;
+  } else if (g.type === 'order') {
+    body = `<p>Что было раньше?</p><span class="kzab">A — ${esc(g.a)}</span>` +
+           `<span class="kzab">B — ${esc(g.b)}</span>`;
+    reveal = 'Раньше — ' + (g.answer === 'a' ? 'A. ' : 'B. ') + g.reveal;
+  } else if (g.type === 'guess') {
+    body = `<p>${esc(g.q)}</p>` +
+           (g.options || []).map(o => `<span class="kzab">· ${esc(o)}</span>`).join('');
+    reveal = 'Ответ: ' + (g.options || [])[g.answer] + '. ' + g.reveal;
+  } else if (g.type === 'spot') {
+    const on = !!KZ_DONE[g.id];
+    body = `<p>${esc(g.task)}</p>
+      <button class="kzbtn kzdone${on ? ' on' : ''}" type="button" data-kzdone="${esc(g.id)}"
+        >${on ? '✓ Сделано' : 'Отметить'}</button>`;
+    reveal = 'Чем закрывается: ' + g.proof;
+  } else {
+    return '';
+  }
+  return `<div class="kzg"><b>${esc(KZ_GAME_TITLE[g.type] || 'Игра')}</b>${body}
+    <button class="kzbtn" type="button" data-kzrev>${g.type === 'spot' ? 'Что засчитывается' : 'Показать ответ'}</button>
+    <div class="kzrev">${esc(reveal)}</div></div>`;
+}
+
+function kzItem(f) {
+  if (f.game) return kzGame(f.game);
+  return `<div class="kzi"><b>${KZ_GLYPH[f.level] || '•'} ${esc(f.title)}</b>
+    <span>${esc(f.text)}</span></div>`;
+}
+
+function kzHtml(p) {
+  const list = p.kz || [];
+  if (!list.length) return '';
+  const head = list.slice(0, 2).map(kzItem).join('');
+  const rest = list.slice(2);
+  const more = rest.length
+    ? `<button class="kzmore" type="button" data-kzmore>Ещё ${rest.length} ${plural2(rest.length)} ↓</button>
+       <div class="kzrest">${rest.map(kzItem).join('')}</div>`
+    : '';
+  return `<div class="kzbox">
+    <div class="kzhead">🇰🇿 Степной след <i>${list.length}</i></div>
+    ${head}${more}</div>`;
+}
+
+function plural2(n) {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return 'факт';
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'факта';
+  return 'фактов';
+}
+
+function kzSpotTasks() {
+  const out = [];
+  DATA.places.forEach((p, i) => (p.kz || []).forEach(f => {
+    if (f.game && f.game.type === 'spot') out.push({ p, i, g: f.game });
+  }));
+  return out;
+}
+
+function renderBingo() {
+  const list = document.getElementById('bingoList');
+  const cnt = document.getElementById('bingoCount');
+  if (!list || !cnt) return;
+  const tasks = kzSpotTasks();
+  const done = tasks.filter(t => KZ_DONE[t.g.id]).length;
+  cnt.textContent = done + ' / ' + tasks.length;
+  cnt.classList.toggle('full', tasks.length > 0 && done === tasks.length);
+  list.innerHTML = tasks.map(t => `
+    <div class="bingo-row${KZ_DONE[t.g.id] ? ' done' : ''}">
+      <button class="bingo-tick" type="button" data-kzdone="${esc(t.g.id)}">
+        <i class="box"></i><span><b>${esc(t.p.label)}</b>${esc(t.g.task)}</span></button>
+      <button class="bingo-go" type="button" data-kzgo="${t.i}"
+        aria-label="Показать на карте">→</button>
+    </div>`).join('') +
+    (KZ_STORAGE_OK ? '' :
+      `<div class="bingo-note">Браузер не разрешает локальное хранилище — в приватном
+        режиме Safari отметки живут только до перезагрузки.</div>`);
+}
+
 function catLabel(k) { return (DATA.categories.find(c => c.key === k) || {}).label || k; }
 function bkTitle(l) {
   return l === 'must' ? '🎫 Нужна бронь · ' : l === 'advise' ? '🎫 Лучше забронировать · ' : 'ℹ️ ';
@@ -708,6 +914,10 @@ function gmapsDir(p) {
   return `https://www.google.com/maps/dir/?api=1&destination=${d}${id}&travelmode=transit`;
 }
 
+/* Leave room for the top bar, the two chip rails and the tip, then give the rest of
+   the screen to the card: on a 844px phone that is ~580px instead of a fixed cap. */
+function popupMaxH() { return Math.max(300, window.innerHeight - 264); }
+
 const markers = DATA.places.map((p, i) => {
   const m = L.marker([p.lat, p.lng], {
     icon: L.divIcon({
@@ -719,7 +929,8 @@ const markers = DATA.places.map((p, i) => {
     title: p.label,
     riseOnHover: true
   // built on open, not on load: the weather arrives later and the popup must show it
-  }).bindPopup(() => popupHtml(p), { maxWidth: 286, autoPanPaddingTopLeft: [16, 136], autoPanPaddingBottomRight: [16, 28] });
+  }).bindPopup(() => popupHtml(p), { maxWidth: 286, maxHeight: popupMaxH(),
+      autoPanPaddingTopLeft: [16, 136], autoPanPaddingBottomRight: [16, 28] });
   m._place = p; m._idx = i;
   return m;
 });
@@ -1178,8 +1389,67 @@ buildChips();
 applyFilters();
 if (window.matchMedia('(min-width: 900px)').matches) toggleSheet(true);
 
+/* Popups are destroyed and rebuilt on every open and the task list is re-rendered on
+   every tick, so both are driven by one delegated listener instead of per-node handlers. */
+document.addEventListener('click', e => {
+  const tick = e.target.closest('[data-kzdone]');
+  if (tick) {
+    const id = tick.dataset.kzdone;
+    kzToggleDone(id);
+    const on = !!KZ_DONE[id];
+    if (tick.classList.contains('kzdone')) {           // the button inside a popup
+      tick.classList.toggle('on', on);
+      tick.textContent = on ? '✓ Сделано' : 'Отметить';
+    }
+    renderBingo();                                     // the panel may be open behind it
+  }
+
+  const go = e.target.closest('[data-kzgo]');
+  if (go) {
+    const m = markers[+go.dataset.kzgo];
+    if (!cluster.hasLayer(m)) {            // hidden by a filter — clear it first, as the
+      activeDay = 'all';                   // booking panel does, so the jump never dead-ends
+      [...document.getElementById('dayChips').children].forEach((c, i) => c.classList.toggle('on', i === 0));
+      DATA.categories.forEach(c => activeCats.add(c.key));
+      [...document.getElementById('catChips').children].forEach(c => c.classList.remove('off'));
+      applyFilters();
+    }
+    if (window.matchMedia('(max-width: 899px)').matches) showPanel(legendEl, false);
+    cluster.zoomToShowLayer(m, () => m.openPopup());
+    return;
+  }
+
+  const more = e.target.closest('[data-kzmore]');
+  if (more) {
+    const box = more.closest('.kzbox');
+    if (box) box.classList.add('open');
+  }
+  const rev = e.target.closest('[data-kzrev]');
+  if (rev) {
+    const g = rev.closest('.kzg');
+    if (g) g.classList.add('open');
+  }
+  if (more || rev) {
+    // NB: popup.update() re-runs the content function and would wipe the state we
+    // just set. Re-measure and re-pan only, so the grown card stays on screen.
+    const pop = map._popup;
+    if (pop && pop._updateLayout) pop._updateLayout();
+    if (pop && pop._adjustPan) pop._adjustPan();
+  }
+});
+
+map.on('popupopen', e => {
+  const h = popupMaxH();
+  if (e.popup.options.maxHeight === h) return;
+  e.popup.options.maxHeight = h;
+  if (e.popup._updateLayout) e.popup._updateLayout();
+  if (e.popup._adjustPan) e.popup._adjustPan();
+});
+
 function boot() {
   map.invalidateSize({ animate: false });
+  kzLoadDone();
+  renderBingo();
   fitAll();
   syncZoomLayers();
   syncLabels();
@@ -1200,6 +1470,13 @@ out = (HTML
        .replace("__DATA__", json.dumps(payload, ensure_ascii=False))
        .replace("__BASEMAP__", BASEMAP))
 open("Japan_Guide_2026.html", "w", encoding="utf-8").write(out)
-print("written:", len(out), "bytes")
+# len(out) counts characters; the page is mostly Cyrillic, so UTF-8 on disk is far
+# larger. Report what the phone actually downloads.
+_size = pathlib.Path("Japan_Guide_2026.html").stat().st_size
+print(f"written: {_size} bytes ({_size / 1024:.0f} KiB), {len(out)} chars")
 print("places:", len(payload["places"]), "| visits:", len(payload["visits"]),
       "| places with art:", sum(1 for s in payload["places"] if s["img"]))
+_kz_n = sum(len(s["kz"]) for s in payload["places"])
+print("kz facts:", _kz_n,
+      "| places covered:", sum(1 for s in payload["places"] if s["kz"]), "/", len(payload["places"]),
+      "| games:", sum(1 for s in payload["places"] for f in s["kz"] if "game" in f))

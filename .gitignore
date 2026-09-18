@@ -2,3 +2,6 @@ src/node_modules/
 src/package/
 src/tests/*.png
 __pycache__/
+src/Japan_Guide_2026.html
+src/tests/Japan_Guide_2026.html
+.DS_Store
