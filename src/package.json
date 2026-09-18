@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@turf/bbox-clip": "^6.5.0",
+    "@turf/simplify": "^6.5.0",
+    "topojson-client": "^3.1.0"
+  }
+}

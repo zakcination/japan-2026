@@ -1,0 +1,4 @@
+src/node_modules/
+src/package/
+src/tests/*.png
+__pycache__/
