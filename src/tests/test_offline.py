@@ -2,7 +2,7 @@ import asyncio, json, pathlib
 from playwright.async_api import async_playwright
 FILE = pathlib.Path("Japan_Guide_2026.html").resolve().as_uri() + "#map"
 
-PROBE = open("test_overlap.py").read().split('PROBE = """')[1].split('"""')[0]
+PROBE = open(pathlib.Path(__file__).with_name("test_overlap.py")).read().split('PROBE = """')[1].split('"""')[0]
 
 async def main():
     async with async_playwright() as p:
