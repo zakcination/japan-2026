@@ -20,19 +20,20 @@ def link_for(t):
 
 def test_own_trip_from_storage_is_shown(app):
     a = app(trip=trip(), state={"prevDay": 1, "prevTime": "09:00"})
-    assert "Тестовая поездка".upper() in a.page.inner_text("#today").upper()
+    assert a.page.title() == "Тестовая поездка"
     assert a.errors == []
 
 
 def test_trip_link_imports_and_clears_the_address(app):
     a = app(url_suffix=link_for(trip("Из ссылки")), state={"prevDay": 1, "prevTime": "09:00"})
     a.page.wait_for_function("() => !location.hash.includes('trip=')")
-    assert "ИЗ ССЫЛКИ" in a.page.inner_text("#today").upper()
+    assert a.page.title() == "Из ссылки"
     assert json.loads(a.page.evaluate("localStorage.getItem('japan2026.trip.v1')"))["name"] == "Из ссылки"
 
 
 def test_travellers_setting_scales_prices(app):
     a = app(settings={"travelers": 4, "start": "2026-10-17", "cur": "KZT", "rate": 2.81},
             state={"prevDay": 2, "prevTime": "05:20"})
+    a.page.click(".tc-tab[data-tab='day']")
     text = a.page.inner_text("#today")
     assert "¥840" in text          # JR Yamanote ¥210 per person × 4
