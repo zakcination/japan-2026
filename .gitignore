@@ -6,3 +6,6 @@ src/Japan_Guide_2026.html
 src/tests/Japan_Guide_2026.html
 .DS_Store
 src/.img_cache/
+.venv/
+.pytest_cache/
+__pycache__/
