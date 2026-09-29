@@ -517,3 +517,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Перенос блоков «поездка/настройки», «состояние/время/деньги», «билеты», `bookingById`, `tripFromHash` из `legacy.js` в `store.js` без изменений логики.
 - [x] `pytest` — всё зелёное; коммит.
 
+## Task 3: Каркас — токены, капсула, сегменты, заголовок, вкладки, тема по закату
+
+**Files:** Create `src/today/ui/shell.js`, `src/today/theme.css`, `src/today/components.css`, `src/tests/test_shell.py`; Modify `src/today/legacy.js` (`render` → `renderLegacy`, все обновления → `renderShell`), `src/today/store.js` (`SET.theme`).
+
+**Interfaces — Produces:** `ICONS`, `icon(key, cls?) -> svg`, `TABS`, `RENDER[tab] = (ctx, rootEl) => void`, `tab`, `ctx() -> {c, cday, cevs, day, evs, csun, urg}`, `renderShell()`, `go(tab)`, `sheet(title, bodyHTML, onReady(el))`, `closeSheet()`, `transportIcon(e)`; события `japan2026:tick` и `visibilitychange` перерисовывают экран.
+
+- [x] Тесты: 5 вкладок ≥ 44 px и переключение; капсула calm/soon/go и её отсутствие после последнего пункта; 11 сегментов и заголовок «Вс 18 · 2/11»; тема светлая днём, тёмная после заката, ручная тема; смена темы по тику.
+- [x] Реализация; вкладки без своего рендера показывают старый экран.
+- [x] `pytest` 22/22, тесты карты без ошибок; коммит.
+

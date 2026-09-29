@@ -18,7 +18,8 @@ function loadSettings() {
   try { s = JSON.parse(localStorage.getItem(SET_KEY) || '{}') || {}; } catch (e) {}
   const cur = s.cur || T.currency || 'KZT';
   SET = { travelers: +(s.travelers || T.travelers || 2), start: s.start || T.start || T.days[0].date,
-          cur, rate: +(s.rate || (cur === (T.currency || 'KZT') ? T.rate : 0) || (CUR[cur] || CUR.KZT).rate) };
+          cur, rate: +(s.rate || (cur === (T.currency || 'KZT') ? T.rate : 0) || (CUR[cur] || CUR.KZT).rate),
+          theme: ['auto', 'light', 'dark'].includes(s.theme) ? s.theme : 'auto' };
 }
 loadSettings();
 const saveSettings = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) {} };
@@ -91,7 +92,7 @@ async function tripFromHash() {
     const j = JSON.parse(txt);
     if (!j || !Array.isArray(j.days) || !j.days.length) return false;
     T = j; saveTrip();
-    SET = { travelers: +(j.travelers || 2), start: j.start || j.days[0].date, cur: j.currency || 'KZT',
+    SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date, cur: j.currency || 'KZT',
             rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };
     saveSettings();
     history.replaceState(null, '', location.pathname + location.search);   // don't leave the trip in the address bar

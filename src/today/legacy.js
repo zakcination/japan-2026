@@ -29,7 +29,7 @@ function weatherFor(day) {
   } catch (e) { return null; }
 }
 
-function render() {
+function renderLegacy() {
   const root = document.getElementById('todayBody');
   if (!root) return;
   const c = clock();
@@ -86,7 +86,7 @@ function render() {
     b.type = 'button';
     const iso = dateOf(d), w = new Date(iso + 'T12:00:00Z').getUTCDay();
     b.innerHTML = `<small>${WD_SHORT[w]}</small><b>${+iso.slice(8)}</b><small>${MON[+iso.slice(5, 7) - 1]}</small>`;
-    b.addEventListener('click', () => { viewDay = d.n; render(); });
+    b.addEventListener('click', () => { viewDay = d.n; renderShell(); });
     dates.appendChild(b);
   });
   head.appendChild(dates);
@@ -254,7 +254,7 @@ function render() {
     b.type = 'button';
     b.innerHTML = `<b class="td-mono">${+dateOf(d).slice(8)}</b><span>${esc(d.label)}<br><small>${esc(d.summary)}</small></span>
       <small class="td-mono">${p.filter(e => e.done).length}/${p.length}</small>`;
-    b.addEventListener('click', () => { viewDay = d.n; render(); document.getElementById('today').scrollTo({ top: 0, behavior: 'smooth' }); });
+    b.addEventListener('click', () => { viewDay = d.n; renderShell(); document.getElementById('today').scrollTo({ top: 0, behavior: 'smooth' }); });
     ol.appendChild(b);
   });
   ov.appendChild(ol);
@@ -277,35 +277,35 @@ function wire(root, day) {
   root.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEditor(day, b.dataset.edit)));
   root.querySelectorAll('[data-bkst]').forEach(b => b.addEventListener('click', () => {
     const bk = bookingById(b.dataset.bkst); if (!bk) return;
-    bk.st = bk.st === 'fixed' ? 'input' : 'fixed'; saveTrip(); render();
+    bk.st = bk.st === 'fixed' ? 'input' : 'fixed'; saveTrip(); renderShell();
   }));
   root.querySelector('#tdBook').addEventListener('click', () =>
     document.getElementById('tdBookings').scrollIntoView({ behavior: 'smooth', block: 'start' }));
   const pd = root.querySelector('#tdPvDay'), pt = root.querySelector('#tdPvTime');
-  if (pd) pd.addEventListener('change', () => { S.prevDay = +pd.value; viewDay = S.prevDay; save(); render(); });
-  if (pt) pt.addEventListener('change', () => { if (pt.value) { S.prevTime = pt.value; save(); render(); } });
+  if (pd) pd.addEventListener('change', () => { S.prevDay = +pd.value; viewDay = S.prevDay; save(); renderShell(); });
+  if (pt) pt.addEventListener('change', () => { if (pt.value) { S.prevTime = pt.value; save(); renderShell(); } });
   root.querySelectorAll('[data-done]').forEach(b => b.addEventListener('click', () => {
-    const id = b.dataset.done; if (S.done[id]) delete S.done[id]; else S.done[id] = true; save(); render();
+    const id = b.dataset.done; if (S.done[id]) delete S.done[id]; else S.done[id] = true; save(); renderShell();
   }));
   root.querySelectorAll('[data-skip]').forEach(b => b.addEventListener('click', () => {
-    const id = b.dataset.skip; if (S.skip[id]) delete S.skip[id]; else S.skip[id] = true; save(); render();
+    const id = b.dataset.skip; if (S.skip[id]) delete S.skip[id]; else S.skip[id] = true; save(); renderShell();
   }));
   root.querySelectorAll('[data-delay]').forEach(b => b.addEventListener('click', () => {
     const id = b.dataset.delay, by = +b.dataset.by;
-    if (!by) delete S.delay[id]; else S.delay[id] = (S.delay[id] || 0) + by; save(); render();
+    if (!by) delete S.delay[id]; else S.delay[id] = (S.delay[id] || 0) + by; save(); renderShell();
   }));
   root.querySelectorAll('[data-ticket]').forEach(b => b.addEventListener('click', () => showTicket(b.dataset.ticket)));
   root.querySelectorAll('[data-rmticket]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.confirm) { ticketDel(b.dataset.rmticket).then(refreshTickets).then(render); return; }
+    if (b.dataset.confirm) { ticketDel(b.dataset.rmticket).then(refreshTickets).then(renderShell); return; }
     b.dataset.confirm = '1'; b.textContent = 'Удалить?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = '✕'; } }, 4000);
   }));
   root.querySelectorAll('[data-attach]').forEach(inp => inp.addEventListener('change', () => {
     const f = inp.files && inp.files[0]; if (!f) return;
-    ticketPut(inp.dataset.attach, f).then(refreshTickets).then(render).catch(() => alertLine('Не удалось сохранить файл в этом браузере.'));
+    ticketPut(inp.dataset.attach, f).then(refreshTickets).then(renderShell).catch(() => alertLine('Не удалось сохранить файл в этом браузере.'));
   }));
   const w = root.querySelector('#tdWalk'), sp = root.querySelector('#tdSpent');
-  w.addEventListener('change', () => { if (w.value === '') delete S.walked[day.n]; else S.walked[day.n] = +w.value; save(); render(); });
-  sp.addEventListener('change', () => { if (sp.value === '') delete S.spent[day.n]; else S.spent[day.n] = +sp.value; save(); render(); });
+  w.addEventListener('change', () => { if (w.value === '') delete S.walked[day.n]; else S.walked[day.n] = +w.value; save(); renderShell(); });
+  sp.addEventListener('change', () => { if (sp.value === '') delete S.spent[day.n]; else S.spent[day.n] = +sp.value; save(); renderShell(); });
 }
 function alertLine(msg) { const r = document.getElementById('todayBody'); r.prepend(el('div', 'td-warn', esc(msg))); }
 
@@ -383,7 +383,7 @@ function openSettings() {
       SET.start = m.querySelector('#setStart').value || SET.start;
       SET.cur = m.querySelector('#setCur').value;
       SET.rate = +m.querySelector('#setRate').value || (CUR[SET.cur] || CUR.KZT).rate;
-      saveSettings(); setTitle(); viewDay = null; render(); msg('Сохранено.');
+      saveSettings(); setTitle(); viewDay = null; renderShell(); msg('Сохранено.');
     });
     const exportObj = () => ({ ...T, travelers: SET.travelers, start: SET.start, currency: SET.cur, rate: SET.rate,
                                exported: new Date().toISOString() });
@@ -410,11 +410,11 @@ function openSettings() {
       if (!ok) { msg('Файл не похож на поездку: нужен список days, у каждого дня n и ev с полями s и t.'); return; }
       j.bookings = Array.isArray(j.bookings) ? j.bookings : [];
       T = j; saveTrip();
-      SET = { travelers: +(j.travelers || 2), start: j.start || j.days[0].date || SET.start, cur: j.currency || SET.cur,
+      SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date || SET.start, cur: j.currency || SET.cur,
               rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };
       saveSettings();
       S.done = {}; S.skip = {}; S.delay = {}; S.spent = {}; S.walked = {}; save();
-      setTitle(); viewDay = null; closeModal(); render();
+      setTitle(); viewDay = null; closeModal(); renderShell();
     };
     m.querySelector('#setLoad').addEventListener('click', () => load(m.querySelector('#setJson').value));
     m.querySelector('#setFile').addEventListener('change', e => {
@@ -426,7 +426,7 @@ function openSettings() {
       if (!e.target.dataset.sure) { e.target.dataset.sure = '1'; e.target.textContent = 'Точно? Ваши правки удалятся'; return; }
       try { localStorage.removeItem(TRIP_KEY); localStorage.removeItem(SET_KEY); } catch (err) {}
       T = clone(TPL); loadSettings(); S.done = {}; S.skip = {}; S.delay = {}; save();
-      setTitle(); viewDay = null; closeModal(); render();
+      setTitle(); viewDay = null; closeModal(); renderShell();
     });
   });
 }
@@ -473,12 +473,12 @@ function openEditor(day, id) {
         link: Core.safeUrl(v('edLink')), note: v('edNote') });
       if (!id) d.ev.push(x);
       d.ev.sort((a, b) => a.s.localeCompare(b.s));
-      saveTrip(); closeModal(); render();
+      saveTrip(); closeModal(); renderShell();
     });
     const del = m.querySelector('#edDel');
     if (del) del.addEventListener('click', () => {
       if (!del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Точно удалить?'; return; }
-      d.ev = d.ev.filter(x => x.id !== id); saveTrip(); closeModal(); render();
+      d.ev = d.ev.filter(x => x.id !== id); saveTrip(); closeModal(); renderShell();
     });
   });
 }
@@ -495,7 +495,7 @@ function openDayEditor(day) {
     m.querySelector('#dySave').addEventListener('click', () => {
       const v = k => m.querySelector('#' + k).value.trim();
       d.label = v('dyLabel') || d.label; d.city = v('dyCity') || d.city; d.hotel = v('dyHotel'); d.summary = v('dySum');
-      saveTrip(); closeModal(); render();
+      saveTrip(); closeModal(); renderShell();
     });
   });
 }
@@ -505,7 +505,7 @@ function setTitle() {
   document.title = T.name || 'Поездка';
 }
 
-function openToday() { document.getElementById('today').hidden = false; S.open = true; save(); viewDay = null; render(); }
+function openToday() { document.getElementById('today').hidden = false; S.open = true; save(); viewDay = null; renderShell(); }
 function closeToday() { document.getElementById('today').hidden = true; S.open = false; save(); }
 window.openToday = openToday;
 
@@ -514,15 +514,16 @@ document.getElementById('tdTicketClose').addEventListener('click', () => { docum
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.getElementById('tdTicket').hidden = true; closeModal(); } });
 setTitle();
 
-tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; render(); } });
-refreshTickets().then(render);
+tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; renderShell(); } });
+if (S.tab && TABS.some(t => t[0] === S.tab && t[0] !== 'map')) tab = S.tab;
+refreshTickets().then(renderShell);
 // '#map' in the link opens straight onto the map (also used by the map tests)
-if (S.open === false || location.hash === '#map') document.getElementById('today').hidden = true; else render();
+if (S.open === false || location.hash === '#map') document.getElementById('today').hidden = true; else renderShell();
 setInterval(() => {
   const a = document.activeElement;
   if (document.getElementById('today').hidden) return;
   if (a && a.closest && a.closest('#today') && /INPUT|SELECT/.test(a.tagName)) return;   // don't wipe what is being typed
-  render();
+  renderShell();
 }, 30000);
 
 /* On a real web host (GitHub Pages) the guide installs as an app and keeps working offline. */
@@ -531,4 +532,6 @@ if (/^https?:$/.test(location.protocol) && /github\.io$|^localhost$|^127\.0\.0\.
   add('manifest', 'manifest.webmanifest'); add('apple-touch-icon', 'icon-192.png');
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-window.addEventListener('japan2026:wx', render);
+window.addEventListener('japan2026:wx', renderShell);
+window.addEventListener('japan2026:tick', renderShell);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) renderShell(); });
