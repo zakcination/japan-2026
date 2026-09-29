@@ -5,7 +5,7 @@
 import asyncio, json, pathlib
 from playwright.async_api import async_playwright
 
-FILE = pathlib.Path("Japan_Guide_2026.html").resolve().as_uri()
+FILE = pathlib.Path("Japan_Guide_2026.html").resolve().as_uri() + "#map"
 
 # markercluster releases a marker only after zoomend, so moving and opening must be
 # two separate steps with a settle in between — otherwise the previous popup lingers
@@ -74,7 +74,7 @@ async def main():
             "DATA.places.reduce((n,p) => n + (p.kz||[]).length, 0)")
 
         # 3. a nine-fact anchor point: header, badge, and only two items shown up front
-        r["3_opened"] = await pg.evaluate(GOTO, "Ginza")
+        r["3_opened"] = await pg.evaluate(GOTO, "Fushimi Inari Taisha")
         await pg.wait_for_timeout(600)
         await pg.evaluate(OPEN, r["3_opened"])
         await pg.wait_for_timeout(400)
@@ -229,7 +229,7 @@ async def check_panel_mode():
 
             await pg.locator("#btnCard").click()
             await pg.wait_for_timeout(250)
-            i = await pg.evaluate(goto, "Ginza")
+            i = await pg.evaluate(goto, "Fushimi Inari Taisha")
             await pg.wait_for_timeout(450)
             await pg.evaluate(open_, i)
             await pg.wait_for_timeout(400)
@@ -261,7 +261,7 @@ async def check_panel_mode():
             o["mode_after_reload"] = await pg.evaluate("PANEL_MODE")
             await pg.locator("#btnCard").click()
             await pg.wait_for_timeout(250)
-            i = await pg.evaluate(goto, "Ginza")
+            i = await pg.evaluate(goto, "Fushimi Inari Taisha")
             await pg.wait_for_timeout(450)
             await pg.evaluate(open_, i)
             await pg.wait_for_timeout(400)

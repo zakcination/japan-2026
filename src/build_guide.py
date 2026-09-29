@@ -81,136 +81,127 @@ def data_uri(stem):
     p = IMG_DIR / (stem + ".webp")
     return "data:image/webp;base64," + base64.b64encode(p.read_bytes()).decode("ascii")
 
-# Route: the four base points of the trip, in order.
+# Route: the bases of the trip, in the order they are travelled.
 ROUTE = [
-    [34.632, 135.2239],   # Kobe Airport
-    [34.6848, 135.5014],  # Osaka / Hommachi
-    [34.9855, 135.7588],  # Kyoto Station
-    [35.711, 139.7966],   # Tokyo / Asakusa
-    [35.5494, 139.7798],  # Haneda
+    [35.5494, 139.7798],   # Haneda
+    [35.6262, 139.7236],   # Sansuiso, near Gotanda Station
+    [35.6887, 139.7003],   # Busta Shinjuku
+    [35.4985, 138.7690],   # Kawaguchiko
+    [35.1260, 138.9110],   # Mishima
+    [34.9855, 135.7588],   # Kyoto
+    [35.1709, 136.8815],   # Nagoya
+    [35.711, 139.7966],    # Tokyo, Asakusa/Ueno
+    [35.5494, 139.7798],   # Haneda
 ]
 TRANSFERS = [
-    {"lat": 34.6584, "lng": 135.3627, "label": "26 km · ≈55 min",
-     "text": "Kobe Airport (UKB) → Osaka / Hommachi · Port Liner + train"},
-    {"lat": 34.8352, "lng": 135.6301, "label": "41 km · ≈30 min",
-     "text": "Osaka / Hommachi → Kyoto Station · JR / local train"},
-    {"lat": 35.3483, "lng": 137.7777, "label": "376 km · ≈2h10–20",
-     "text": "Kyoto Station → Tokyo / Asakusa · Nozomi Shinkansen"},
-    {"lat": 35.6300, "lng": 139.7880, "label": "18 km · ≈45–60 min",
-     "text": "Tokyo / Asakusa → Haneda Airport (HND) · metro / rail"},
+    {"lat": 35.5700, "lng": 139.8600, "label": "≈30 мин · Keikyu",
+     "text": "Ханэда → Готанда · 17 окт вечером"},
+    {"lat": 35.6700, "lng": 139.2300, "label": "06:45 → 08:30 · автобус",
+     "text": "Busta Синдзюку → Кавагутико · автобус Keio, 18 окт (куплен)"},
+    {"lat": 35.3100, "lng": 138.8200, "label": "17:00 → 18:40 · автобус",
+     "text": "Кавагутико → Мисима · Fujikyu, 18 окт"},
+    {"lat": 34.9500, "lng": 137.9500, "label": "~2 ч · синкансэн",
+     "text": "Мисима → Киото · 18 окт вечером"},
+    {"lat": 35.0780, "lng": 136.3200, "label": "34 мин · Nozomi",
+     "text": "Киото → Нагоя · 20 окт ~18:30"},
+    {"lat": 35.3300, "lng": 137.7500, "label": "1 ч 40 мин · Nozomi",
+     "text": "Нагоя → Токио · 22 окт 18:00–19:00"},
 ]
 
-
-# --- stops added on request -------------------------------------------------
-EXTRA_STOPS = [
-    {   # the only place in Japan actually listed as an izakaya named LIMA
-        "day": 8, "date": "2026-10-24", "name": "LIMA \u2014 izakaya \U0001f37a",
-        "city": "Tokyo", "category": "Food", "time": "21:00 \u2014 \u043f\u043e\u0437\u0434\u043d\u0438\u0439 \u0432\u0435\u0447\u0435\u0440",
-        "notes": "\u041c\u0430\u043b\u0435\u043d\u044c\u043a\u0438\u0439 \u043f\u043e\u0434\u0432\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0434\u0437\u0430\u043a\u0430\u044f-\u0431\u0430\u0440 \u0432 \u0413\u043e\u0442\u0430\u043d\u0434\u0435, \u0434\u0432\u0435 \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u043e\u0442 \u0421\u0438\u0431\u0443\u0438 \u043f\u043e Yamanote. \u0420\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0434\u043e 05:00, \u043d\u0435\u0434\u043e\u0440\u043e\u0433\u043e, \u0434\u0430\u0440\u0442\u0441 \u0438 \u043a\u0430\u0440\u0430\u043e\u043a\u0435, \u043c\u0435\u0441\u0442 \u043c\u0430\u043b\u043e.",
-        "overnight": "", "lat": 35.6269487, "lng": 139.7255113,
-        "gmaps_id": "ChIJ3W4tv_uKGGAR6n0Tzo-dG-4",
-    },
-    {   # global flagship, right next to the Ginza stop already on day 10
-        "day": 10, "date": "2026-10-26", "name": "UNIQLO TOKYO \u2014 Ginza \U0001f6cd",
-        "city": "Tokyo", "category": "Shopping", "time": "11:00\u201312:30",
-        "notes": "\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u044b\u0439 \u0444\u043b\u0430\u0433\u043c\u0430\u043d \u0432 Marronnier Gate Ginza 2, \u0447\u0435\u0442\u044b\u0440\u0435 \u044d\u0442\u0430\u0436\u0430, \u0441\u0432\u043e\u0438 \u043a\u043e\u043b\u043b\u0430\u0431\u043e\u0440\u0430\u0446\u0438\u0438 \u0438 \u043f\u0435\u0447\u0430\u0442\u044c \u043d\u0430 \u0432\u0435\u0449\u0430\u0445. \u0420\u044f\u0434\u043e\u043c \u2014 12-\u044d\u0442\u0430\u0436\u043d\u044b\u0439 Uniqlo Ginza. \u041e\u0442\u043a\u0440\u044b\u0442\u043e 11:00\u201321:00.",
-        "overnight": "", "lat": 35.6737637, "lng": 139.7651281,
-        "gmaps_id": "ChIJ4USUrOWLGGARi1DaZsGw4Ts",
-    },
-]
-STOPS.extend(EXTRA_STOPS)
 
 # --- what has to be reserved, and by when -----------------------------------
-# level: must = \u0431\u0435\u0437 \u0431\u0440\u043e\u043d\u0438 \u043d\u0435 \u043f\u043e\u043f\u0430\u0441\u0442\u044c; advise = \u0436\u0435\u043b\u0430\u0442\u0435\u043b\u044c\u043d\u043e; info = \u043f\u0440\u043e\u0441\u0442\u043e \u0443\u0447\u0435\u0441\u0442\u044c
+# level: must = без брони не попасть; advise = желательно; info = просто учесть
+_NOW = "2026-09-28"
+_HOTEL = "Сейчас, если ещё не забронирован"
 BOOKING = {
+    "Sansuiso – Gotanda": {
+        "level": "done", "act": "2026-10-17",
+        "when": "Забронировано: 17–18 окт, 1 ночь, японский номер twin, общая ванная · ~42 259 ₸",
+        "note": "5 минут от станции Готанда. Заселение 14:00–23:30. В особых пожеланиях: поздний заезд, выезд до рассвета, курьер чемоданов в Киото.",
+        "url": "",
+    },
+    "Busta Shinjuku": {
+        "level": "done", "act": "2026-10-18",
+        "when": "Куплено: автобус Keio, 18 окт 06:45 → ~08:30",
+        "note": "Рейс идёт до Mt. Fuji 5th Station — выходить на «Kawaguchiko Sta.». Билет показать при посадке и выходе.",
+        "url": "https://www.highwaybus.com/",
+    },
+    "Mishima Station": {
+        "level": "must", "act": _NOW,
+        "when": "Автобус Кавагутико → Мисима 18 окт 17:00 и синкансэн Мисима → Киото после 19:00",
+        "note": "Автобус Fujikyu ¥2 700 на человека. Синкансэн — Smart EX.",
+        "url": "https://bus.fujikyu.co.jp/en/highway/mishima/",
+    },
+    "Kyoto hotel area – Kyoto Station": {
+        "level": "must", "act": _NOW, "when": _HOTEL,
+        "note": "2 ночи, 18–20 окт, заезд ~22:00. Должен принять чемоданы от курьера из Токио.",
+        "url": "",
+    },
+    "World Currency Shop – Kyoto": {
+        "level": "info", "act": "2026-10-19",
+        "when": "Без брони · пн–пт 10:00–17:00",
+        "note": "Меняем, только если курс не ниже ¥155 за $1. Иначе снимать в 7-Bank.",
+        "url": "https://www.tokyo-card.co.jp/wcs/wcs-shop-e.php",
+    },
+    "Nagoya hotel area – Nagoya Station": {
+        "level": "must", "act": _NOW, "when": _HOTEL,
+        "note": "2 ночи, 20–22 окт (ещё обсуждается: можно уехать в Токио сразу после финалов 21-го). В городе Asian Para Games — номера уйдут быстро.",
+        "url": "",
+    },
+    "Aichi Budokan": {
+        "level": "must", "act": _NOW,
+        "when": "Пара-дзюдо PJU06, финалы 21 окт 16:00 · ¥2 000 на человека",
+        "note": "От вокзала Нагоя: Aonami line до Кохоку (港北) 12 мин + 15 мин пешком.",
+        "url": "https://lp-apg.tickets-aichi-nagoya2026.org/pdf/guide_ja-6.pdf",
+    },
+    "Tokyo hotel area – Asakusa": {
+        "level": "must", "act": _NOW, "when": _HOTEL,
+        "note": "5 ночей, 22–27 окт: Уэно / Окатимати или Асакуса. Keikyu до Ханэды без пересадок.",
+        "url": "",
+    },
+    "Tokyo Disneyland": {
+        "level": "must", "act": _NOW,
+        "when": "24 окт, 09:00–21:00 · ¥12 400 на человека, билет на дату",
+        "note": "Только официальный сайт. Суббота — много людей; альтернатива — DisneySea в будний день.",
+        "url": "https://www.tokyodisneyresort.jp/en/tdl/daily/calendar/20261024/",
+    },
     "Shibuya Sky": {
-        "level": "must", "act": "2026-10-09",
-        "when": "\u041f\u0440\u043e\u0434\u0430\u0436\u0438 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0440\u043e\u0432\u043d\u043e \u0437\u0430 14 \u0434\u043d\u0435\u0439: 10 \u043e\u043a\u0442 00:00 JST = 9 \u043e\u043a\u0442 20:00 \u043f\u043e \u0410\u043b\u043c\u0430\u0442\u044b",
-        "note": "\u0420\u0430\u043d\u044c\u0448\u0435 \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f \u2014 \u043e\u043a\u043d\u043e \u0441\u043a\u043e\u043b\u044c\u0437\u044f\u0449\u0435\u0435. \u0417\u0430\u043a\u0430\u0442\u043d\u044b\u0435 \u0441\u043b\u043e\u0442\u044b \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u044e\u0442 \u0437\u0430 \u043c\u0438\u043d\u0443\u0442\u044b \u043f\u043e\u0441\u043b\u0435 \u043f\u043e\u043b\u0443\u043d\u043e\u0447\u0438. \u041e\u043d\u043b\u0430\u0439\u043d \u00a52\u2009500 \u043f\u0440\u043e\u0442\u0438\u0432 \u00a53\u2009000 \u043d\u0430 \u0432\u0445\u043e\u0434\u0435; \u043e\u0442\u043c\u0435\u043d\u0430 \u0431\u0435\u0441\u043f\u043b\u0430\u0442\u043d\u0430 \u0434\u043e \u043a\u0430\u043d\u0443\u043d\u0430. \u0415\u0441\u043b\u0438 \u043e\u043d\u043b\u0430\u0439\u043d \u043f\u0443\u0441\u0442\u043e \u2014 \u043a\u0430\u0441\u0441\u0430 \u043d\u0430 \u043c\u0435\u0441\u0442\u0435 \u0442\u043e\u0436\u0435 \u043f\u0443\u0441\u0442\u0430.",
-        "url": "https://www.shibuya-scramble-square.com/sky/",
+        "level": "must", "act": "2026-10-10",
+        "when": "25 окт ~16:30 · продажа за 14 дней: 11 окт 00:00 JST = 10 окт 20:00 по Алматы",
+        "note": "Закатные слоты уходят за минуты. Онлайн ¥3 400 на человека по текущим ценам.",
+        "url": "https://www.shibuya-scramble-square.com/sky/ticket/",
     },
-    "Hiroshima Peace Memorial Museum": {
+    "teamLab Borderless": {
         "level": "advise", "act": "2026-10-12",
-        "when": "\u0417\u0430 1\u20132 \u043d\u0435\u0434\u0435\u043b\u0438",
-        "note": "\u041e\u043d\u043b\u0430\u0439\u043d-\u0441\u043b\u043e\u0442 \u043d\u0430 \u0432\u0440\u0435\u043c\u044f \u0432\u0445\u043e\u0434\u0430. \u0412 \u043f\u0438\u043a (10:00\u201312:00) \u0431\u0435\u0437 \u0431\u0440\u043e\u043d\u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u043d\u0430 30\u201360 \u043c\u0438\u043d\u0443\u0442. \u00a5200 \u0441 \u0447\u0435\u043b\u043e\u0432\u0435\u043a\u0430.",
-        "url": "https://hpmmuseum.jp/?lang=eng",
+        "when": "26 окт · билет на время",
+        "note": "Азабудай Хиллз.",
+        "url": "https://www.teamlab.art/e/tokyo/",
     },
-    "Kyoto Imperial Palace": {
-        "level": "info", "act": "2026-10-20",
-        "when": "\u0411\u0435\u0437 \u0431\u0440\u043e\u043d\u0438",
-        "note": "\u0412\u0445\u043e\u0434 \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u0439 \u0438 \u0431\u0435\u0441\u043f\u043b\u0430\u0442\u043d\u044b\u0439, \u043d\u043e 22 \u043e\u043a\u0442 \u0438\u0437-\u0437\u0430 \u0414\u0437\u0438\u0434\u0430\u0439 \u041c\u0430\u0446\u0443\u0440\u0438 \u0447\u0430\u0441\u0442\u044c \u0442\u0435\u0440\u0440\u0438\u0442\u043e\u0440\u0438\u0438 \u0437\u0430\u043a\u0440\u044b\u0442\u0430 \u043f\u043e\u0434 \u0441\u0442\u0430\u0440\u0442 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0438\u0438.",
-        "url": "",
+    "Origami Kaikan": {
+        "level": "advise", "act": "2026-10-16",
+        "when": "23 окт, урок 13:30 — записаться по телефону 03-3811-4025",
+        "note": "Пн–сб, ¥2 500 на человека.",
+        "url": "https://origamikaikan.co.jp/",
     },
-    "Jidai Matsuri route": {
-        "level": "advise", "act": "2026-09-30",
-        "when": "\u041f\u043b\u0430\u0442\u043d\u044b\u0435 \u0442\u0440\u0438\u0431\u0443\u043d\u044b \u2014 \u0432 \u043f\u0440\u043e\u0434\u0430\u0436\u0435 \u0441 \u043d\u0430\u0447\u0430\u043b\u0430 \u0441\u0435\u043d\u0442\u044f\u0431\u0440\u044f",
-        "note": "\u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043c\u043e\u0436\u043d\u043e \u0431\u0435\u0441\u043f\u043b\u0430\u0442\u043d\u043e \u0432\u0434\u043e\u043b\u044c \u0432\u0441\u0435\u0433\u043e \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u2014 \u043c\u0435\u0441\u0442\u0430 \u043d\u0443\u0436\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0430\u0434\u0438 \u0441\u0438\u0434\u044f\u0447\u0435\u0433\u043e \u043c\u0435\u0441\u0442\u0430 \u0432 \u043f\u0435\u0440\u0432\u043e\u043c \u0440\u044f\u0434\u0443. \u041f\u0440\u043e\u0446\u0435\u0441\u0441\u0438\u044f \u0441\u0442\u0430\u0440\u0442\u0443\u0435\u0442 \u0432 12:00 \u043e\u0442 \u0418\u043c\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u043e\u0433\u043e \u0434\u0432\u043e\u0440\u0446\u0430.",
-        "url": "",
-    },
-    "LIMA \u2014 izakaya": {
-        "level": "advise", "act": "2026-10-21",
-        "when": "\u0421\u0442\u043e\u043b\u0438\u043a \u2014 \u0437\u0430 1\u20133 \u0434\u043d\u044f",
-        "note": "\u041f\u043e\u0434\u0432\u0430\u043b\u044c\u043d\u044b\u0439 \u0431\u0430\u0440 \u043d\u0430 ~15 \u043c\u0435\u0441\u0442. \u0417\u0432\u043e\u043d\u043e\u043a \u0438\u043b\u0438 \u0447\u0435\u0440\u0435\u0437 \u043e\u0442\u0435\u043b\u044c; \u0432 \u0431\u0443\u0434\u043d\u0438 \u043f\u043e\u0441\u043b\u0435 22:00 \u043e\u0431\u044b\u0447\u043d\u043e \u0435\u0441\u0442\u044c \u043c\u0435\u0441\u0442\u0430.",
-        "url": "",
-    },
-    "Pontocho & Kamo River": {
-        "level": "advise", "act": "2026-10-15",
-        "when": "\u0423\u0436\u0438\u043d \u2014 \u0437\u0430 2\u20135 \u0434\u043d\u0435\u0439",
-        "note": "\u0412 \u043e\u043a\u0442\u044f\u0431\u0440\u0435 \u0443 \u0440\u0435\u043a\u0438 \u0432\u0441\u0451 \u0437\u0430\u043d\u044f\u0442\u043e \u0441 18:00. \u0411\u0435\u0437 \u0431\u0440\u043e\u043d\u0438 \u2014 \u0438\u0434\u0442\u0438 \u0434\u043e 17:30 \u0438\u043b\u0438 \u043f\u043e\u0441\u043b\u0435 21:00.",
-        "url": "",
-    },
-    "Gion / Maruyama area": {
-        "level": "advise", "act": "2026-10-14",
-        "when": "\u0423\u0436\u0438\u043d \u2014 \u0437\u0430 3\u20137 \u0434\u043d\u0435\u0439",
-        "note": "\u0417\u0430\u0432\u0435\u0434\u0435\u043d\u0438\u044f \u0432 \u0413\u0438\u043e\u043d\u0435 \u043c\u0430\u043b\u0435\u043d\u044c\u043a\u0438\u0435; \u043d\u0430 \u0447\u0435\u0442\u0432\u0435\u0440\u044b\u0445 \u0431\u0435\u0437 \u0431\u0440\u043e\u043d\u0438 \u0441\u043b\u043e\u0436\u043d\u043e.",
-        "url": "",
-    },
-    "Osaka hotel area \u2013 Hommachi": {
-        "level": "must", "act": "2026-09-25",
-        "when": "\u0421\u0435\u0439\u0447\u0430\u0441, \u0435\u0441\u043b\u0438 \u0435\u0449\u0451 \u043d\u0435 \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d",
-        "note": "\u041e\u043a\u0442\u044f\u0431\u0440\u044c \u2014 \u043f\u0438\u043a \u0441\u0435\u0437\u043e\u043d\u0430 (\u043a\u043b\u0451\u043d\u044b + \u0431\u0438\u0437\u043d\u0435\u0441-\u043f\u043e\u0435\u0437\u0434\u043a\u0438). 3 \u043d\u043e\u0447\u0438, 17\u201319 \u043e\u043a\u0442.",
-        "url": "",
-    },
-    "Kyoto hotel area \u2013 Kyoto Station": {
-        "level": "must", "act": "2026-09-25",
-        "when": "\u0421\u0435\u0439\u0447\u0430\u0441, \u0435\u0441\u043b\u0438 \u0435\u0449\u0451 \u043d\u0435 \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d",
-        "note": "\u041a\u0438\u043e\u0442\u043e \u0432 \u043e\u043a\u0442\u044f\u0431\u0440\u0435 \u0440\u0430\u0441\u043a\u0443\u043f\u0430\u044e\u0442 \u0440\u0430\u043d\u044c\u0448\u0435 \u0432\u0441\u0435\u0433\u043e, \u0430 22 \u043e\u043a\u0442 \u0435\u0449\u0451 \u0438 \u0414\u0437\u0438\u0434\u0430\u0439 \u041c\u0430\u0446\u0443\u0440\u0438. 3 \u043d\u043e\u0447\u0438, 20\u201322 \u043e\u043a\u0442.",
-        "url": "",
-    },
-    "Tokyo hotel area \u2013 Asakusa": {
-        "level": "must", "act": "2026-09-25",
-        "when": "\u0421\u0435\u0439\u0447\u0430\u0441, \u0435\u0441\u043b\u0438 \u0435\u0449\u0451 \u043d\u0435 \u0437\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d",
-        "note": "4 \u043d\u043e\u0447\u0438, 23\u201326 \u043e\u043a\u0442. \u0410\u0441\u0430\u043a\u0443\u0441\u0430 \u0443\u0434\u043e\u0431\u043d\u0430 \u0434\u043b\u044f \u0432\u044b\u043b\u0435\u0442\u0430 \u0438\u0437 \u0425\u0430\u043d\u044d\u0434\u044b.",
-        "url": "",
-    },
-    "UNIQLO TOKYO \u2014 Ginza": {
+    "UNIQLO TOKYO — Ginza": {
         "level": "info", "act": "2026-10-26",
-        "when": "\u0411\u0440\u043e\u043d\u044c \u043d\u0435 \u043d\u0443\u0436\u043d\u0430",
-        "note": "\u0414\u043b\u044f tax-free \u043d\u0443\u0436\u0435\u043d \u043f\u0430\u0441\u043f\u043e\u0440\u0442 \u0438 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u0430\u0441\u0441\u0430; \u043f\u043e\u0440\u043e\u0433 \u00a55\u2009500 \u0432 \u043e\u0434\u0438\u043d \u0447\u0435\u043a. \u041f\u0435\u0447\u0430\u0442\u044c \u043d\u0430 \u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430\u0445 \u0434\u0435\u043b\u0430\u044e\u0442 \u043f\u0440\u0438 \u0432\u0430\u0441, ~15 \u043c\u0438\u043d.",
-        "url": "",
-    },
-    "Kobe Airport (UKB)": {
-        "level": "info", "act": "2026-10-17",
-        "when": "\u041f\u0440\u0438\u043b\u0451\u0442 17 \u043e\u043a\u0442, ~14:00",
-        "note": "\u0414\u0430\u043b\u044c\u0448\u0435 Port Liner + \u043f\u043e\u0435\u0437\u0434 \u0434\u043e \u0425\u043e\u043c\u043c\u0430\u0442\u0438, ~55 \u043c\u0438\u043d. IC-\u043a\u0430\u0440\u0442\u0443 (Suica/ICOCA) \u0432\u044b\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u0440\u0430\u0437\u0443 \u0432 \u0430\u044d\u0440\u043e\u043f\u043e\u0440\u0442\u0443.",
+        "when": "Бронь не нужна · 11:00–21:00",
+        "note": "Tax-free от ¥5 000 в один чек, с паспортом. Рядом 12-этажный Uniqlo Ginza.",
         "url": "",
     },
     "Haneda Airport (HND)": {
         "level": "info", "act": "2026-10-27",
-        "when": "\u0412\u044b\u043b\u0435\u0442 27 \u043e\u043a\u0442, \u0432\u0435\u0447\u0435\u0440",
-        "note": "\u0418\u0437 \u0410\u0441\u0430\u043a\u0443\u0441\u044b 45\u201360 \u043c\u0438\u043d. \u0412 \u0430\u044d\u0440\u043e\u043f\u043e\u0440\u0442\u0443 \u0431\u044b\u0442\u044c \u0437\u0430 3 \u0447\u0430\u0441\u0430; tax-free \u0447\u0435\u043a\u0438 \u0434\u0435\u0440\u0436\u0430\u0442\u044c \u043f\u043e\u0434 \u0440\u0443\u043a\u043e\u0439.",
+        "when": "Прилёт 17 окт 21:20 · вылет 27 окт 20:15",
+        "note": "Туда MU575 из Шанхая, обратно MU540. В аэропорту быть за 2 часа.",
         "url": "",
     },
 }
 
-# arrival / departure: short arcs pointing home towards Almaty
+# arrival and departure are both Haneda, so one arc points home towards Almaty
 FLIGHTS = [
-    {"kind": "arrival", "lat": 34.632, "lng": 135.2239,
-     "label": "\u2708\ufe0f \u0438\u0437 \u0410\u043b\u043c\u0430\u0442\u044b \u00b7 17 \u043e\u043a\u0442",
-     "text": "\u041f\u0440\u0438\u043b\u0451\u0442 \u0432 \u041a\u043e\u0431\u0435 (UKB) \u2014 17 \u043e\u043a\u0442\u044f\u0431\u0440\u044f, ~14:00. \u0414\u0430\u043b\u044c\u0448\u0435 Port Liner + \u043f\u043e\u0435\u0437\u0434 \u0434\u043e \u0425\u043e\u043c\u043c\u0430\u0442\u0438, \u224855 \u043c\u0438\u043d."},
-    {"kind": "departure", "lat": 35.5494, "lng": 139.7798,
-     "label": "\u2708\ufe0f \u0432 \u0410\u043b\u043c\u0430\u0442\u044b \u00b7 27 \u043e\u043a\u0442",
-     "text": "\u0412\u044b\u043b\u0435\u0442 \u0438\u0437 \u0425\u0430\u043d\u044d\u0434\u044b (HND) \u2014 27 \u043e\u043a\u0442\u044f\u0431\u0440\u044f, \u0432\u0435\u0447\u0435\u0440. \u0418\u0437 \u0410\u0441\u0430\u043a\u0443\u0441\u044b 45\u201360 \u043c\u0438\u043d, \u0431\u044b\u0442\u044c \u0437\u0430 3 \u0447\u0430\u0441\u0430."},
+    {"kind": "both", "lat": 35.5494, "lng": 139.7798,
+     "label": "✈️ Алматы · через Шанхай",
+     "text": "Прилёт 17 окт 21:20 (MU575 из Шанхая). Вылет 27 окт 20:15 (MU540 в Шанхай, домой 28-го). Из центра выехать к 17:30."},
 ]
 
 # Place names for the built-in base map. "trip" cities are the ones on the route and are
@@ -218,14 +209,16 @@ FLIGHTS = [
 PLACE_LABELS = [
     # name, lat, lng, min zoom, on the route
     ("Токио",     35.6762, 139.6503, 0, True),
-    ("Осака",     34.6937, 135.5023, 0, True),
     ("Киото",     35.0116, 135.7681, 0, True),
-    ("Хиросима",  34.3853, 132.4553, 0, True),
-    ("Кобе",      34.6901, 135.1955, 6, True),
-    ("Нара",      34.6851, 135.8048, 6, True),
-    ("Миядзима",  34.2959, 132.3197, 7, True),
-    ("Нагоя",     35.1815, 136.9066, 5, False),
+    ("Нагоя",     35.1815, 136.9066, 0, True),
+    ("Кавагутико", 35.5006, 138.7597, 0, True),
+    ("Мисима",    35.1260, 138.9110, 7, True),
+    ("Хаконэ",    35.2324, 139.1069, 7, False),
+    ("Осака",     34.6937, 135.5023, 6, False),
+    ("Камакура",  35.3192, 139.5467, 7, False),
+    ("Нара",      34.6851, 135.8048, 7, False),
     ("Иокогама",  35.4437, 139.6380, 7, False),
+    ("Хиросима",  34.3853, 132.4553, 5, False),
     ("Фукуока",   33.5904, 130.4017, 5, False),
     ("Саппоро",   43.0618, 141.3545, 5, False),
     ("Сендай",    38.2682, 140.8694, 5, False),
@@ -244,34 +237,26 @@ PLACE_LABELS = [
 ]
 
 CITY_COLOR = {
-    "Osaka": "#e0483c", "Nara": "#e58a1f", "Hiroshima": "#2f9e44",
-    "Miyajima": "#2f9e44", "Kyoto": "#8b5cf6", "Tokyo": "#2563eb",
-    "Kobe": "#475569",
+    "Tokyo": "#2563eb", "Fuji": "#2f9e44", "Kawaguchiko": "#2f9e44", "Nagoya": "#e58a1f",
+    "Kyoto": "#8b5cf6",
 }
 CAT_META = {
     "Attraction": {"emoji": "📍", "label": "Достопримечательности", "short": "Места"},
+    "Event":      {"emoji": "🏟", "label": "Спорт и события",       "short": "События"},
     "Nature":     {"emoji": "🌿", "label": "Природа и парки",       "short": "Природа"},
     "Food":       {"emoji": "🍜", "label": "Еда",                   "short": "Еда"},
-    "Shopping":   {"emoji": "🛍", "label": "Шоппинг",               "short": "Шоппинг"},
+    "Shopping":   {"emoji": "🛍", "label": "Шоппинг и винтаж",      "short": "Шоппинг"},
+    "Transit":    {"emoji": "🚌", "label": "Транспорт",             "short": "Транспорт"},
+    "Money":      {"emoji": "💴", "label": "Обмен валюты",          "short": "Обмен"},
     "Hotel":      {"emoji": "🏨", "label": "Отели",                 "short": "Отели"},
-    "Airport":    {"emoji": "✈️", "label": "Аэропорты",             "short": "Аэропорты"},
+    "Airport":    {"emoji": "✈️", "label": "Аэропорт",              "short": "Аэропорт"},
 }
 
-DAY_NOTES = {
-    1: "Прилёт в Кобе, заселение в Осаке, вечер в Дотонбори",
-    2: "Дневная поездка в Нару, вечер в Осаке",
-    3: "Хиросима и Миядзима одним днём",
-    4: "Утро в Осаке, переезд в Киото, вечер в Гионе",
-    5: "Главный день Киото: Фусими Инари и Киёмидзу-дэра",
-    6: "Спокойный Киото + фестиваль Дзидай Мацури",
-    7: "Арасияма утром, днём синкансэн в Токио",
-    8: "Современный Токио: Синдзюку, Харадзюку, Сибуя",
-    9: "Старый Токио: Асакуса, Уэно, Янака",
-    10: "Цукидзи, Гиндза, Киёсуми — последний полный день",
-    11: "Утро в Асакусе, вылет из Ханэды",
-}
+TODAY = json.loads(pathlib.Path("today.json").read_text(encoding="utf-8"))
+DAY_NOTES = {d["n"]: d["summary"] for d in TODAY["days"]}
+KONBINI = {d["n"]: d["konbini"] for d in TODAY["days"]}
 
-KZ_EMOJI = ("📍", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
+KZ_EMOJI = ("📍", "🏟", "💴", "🏪", "🚌", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
 
 
 def place_label(name: str) -> str:
@@ -284,6 +269,11 @@ def place_label(name: str) -> str:
 # Kazakh-Japanese fact layer: same keys as stops.json, joined on the stripped label.
 KZ_RAW = json.loads(pathlib.Path("kz_facts.json").read_text(encoding="utf-8"))["places"]
 KZ_FACTS = {place_label(k): v["facts"] for k, v in KZ_RAW.items()}
+# the fact pack outlives any one route: places dropped from the route keep their facts
+# in the file and simply aren't shipped
+_ON_ROUTE = {place_label(s["name"]) for s in STOPS}
+KZ_DROPPED = sorted(KZ_FACTS.keys() - _ON_ROUTE)
+KZ_FACTS = {k: v for k, v in KZ_FACTS.items() if k in _ON_ROUTE}
 
 # "Find it on the spot" tasks are ticked off and the tick is remembered on the device,
 # so each one needs an id that survives a rebuild. Hashing place+text means reordering
@@ -296,8 +286,7 @@ for _label, _facts in KZ_FACTS.items():
             _g["id"] = hashlib.sha1(
                 (_label + "|" + _g["task"]).encode("utf-8")).hexdigest()[:10]
             KZ_SPOTS += 1
-_kz_orphans = sorted(KZ_FACTS.keys() - {place_label(s["name"]) for s in STOPS})
-assert not _kz_orphans, f"kz_facts.json keys with no stop: {_kz_orphans}"
+
 
 for s in STOPS:
     key = GHIBLI.get(s["name"]) or DOCUMENTARY.get(s["name"])
@@ -350,17 +339,19 @@ payload = {
     "flights": FLIGHTS,
     "route": ROUTE,
     "transfers": TRANSFERS,
-    "days": [{"n": d, "date": DAY_DATES[d], "note": DAY_NOTES.get(d, "")} for d in DAYS],
+    "days": [{"n": d, "date": DAY_DATES[d],
+              "note": DAY_NOTES.get(d, "") + (" · 🏪 " + KONBINI[d] if d in KONBINI else "")}
+             for d in DAYS],
     "categories": [{"key": k, **v} for k, v in CAT_META.items()],
     "cityColors": CITY_COLOR,
     # one representative point per city, for the weather sync
     "weatherSpots": [
-        {"city": "Osaka",     "lat": 34.6848, "lng": 135.5014, "days": [1, 2, 3, 4]},
-        {"city": "Kyoto",     "lat": 34.9855, "lng": 135.7588, "days": [4, 5, 6, 7]},
-        {"city": "Tokyo",     "lat": 35.7110, "lng": 139.7966, "days": [7, 8, 9, 10, 11]},
-        {"city": "Hiroshima", "lat": 34.3955, "lng": 132.4536, "days": [3]},
-        {"city": "Nara",      "lat": 34.6851, "lng": 135.8048, "days": [2]},
+        {"city": "Tokyo",       "lat": 35.7110, "lng": 139.7966, "days": [1, 7, 8, 9, 10, 11]},
+        {"city": "Kawaguchiko", "lat": 35.5006, "lng": 138.7597, "days": [2]},
+        {"city": "Kyoto",       "lat": 34.9855, "lng": 135.7588, "days": [3, 4]},
+        {"city": "Nagoya",      "lat": 35.1709, "lng": 136.8815, "days": [5, 6]},
     ],
+    "today": TODAY,
     "labels": [{"n": n, "lat": la, "lng": ln, "z": z, "trip": t} for n, la, ln, z, t in PLACE_LABELS],
     "wxBaked": WX_BAKED,
     "kzSpots": KZ_SPOTS,
@@ -375,7 +366,7 @@ HTML = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Япония 17–27 окт 2026</title>
+<title>Мирас и Айкош · Япония</title>
 <style>__LEAFLET_CSS__</style>
 <style>
   :root {
@@ -471,6 +462,7 @@ HTML = """<!DOCTYPE html>
   .bk-lvl { font-size: 10.5px; font-weight: 700; padding: 1.5px 6px; border-radius: 6px; white-space: nowrap; }
   .bk-lvl.must { background: var(--warn-bg); color: var(--warn-fg); }
   .bk-lvl.advise { background: var(--chip); color: var(--muted); }
+  .bk-lvl.done { background: var(--kz-bg); color: var(--kz-fg); }
   .bk-lvl.info { background: transparent; color: var(--muted); border: 1px solid var(--line); }
   .bk-when { font-size: 12.5px; margin: 3px 0 0; }
   .bk-note { font-size: 12px; color: var(--muted); margin: 3px 0 0; }
@@ -515,6 +507,11 @@ HTML = """<!DOCTYPE html>
   .legend dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; color: var(--muted); }
   .legend dt { font-weight: 600; color: var(--text); white-space: nowrap; }
   .legend dd { margin: 0; }
+  .legend details.tip { border-top: 1px solid var(--line); padding: 7px 0; }
+  .legend details.tip summary { cursor: pointer; font-weight: 650; color: var(--text); }
+  .legend details.tip ul { margin: 6px 0 2px; padding-left: 16px; color: var(--muted);
+    display: flex; flex-direction: column; gap: 5px; line-height: 1.4; }
+  .legend details.tip b { color: var(--text); }
 
   /* ---------- markers ---------- */
   .pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
@@ -666,12 +663,14 @@ HTML = """<!DOCTYPE html>
   .leaflet-control-attribution { font-size: 10px; }
   .pin.dim { opacity: .25; pointer-events: none; }
 </style>
+<style>__TODAY_CSS__</style>
 </head>
 <body>
 <div id="map"></div>
 
 <div class="topbar">
-  <div class="title">🇯🇵 Япония · 17–27 окт 2026 · 4 чел.</div>
+  <div class="title">🇯🇵 Мирас и Айкош · 17–27 окт 2026</div>
+  <button class="btn" id="btnToday" type="button">🗓<span class="lbl"> Сегодня</span></button>
   <button class="btn" id="btnRoute" type="button">🧭<span class="lbl"> Маршрут</span></button>
   <button class="btn" id="btnDays" type="button">📋<span class="lbl"> Дни</span></button>
   <button class="btn" id="btnBook" type="button">🎫<span class="lbl"> Брони</span></button>
@@ -681,6 +680,12 @@ HTML = """<!DOCTYPE html>
 </div>
 
 <aside class="cardpanel" id="cardPanel"></aside>
+
+<div id="today" role="region" aria-label="Сегодня"><div class="td-wrap" id="todayBody"></div></div>
+<div class="td-ticket" id="tdTicket" hidden role="dialog" aria-label="Билет">
+  <div class="hold"></div><p id="tdTicketCap"></p>
+  <button class="td-btn" type="button" id="tdTicketClose">Закрыть</button>
+</div>
 
 <div class="rail">
   <div class="scroller" id="dayChips"></div>
@@ -695,26 +700,116 @@ HTML = """<!DOCTYPE html>
   <div id="bingoList"></div>
   <hr>
   <h3>Базы проживания</h3>
-  <div class="row" style="color:var(--text)">✈️ Кобе → 🏨 Осака (3 ночи) → 🏨 Киото (3 ночи) → 🏨 Токио / Асакуса (4 ночи) → ✈️ Ханэда</div>
+  <div class="row" style="color:var(--text)">✈️ Ханэда → 🏨 Готанда (1 ночь) → 🗻 Кавагутико (день) → 🚌 Мисима → 🏨 Киото (2 ночи) → 🏨 Нагоя (2 ночи, 21-го финалы дзюдо) → 🏨 Токио (5 ночей) → ✈️ Ханэда</div>
   <hr>
   <h3>Цвет метки — город</h3>
   <div class="row" id="legendCities"></div>
   <h3>Иконка — категория</h3>
   <div class="row" id="legendCats"></div>
-  <div class="row">🎨 жёлтая обводка — есть Ghibli-версия места (17 точек)</div>
-  <div class="row">Три точки в Хиросиме показаны сдержанным документальным видом, без стилизации — это мемориал, а не достопримечательность</div>
+  <div class="row">🎨 жёлтая обводка — есть Ghibli-версия места</div>
   <div class="row">🎫 значок на метке — место требует брони, детали в панели «Брони»</div>
-  <div class="row">🛬 зелёная дуга — прилёт 17 окт, 🛫 красная — вылет 27 окт</div>
+  <div class="row">✈️ дуга из Ханэды — прилёт 17 окт 21:20 и вылет 27 окт 20:15, обе через Шанхай</div>
   <div class="row">В каждом попапе есть ссылки «Google Maps» (адрес места) и «Маршрут» (проезд на транспорте)</div>
   <hr>
   <h3>Ключевые переезды</h3>
   <dl>
-    <dt>Осака ↔ Нара</dt><dd>≈45–50 мин</dd>
-    <dt>Осака ↔ Хиросима</dt><dd>≈1 ч 25 мин, синкансэн</dd>
-    <dt>Хиросима ↔ Миядзима</dt><dd>≈45–60 мин с паромом</dd>
-    <dt>Осака → Киото</dt><dd>≈30 мин</dd>
-    <dt>Киото → Токио</dt><dd>≈2 ч 10–20 мин, Nozomi</dd>
+    <dt>Готанда → Синдзюку</dt><dd>≈15 мин, JR Яманотэ</dd>
+    <dt>Синдзюку → Кавагутико</dt><dd>≈1 ч 45 мин, автобус Keio</dd>
+    <dt>Кавагутико → Мисима</dt><dd>≈1 ч 40 мин, автобус Fujikyu</dd>
+    <dt>Мисима → Киото</dt><dd>≈2 ч, синкансэн</dd>
+    <dt>Киото → Сага-Арасияма</dt><dd>≈15 мин, JR Сагано</dd>
+    <dt>Киото → Нагоя</dt><dd>34 мин, Nozomi</dd>
+    <dt>Нагоя → Aichi Budokan</dt><dd>12 мин Aonami + 15 мин пешком</dd>
+    <dt>Нагоя → Токио</dt><dd>≈1 ч 40 мин, Nozomi</dd>
+    <dt>Уэно → Майхама (Disney)</dt><dd>≈35 мин, JR Keiyo</dd>
+    <dt>Асакуса → Ханэда</dt><dd>≈40 мин, Keikyu</dd>
   </dl>
+  <hr>
+  <h3>Лайфхаки</h3>
+  <details class="tip" open><summary>🇰🇿 Из опыта казахстанцев (podeshevle.kz)</summary>
+    <ul>
+      <li><b>APA Hotel</b> — сеть среднего сегмента, есть почти везде, часто с завтраком. Кровать в номере «Double» узкая (около 1,2–1,4 м, в статье пишут и ~1 м) — паре лучше номер побольше или twin. Проверить при брони Киото и Синдзюку.</li>
+      <li><b>Bic Camera</b> (8–9 этажей): техника, часы, оптика, косметика, игрушки, продукты, дополнительный чемодан. Купон Tourist Privilege (до 10%) + tax-free (10%) + кешбэк по карте — в сумме до ~26%. Пример из статьи: Garmin за ~190 000 ₸ вместо ~360 000 ₸ дома. Оправы — ещё Owndays. По плану — вечер 25-го у отеля в Синдзюку.</li>
+      <li><b>Карта Freedom</b> — до 6% кешбэка за покупки за границей (проверить условия). Apple Pay / Google Pay принимают почти везде, но в маленьких местах нужна наличка.</li>
+      <li><b>Наличных нужно немного:</b> в статье на всю поездку хватило $300. Остальное — картой и снятием в 7-Bank в любом 7-Eleven.</li>
+      <li><b>Усталость от 20–30 тыс. шагов:</b> в статье советуют Q&amp;P Kowa Alpha Drink (7-Eleven или аптека) — витаминный напиток с экстрактами трав, не классический энергетик. Перед покупкой проверить состав: на аллергию и для халяля — アルコール (алкоголь) и ゼラチン (желатин) в списке.</li>
+      <li><b>Такси — приложение GO</b>, работает с казахстанским номером. Нужно, например, на рассвет к Тюрэйто.</li>
+      <li><b>Интернет:</b> eSIM MobiMatter или Airalo. Если не ловит — включить роуминг для eSIM в настройках.</li>
+      <li><b>Uniqlo:</b> размеры одинаковые во всех магазинах — подошёл L, берите L. Heattech ~6 000 ₸, самый тонкий — для города, потолще — для гор (у Фудзи ночью ~8°C).</li>
+      <li><b>Чемодан «матрёшкой»:</b> ручную кладь положить в большой чемодан — обратно он заполнится покупками.</li>
+      <li>Фрукты и овощи с собой не везти — большие штрафы. Громко в метро не говорят, чаевых нет. На эскалаторах в Токио стоят слева.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>💴 Деньги и обмен</summary>
+    <ul>
+      <li><b>Меняем только в World Currency Shop и только если курс не ниже ¥155 за $1.</b> Иначе не меняем, а снимаем иены с карты.</li>
+      <li>Отделения работают по будням: Киото (MUFG у метро Сидзё, пн–пт 10–17) — по плану 20 окт; Нагоя (Хирокодзи, пн–пт 10–18); Токио: Синдзюку-Нисигути и Сибуя (пн–пт 10–18), Гиндза в Matsuya (11–18). В выходные почти всё закрыто.</li>
+      <li>Банкоматы 7-Bank в любом 7-Eleven и Japan Post принимают Visa и Mastercard 24/7. Снимать реже и крупнее — комиссия берётся за каждое снятие.</li>
+      <li>Если банкомат или терминал предлагает «оплатить в вашей валюте» — отказываться и платить в иенах. Их курс заметно хуже.</li>
+      <li>Наличные нужны для храмов, маленьких винтажных лавок, рынков и Costco. Предупредить свой банк о поездке, иначе карту могут заблокировать.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🚃 Suica и проезд</summary>
+    <ul>
+      <li><b>iPhone:</b> Wallet → «+» → проездная карта → Suica. Пополнять через Apple Pay. Работает с Visa и Mastercard, но казахстанскую карту стоит проверить до вылета.</li>
+      <li><b>Android или если Wallet не принял карту:</b> пластиковая Welcome Suica для туристов. Продаётся в Ханэде, в терминале 3, в JR East Travel Service Center и в автоматах, без депозита, действует 28 дней. Остаток не возвращают — потратить в конбини.</li>
+      <li>Suica работает в Киото и Нагое наравне с местными ICOCA и manaca, а ещё в конбини, автоматах и камерах хранения.</li>
+      <li>Синкансэн — в приложении Smart EX с зарубежной картой. JR Pass на этом маршруте не окупается: отдельные билеты выходят около ¥35 000, пасс стоит ~¥50 000.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🧾 Tax-free — законные приёмы</summary>
+    <ul>
+      <li>Порог — ¥5 000 без налога в одном магазине за один день. Покупки за день в одном магазине можно собрать в один чек на кассе tax-free. Паспорт нужен оригинал.</li>
+      <li>Еда и косметика запечатываются в пакет, открывать его до вылета нельзя. Одежду и технику можно носить сразу.</li>
+      <li>Крупные покупки собрать на последние дни (Гиндза 27 окт), чтобы не возить их по стране.</li>
+      <li>На вылете покупки могут попросить показать на таможне. Держать их в ручной клади или сверху в чемодане.</li>
+      <li>Правила tax-free меняются с ноября 2026 года. До 27 октября действует нынешняя система со скидкой прямо на кассе — проверить перед поездкой.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🧳 Чемоданы между городами</summary>
+    <ul>
+      <li><b>18 окт утром чемоданы едут из Готанды в Киото сами</b> — курьерской доставкой (такъюбин, Yamato или Sagawa). Отдать на ресепшене, доставка на следующий день, 19-го — к вашему заселению. Около ¥2 500–3 500 за чемодан в зависимости от размера (проверить). Лимит — 3 измерения в сумме до 200 см, до 30 кг.</li>
+      <li>Если ресепшен не отправляет — любой 7-Eleven принимает Yamato (такъюбин) на кассе, бланк заполнят вместе с вами. Адрес получателя — отель в Киото, латиницей и японскими иероглифами (скопировать с сайта отеля), дата заезда и ваше имя как в брони.</li>
+      <li>Заранее написать отелю в Киото: «багаж придёт 19-го до нашего заселения» — почти все принимают.</li>
+      <li>С собой на 2 дня у Фудзи — рюкзак: одежда, зарядки, лекарства, паспорт. В рёкане дадут юкату.</li>
+      <li>Камеры хранения на вокзалах (в т. ч. в Синдзюку) — только если вечером вернуться; нам не подходит. 24 окт то же самое: утром чемоданы из Киото курьером в токийский отель, приедут 25-го.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🚌 Автобус Busta Синдзюку → Кавагутико</summary>
+    <ul>
+      <li><b>Бронь:</b> highwaybus.com (есть английская версия) → откуда Shinjuku (Busta) → куда Kawaguchiko Station → 18 окт → рейс 6:45 (✅ уже забронирован) → схема салона → место → оплата картой. Билет приходит на почту, показать водителю с телефона. Продажа открывается за месяц — уже идёт.</li>
+      <li><b>Места:</b> брать слева по ходу, у окна. Фудзи появляется слева на подъезде к Фудзиёсиде. Два места рядом — в одном ряду слева.</li>
+      <li>Busta — 4-й этаж прямо над New South Gate (新南改札) JR Синдзюку. Из Готанды: подъём 5:15, выход 5:55, Яманотэ ~15 мин, на Busta к 6:30, автобус 6:45. Выход на посадку указан на табло.</li>
+      <li>Наш рейс 06:45 идёт до Mt. Fuji 5th Station, поэтому Кавагутико для него не конечная. Выходить на остановке «Kawaguchiko Sta.» (河口湖駅); перед ней будет Fuji-Q Highland — там не выходить. Билет показать водителю при посадке и выходе.</li>
+      <li>В воскресенье утром на трассе Тюо бывают пробки — поэтому первый рейс. Туалет в автобусе обычно есть, но лучше сходить на Busta.</li>
+      <li>Если все места проданы: поезд Fuji Excursion из Синдзюку (бронь в JR East eki-net), ~2 часа, без пересадок.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🗻 Как поймать Фудзи</summary>
+    <ul>
+      <li><b>Утро — главное.</b> До 10:00 шансы увидеть гору намного выше, к обеду её закрывают облака. В октябре гора видна целиком примерно в каждый третий день — это ориентир, а не статистика.</li>
+      <li>За 3–5 дней смотреть облачность на tenki.jp или Windy и живые камеры Кавагутико. У Фудзи вы только утром 18-го — поэтому первый автобус. Если обещают сплошные тучи, всё равно ехать: гора часто открывается в разрывах, а Тюрэйто и Хоммати красивы и так.</li>
+      <li>Запасные шансы: 18-го из синкансэна после Мисимы (место E справа), бесплатная смотровая мэрии Токио у отеля в Синдзюку утром 25–26-го (часы проверить), Shibuya Sky 25-го — солнце садится примерно в 6° правее Фудзи, гора встаёт силуэтом в закате.</li>
+      <li>Первый снег на вершине обычно ложится к концу октября — есть шанс на белую шапку.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🏷 Скидки и брони</summary>
+    <ul>
+      <li>У Don Quijote, Bic Camera, Yodobashi и Matsumoto Kiyoshi есть купоны для туристов, обычно 5–10% поверх tax-free. Их показывают на кассе с экрана телефона — проверить актуальные.</li>
+      <li>Uniqlo и MUJI — в будний день к открытию. В Uniqlo стоит заглянуть на полку «limited offer»: там цены снижены на неделю.</li>
+      <li>Tokyo Disney — только на официальном сайте, билеты на дату; Klook/KKday иногда дешевле для прочих билетов (проверить условия отмены). Shibuya Sky — только на официальном сайте, так дешевле, чем у касс.</li>
+      <li>Отели бронировать с бесплатной отменой, а за 1–2 недели проверить цену заново и перебронировать, если стало дешевле.</li>
+    </ul>
+  </details>
+  <details class="tip"><summary>🛒 Costco</summary>
+    <ul>
+      <li>Вход только для членов. Членство Gold Star — ¥5 280 в год, оформляется на месте с паспортом (проверить, требуют ли японский адрес).</li>
+      <li><b>Взнос возвращают полностью при отказе от членства.</b> Купить, сделать покупки, отказаться — и вернуть взнос. Повторно оформиться можно только через год.</li>
+      <li>Член клуба проводит с собой до двух взрослых без карты, поэтому членство нужно одно на пару. Семейная карта бесплатная, но только для человека с тем же адресом.</li>
+      <li>Членство Costco из другой страны действует и в Японии. Чужую карту одолжить нельзя: на ней фото, на входе сверяют.</li>
+      <li>Платить только наличными иенами или Mastercard, Visa не принимают.</li>
+    </ul>
+  </details>
 </div>
 
 <script>__LEAFLET_JS__</script>
@@ -1025,14 +1120,14 @@ DATA.flights.forEach(f => {
     ]);
   }
   const line = L.polyline(f.kind === 'arrival' ? pts.slice().reverse() : pts, {
-    color: f.kind === 'arrival' ? '#2f9e44' : '#e0483c',
+    color: f.kind === 'arrival' ? '#2f9e44' : f.kind === 'both' ? '#475569' : '#e0483c',
     weight: 3, opacity: .75, dashArray: '2 6', lineCap: 'round'
   }).addTo(flightLayer);
-  line.bindPopup(`<div class="pop"><h4>${f.kind === 'arrival' ? '🛬 Прилёт' : '🛫 Вылет'}</h4>
+  line.bindPopup(`<div class="pop"><h4>${f.kind === 'arrival' ? '🛬 Прилёт' : f.kind === 'both' ? '🛬 Прилёт · 🛫 Вылет' : '🛫 Вылет'}</h4>
     <p class="notes">${esc(f.text)}</p></div>`);
   L.marker(end, {
     icon: L.divIcon({ className: 'fl-wrap', html: `<div class="fl">${esc(f.label)}</div>`, iconSize: [null, null] })
-  }).bindPopup(`<div class="pop"><h4>${f.kind === 'arrival' ? '🛬 Прилёт' : '🛫 Вылет'}</h4>
+  }).bindPopup(`<div class="pop"><h4>${f.kind === 'arrival' ? '🛬 Прилёт' : f.kind === 'both' ? '🛬 Прилёт · 🛫 Вылет' : '🛫 Вылет'}</h4>
     <p class="notes">${esc(f.text)}</p></div>`).addTo(flightLayer);
   flightEnds.push(end);
 });
@@ -1201,7 +1296,7 @@ function renderSheet() {
    with no signal. */
 const WX = { byCity: JSON.parse(JSON.stringify(DATA.wxBaked)), source: 'climate',
              fetchedAt: null, error: null, baked: true };
-const WX_CACHE = 'japan2026.wx.v1';
+const WX_CACHE = 'japan2026.wx.v2';   // v2: new route, new cities
 
 const WX_ICON = c =>
   c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' :
@@ -1229,7 +1324,7 @@ async function wxFetch() {
                   `&timezone=Asia%2FTokyo&daily=`;
   try {
     const live = await Promise.all(DATA.weatherSpots.map(sp =>
-      fetch(`https://api.open-meteo.com/v1/forecast?${q(sp)}${daily}`)
+      fetch(`https://api.open-meteo.com/v1/forecast?${q(sp)}${daily},precipitation_probability_max`)
         .then(r => r.ok ? r.json() : null).catch(() => null)));
     if (live.every(r => r && r.daily && r.daily.time && r.daily.time.length &&
                         r.daily.temperature_2m_max.some(v => v !== null))) {
@@ -1256,6 +1351,7 @@ async function wxFetch() {
   renderSheet();
   const open = document.getElementById('booking');
   if (open.classList.contains('open')) renderBooking();
+  window.dispatchEvent(new Event('japan2026:wx'));
 }
 
 function wxCityForDay(day) {
@@ -1314,22 +1410,23 @@ function renderBooking() {
     .filter(p => p.booking)
     .map((p, i) => ({ p, i: DATA.places.indexOf(p) }))
     .sort((a, b) => {
-      const rank = l => (l === 'must' ? 0 : l === 'advise' ? 1 : 2);
+      const rank = l => (l === 'must' ? 0 : l === 'advise' ? 1 : l === 'done' ? 3 : 2);
       return rank(a.p.booking.level) - rank(b.p.booking.level) ||
              a.p.booking.act.localeCompare(b.p.booking.act);
     });
   const musts = items.filter(x => x.p.booking.level === 'must').length;
+  const done = items.filter(x => x.p.booking.level === 'done').length;
   let html = `<h2>Что нужно забронировать</h2>
-    <div class="sub">${musts} обязательных · ${items.length} пунктов всего</div>`;
+    <div class="sub">${musts} обязательных · ✅ ${done} готово · ${items.length} пунктов всего</div>`;
   items.forEach(({ p, i }) => {
     const d = daysUntil(p.booking.act);
-    const due = p.booking.level === 'info' ? ''
+    const due = (p.booking.level === 'info' || p.booking.level === 'done') ? ''
       : d < 0 ? `<div class="bk-due past">срок ориентира прошёл — проверьте наличие</div>`
       : `<div class="bk-due${d <= 14 ? ' soon' : ''}">действовать ${d === 0 ? 'сегодня' : 'через ' + d + ' дн.'} · ${p.booking.act}</div>`;
     html += `<div class="bk-item">
       <div class="bk-head"><span class="nm">${p.emoji} ${esc(p.label)}</span>
         <span class="bk-lvl ${p.booking.level}">${
-          p.booking.level === 'must' ? 'обязательно' : p.booking.level === 'advise' ? 'желательно' : 'к сведению'}</span></div>
+          p.booking.level === 'must' ? 'обязательно' : p.booking.level === 'advise' ? 'желательно' : p.booking.level === 'done' ? '✅ забронировано' : 'к сведению'}</span></div>
       <p class="bk-when">${esc(p.booking.when)}</p>
       <p class="bk-note">${esc(p.booking.note)}</p>
       ${p.booking.url ? `<a href="${esc(p.booking.url)}" target="_blank" rel="noopener">Сайт бронирования ↗</a>` : ''}
@@ -1574,6 +1671,7 @@ map.whenReady(() => requestAnimationFrame(boot));
 window.addEventListener('resize', () => map.invalidateSize({ animate: false }));
 window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 </script>
+<script>__TODAY_JS__</script>
 </body>
 </html>
 """
@@ -1582,7 +1680,9 @@ out = (HTML
        .replace("__LEAFLET_CSS__", LEAFLET_CSS + "\n" + CLUSTER_CSS)
        .replace("__LEAFLET_JS__", LEAFLET_JS + "\n" + CLUSTER_JS)
        .replace("__DATA__", json.dumps(payload, ensure_ascii=False))
-       .replace("__BASEMAP__", BASEMAP))
+       .replace("__BASEMAP__", BASEMAP)
+       .replace("__TODAY_CSS__", pathlib.Path("today.css").read_text(encoding="utf-8"))
+       .replace("__TODAY_JS__", pathlib.Path("today.js").read_text(encoding="utf-8")))
 open("Japan_Guide_2026.html", "w", encoding="utf-8").write(out)
 # len(out) counts characters; the page is mostly Cyrillic, so UTF-8 on disk is far
 # larger. Report what the phone actually downloads.

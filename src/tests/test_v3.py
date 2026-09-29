@@ -1,7 +1,7 @@
 import asyncio, json, pathlib
 from playwright.async_api import async_playwright
 
-FILE = pathlib.Path("Japan_Guide_2026.html").resolve().as_uri()
+FILE = pathlib.Path("Japan_Guide_2026.html").resolve().as_uri() + "#map"
 DATES = [f"2026-10-{d}" for d in range(17, 28)]
 
 def daily(with_code=True, nulls=False):
