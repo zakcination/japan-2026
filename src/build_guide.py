@@ -256,6 +256,9 @@ CAT_META = {
 # a trip chosen with ?trip=<id> is fetched from trips/<id>.json next to index.html.
 TODAY = json.loads(pathlib.Path("../trips/template.json").read_text(encoding="utf-8"))
 TRIPS_INDEX = json.loads(pathlib.Path("../trips/index.json").read_text(encoding="utf-8"))
+# every flight any trip knows: typing its number on a phone fills in the route and times
+KNOWN_FLIGHTS = [f for t in TRIPS_INDEX
+                 for f in json.loads(pathlib.Path(f"../trips/{t['id']}.json").read_text(encoding="utf-8")).get("flights", [])]
 DAY_NOTES = {d["n"]: d["summary"] for d in TODAY["days"]}
 KONBINI = {d["n"]: d["konbini"] for d in TODAY["days"]}
 
@@ -356,6 +359,7 @@ payload = {
     ],
     "today": TODAY,
     "trips": TRIPS_INDEX,
+    "knownFlights": KNOWN_FLIGHTS,
     "labels": [{"n": n, "lat": la, "lng": ln, "z": z, "trip": t} for n, la, ln, z, t in PLACE_LABELS],
     "wxBaked": WX_BAKED,
     "kzSpots": KZ_SPOTS,
@@ -409,6 +413,8 @@ HTML = """<!DOCTYPE html>
     --radius: 14px;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -1698,7 +1704,7 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 """
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
-TODAY_MODULES = ["core.js", "store.js", "trips.js", "ios.js", "ui/shell.js", "ui/now.js", "ui/day.js",
+TODAY_MODULES = ["core.js", "flights.js", "store.js", "trips.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/now.js", "ui/day.js",
                  "ui/bookings.js", "ui/stats.js", "ui/settings.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 

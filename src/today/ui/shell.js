@@ -9,7 +9,7 @@ const ICONS = {
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
   bus: '<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21l1-3M16 21l-1-3"/>',
   train: '<rect x="5" y="3" width="14" height="14" rx="4"/><path d="M5 11h14M9 21l2-4M15 21l-2-4"/>',
-  plane: '<path d="M10.5 3.5c.8-.8 2.2-.8 3 0 .5.5.6 1.2.4 1.8L12 11l6 3v2l-6-1.5-.5 4 2 1.5v1.5L10 20l-3.5 1.5V20l2-1.5-.5-4L2 16v-2l6-3-1.9-5.7c-.2-.6-.1-1.3.4-1.8z"/>',
+  plane: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
   bed: '<path d="M3 18V7M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3"/><circle cx="7" cy="11" r="1.6"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
@@ -24,6 +24,8 @@ const ICONS = {
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   bulb: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  sunrise: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 5.5 12 3l2.5 2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
+  sunset: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 4.5 12 7l2.5-2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;

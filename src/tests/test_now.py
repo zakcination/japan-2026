@@ -6,7 +6,10 @@ def at(app, time, day=2, **kw):
 
 
 def fits_one_screen(page):
-    return page.evaluate("(() => { const r = document.getElementById('today'); return r.scrollHeight <= r.clientHeight + 1; })()")
+    """What matters is on the first screen without scrolling: now and next end above the tab bar."""
+    bar = page.locator("#tcTabs").bounding_box()["y"]
+    return all(page.locator(s).bounding_box()["y"] + page.locator(s).bounding_box()["height"] <= bar + 0.5
+               for s in ("#tcNow", "#tcNext") if page.locator(s).count())
 
 
 def test_now_and_next_by_day(app):
@@ -47,3 +50,15 @@ def test_now_empty_day(app):
     a = app(trip=trip, state={"prevDay": 1, "prevTime": "10:00"})
     assert "Нет пунктов" in a.page.inner_text("#todayBody")
     assert a.errors == []
+
+
+def test_sun_widget_shows_the_next_sunrise_or_sunset(app):
+    a = at(app, "13:24")                       # day 2 at Kawaguchiko: sunset ~17:07
+    sun = a.page.inner_text("#tcSun")
+    assert "ЗАКАТ" in sun.upper() and "17:0" in sun and "Восход:" in sun
+    dot = a.page.locator("#tcSun .tc-sun-arc circle").bounding_box()
+    arc = a.page.locator("#tcSun .tc-sun-arc").bounding_box()
+    assert dot["y"] < arc["y"] + arc["height"] / 2          # early afternoon: the sun is high on the arc
+    night = at(app, "21:00")
+    assert "ВОСХОД" in night.page.inner_text("#tcSun").upper() and "Закат:" in night.page.inner_text("#tcSun")
+    assert "down" in night.page.locator("#tcSun .tc-sun-arc circle").get_attribute("class")

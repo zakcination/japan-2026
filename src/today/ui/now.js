@@ -53,13 +53,44 @@ function nextCard(x, next, u) {
   </section>`;
 }
 
+/* ---------- the top row: the next sunrise or sunset, like the Weather app widget ---------- */
+function sunTileHTML(x) {
+  const day = x.cday, now = x.c.min;
+  if (!day.sun || !x.csun || !Number.isFinite(x.csun.rise)) return '';
+  const next = T.days.find(d => d.n === day.n + 1);
+  const tomorrow = sunTimes(Core.addDays(dateOf(day), 1), (next || day).sun[0], (next || day).sun[1]);
+  const { rise, set } = x.csun;
+  const ev = now < rise ? ['Восход', rise, 'Закат', set] : now < set ? ['Закат', set, 'Восход', tomorrow.rise] : ['Восход', tomorrow.rise, 'Закат', tomorrow.set];
+  // the sun's path over the day: a cosine peaking at solar noon; the horizon crosses it at sunrise/sunset
+  const W = 132, H = 40, A = 15, mid = 20, noon = (rise + set) / 2;
+  const y = t => mid - A * Math.cos(2 * Math.PI * (t - noon) / 1440);   // highest at solar noon
+  const hz = y(rise), pts = [];
+  for (let t = 0; t <= 1440; t += 30) pts.push(`${(t / 1440 * W).toFixed(1)},${y(t).toFixed(1)}`);
+  const tn = ((now % 1440) + 1440) % 1440, sx = tn / 1440 * W, sy = y(tn), up = sy < hz;
+  const path = `M${pts.join(' L')}`;
+  return `<div class="tc-mini tc-sun" id="tcSun" role="group" aria-label="${ev[0]} в ${hm(ev[1])}, ${ev[2].toLowerCase()} в ${hm(ev[3])}">
+    <span class="tc-mini-lbl">${icon(ev[0] === 'Закат' ? 'sunset' : 'sunrise')}${ev[0]}</span>
+    <b>${hm(ev[1])}</b>
+    <svg class="tc-sun-arc" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <defs><clipPath id="tcSkyUp"><rect x="0" y="0" width="${W}" height="${hz.toFixed(1)}"/></clipPath>
+        <clipPath id="tcSkyDown"><rect x="0" y="${hz.toFixed(1)}" width="${W}" height="${H}"/></clipPath></defs>
+      <path d="${path}" class="dim" clip-path="url(#tcSkyDown)"/><path d="${path}" class="lit" clip-path="url(#tcSkyUp)"/>
+      <line x1="0" x2="${W}" y1="${hz.toFixed(1)}" y2="${hz.toFixed(1)}" class="hz"/>
+      <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="4.5" class="${up ? 'sun' : 'sun down'}"/></svg>
+    <small>${ev[2]}: ${hm(ev[3])}</small></div>`;
+}
+function topRowHTML(x) {
+  const tiles = [sunTileHTML(x), flightTileHTML(x)].filter(Boolean);
+  return tiles.length ? `<div class="tc-toprow${tiles.length === 1 ? ' one' : ''}">${tiles.join('')}</div>` : '';
+}
+
 RENDER.now = (x, root) => {
   const now = x.c.min, evs = liveEvs(x.cevs);
   const cur = evs.find(e => e.ns <= now && now < e.ne) || null;
   const next = evs.find(e => e.ns > now && Core.isKey(e)) || evs.find(e => e.ns > now) || null;
   const u = x.urg;
   const dark = document.getElementById('today').dataset.th === 'dark';
-  let html = Ios.installHint();
+  let html = Ios.installHint() + topRowHTML(x) + flightCardHTML(x);
   const asked = Trips.asked();
   if (asked) html += `<section class="tc-card tc-note" id="tcAsked"><span class="tc-lbl">Ссылка на другую поездку</span>
     <span class="tc-sub">Ссылка ведёт на «${esc(Trips.nameOf(asked))}», а на телефоне ваша версия с правками.</span>
@@ -88,6 +119,7 @@ RENDER.now = (x, root) => {
   }
   root.innerHTML = `<div class="tc-page">${html}</div>`;
   Ios.wireInstall(root);
+  wireFlightCard(root);
   const ag = root.querySelector('#tcAskedGo');
   if (ag) ag.addEventListener('click', () => twoTap(ag, 'Точно? Ваши правки удалятся', () => {
     Trips.backToShared().then(ok => {

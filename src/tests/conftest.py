@@ -54,7 +54,8 @@ def core(browser):
         pg = browser.new_page()
         pg.goto("about:blank")
         code = "\n".join((SRC / "today" / m).read_text(encoding="utf-8") for m in mods)
-        pg.add_script_tag(content=code + "\nwindow.Core = Core;" + ("\nwindow.Ios = Ios;" if "ios.js" in mods else ""))
+        pg.add_script_tag(content=code + "\nwindow.Core = Core;" + ("\nwindow.Ios = Ios;" if "ios.js" in mods else "")
+                           + ("\nwindow.Flights = Flights;" if "flights.js" in mods else ""))
         pages.append(pg)
         return pg
 

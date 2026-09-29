@@ -2,7 +2,9 @@
 #today .tc-ic, .tc-sheet-bg .tc-ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 #today :focus-visible, .tc-sheet-bg :focus-visible { outline: 3px solid var(--ring3); outline-offset: 2px; }
-#today #todayBody { padding-bottom: calc(96px + var(--safe-b)); }
+#today #todayBody { padding-bottom: calc(80px + max(8px, var(--safe-b))); }
+/* landscape on Face ID iPhones: keep content out of the notch / Dynamic Island side */
+#today { padding-left: var(--safe-l); padding-right: var(--safe-r); box-sizing: border-box; }
 
 /* header: capsule, segments, large title */
 .tc-head { display: flex; flex-direction: column; gap: 14px; padding: calc(12px + var(--safe-t)) 20px 4px;
@@ -32,13 +34,24 @@
 .tc-title span { font: 600 15px/1 var(--sf); color: var(--sec); white-space: nowrap; padding-bottom: 6px; }
 
 /* tab bar */
+/* iOS proportions: 49 pt of tabs, then the home-indicator strip (34 pt on Face ID iPhones in Home Screen
+   mode; Safari reports 0 while its own toolbar is below, so keep a small margin then) */
 .tc-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1600; display: grid; grid-template-columns: repeat(5, 1fr);
-  padding: 6px 6px calc(6px + var(--safe-b)); background: var(--bar); border-top: .5px solid var(--sep);
+  padding: 0 max(6px, var(--safe-r)) max(8px, var(--safe-b)) max(6px, var(--safe-l));
+  background: var(--bar); border-top: .5px solid var(--sep);
   -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
 #today[hidden] .tc-tabs { display: none; }
-.tc-tab { min-height: 50px; border: 0; background: none; color: var(--sec); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 2px; font: 600 10.5px/1.1 var(--sf); cursor: pointer; }
+.tc-tab { min-height: 49px; padding-top: 6px; border: 0; background: none; color: var(--sec); display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; gap: 3px; font: 600 10.5px/1.1 var(--sf); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; }
 .tc-tab .tc-ic { width: 26px; height: 26px; }
+/* Pro Max / Plus widths (428–440 pt): a little larger, like the system tab bar there */
+@media (min-width: 428px) {
+  .tc-tab { min-height: 52px; font-size: 11px; }
+  .tc-tab .tc-ic { width: 28px; height: 28px; }
+  #today .tc-wrap { padding-left: 20px; padding-right: 20px; }
+  .tc-head { padding-left: 24px; padding-right: 24px; }
+}
 .tc-tab[aria-selected="true"] { color: var(--tint); }
 
 /* bottom sheet */
@@ -266,3 +279,49 @@
 .tc-install-ic { flex: 0 0 44px; height: 44px; border-radius: 12px; background: #BC002D; display: grid; place-items: center; }
 .tc-install-ic i { width: 18px; height: 18px; border-radius: 50%; background: #fff; }
 .tc-install .tc-x { flex: 0 0 44px; margin: -6px -8px 0 0; }
+
+/* ---------- flight countdown ---------- */
+.tc-flight { background: #0B0B0F; color: #fff; box-shadow: none; }
+.tc-flight .tc-lbl, .tc-flight .tc-sub { color: #A1A1A8; }
+.tc-flight.empty { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+.tc-flight.empty .tc-lbl, .tc-flight.empty .tc-sub { color: var(--sec); }
+.tc-fl-no { font: 700 15px/1 var(--rd); color: var(--alert); letter-spacing: .02em; }
+.tc-fl-count { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tc-fl-count b { font: 700 clamp(52px, 17vw, 72px)/1 var(--rd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tc-fl-count { column-gap: 4px; }
+.tc-fl-count b.rest { font-size: clamp(34px, 11vw, 44px); color: var(--alert); }
+.tc-fl-count span { font: 600 17px/1 var(--sf); color: #A1A1A8; margin-right: 8px; }
+.tc-fl-route { font: 600 17px/1.3 var(--sf); }
+.tc-flight .tc-btn { background: #2C2C2E; color: #fff; }
+.tc-flight.empty .tc-btn.primary { background: var(--text); color: var(--bg); }
+.tc-flrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 8px 6px 16px;
+  border-top: 1px solid var(--sep); }
+.tc-flrow:first-child { border-top: 0; }
+.tc-flrow span { display: flex; flex-direction: column; gap: 2px; font: 500 16px/1.25 var(--sf); }
+.tc-flrow small { font: 400 13px/1.2 var(--rd); color: var(--sec); }
+.tc-f[hidden] { display: none; }
+
+/* ---------- «Сейчас» top row: sun widget, flight tile ---------- */
+.tc-toprow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tc-mini { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 12px 14px; border: 0; color: var(--text);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 96px; text-align: left; font: inherit; }
+button.tc-mini { cursor: pointer; }
+.tc-mini-lbl { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
+#today .tc-mini-lbl .tc-ic { width: 15px; height: 15px; }
+.tc-mini b { font: 600 28px/1.05 var(--rd); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.tc-mini small { font: 500 13px/1.2 var(--sf); color: var(--sec); margin-top: auto; }
+.tc-mini-fl b { font-size: 22px; margin-top: 6px; }
+.tc-sun { background: linear-gradient(180deg, #2E6BD6, #5B9BEF); color: #fff; box-shadow: none; }
+#today[data-th="dark"] .tc-sun { background: linear-gradient(180deg, #16223F, #2A3B66); }
+.tc-sun .tc-mini-lbl, .tc-sun small { color: rgba(255,255,255,.82); }
+.tc-sun-arc { width: 100%; height: 26px; overflow: visible; margin: 3px 0 2px; }
+.tc-sun-arc path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.tc-sun-arc .lit { stroke: rgba(255,255,255,.95); }
+.tc-sun-arc .dim { stroke: rgba(255,255,255,.35); }
+.tc-sun-arc .hz { stroke: rgba(255,255,255,.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tc-sun-arc .sun { fill: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,.9)); }
+.tc-sun-arc .sun.down { fill: rgba(255,255,255,.55); filter: none; }
+.tc-toprow.one { grid-template-columns: 1fr; }
+.tc-toprow.one .tc-sun { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "l arc" "t arc" "s arc"; column-gap: 16px; min-height: 0; }
+.tc-toprow.one .tc-mini-lbl { grid-area: l; } .tc-toprow.one .tc-sun b { grid-area: t; } .tc-toprow.one .tc-sun small { grid-area: s; }
+.tc-toprow.one .tc-sun-arc { grid-area: arc; height: 100%; min-height: 56px; align-self: center; }

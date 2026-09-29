@@ -91,6 +91,15 @@ PL = {
 # ---------------------------------------------------------------------------------------
 # Bookings: shown on the TODAY screen for the days they belong to; a ticket photo/PDF is
 # attached on the phone and kept offline in the browser.
+# Our flights (China Eastern via Shanghai). Times are local at each airport; the app knows the
+# time zones and counts down to the next departure. Other travellers enter their own on the phone.
+FLIGHTS = [
+    dict(no="MU6042", date="2026-10-16", frm="ALA", dep="20:50", to="PVG", arr="05:30"),
+    dict(no="MU575", date="2026-10-17", frm="PVG", dep="17:15", to="HND", arr="21:20"),
+    dict(no="MU540", date="2026-10-27", frm="HND", dep="20:15", to="PVG", arr="22:40"),
+    dict(no="MU6041", date="2026-10-28", frm="PVG", dep="15:45", to="ALA", arr="19:35"),
+]
+
 BOOKINGS = [
     dict(id="flight_in", days=[1], t=P("Рейс MU575 Шанхай → Ханэда", "Прилёт в Ханэду"), when=P("17.10.2026 · 17:15 → 21:20", "17.10 · 21:20 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
     dict(id="h_sansuiso", days=[1, 2], t=P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда, 1 ночь"), when=P("17.10 → 18.10 · заезд до 23:30", "17.10 → 18.10 · заезд поздно — предупредить"), st=P("fixed", "input"), cost=P(15039, None)),
@@ -324,7 +333,7 @@ def trip(personal):
         bks.append(b)
     return dict(schema=1, name="Мирас и Айкош · Япония 2026" if personal else "Япония за 11 дней · шаблон",
                 template="japan-11d-2026", travelers=2, start=DATES[1], currency="KZT", rate=FX,
-                bookings=bks, days=days)
+                bookings=bks, flights=FLIGHTS if personal else [], days=days)
 
 
 TRIPS = pathlib.Path(__file__).resolve().parent.parent / "trips"      # served next to index.html
