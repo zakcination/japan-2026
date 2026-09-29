@@ -109,6 +109,7 @@ function renderShell() {
   root.dataset.tab = tab;
   const main = document.getElementById('todayBody');
   (RENDER[tab] || RENDER.now)(x, main);
+  Ios.keepAwake(tab === 'now' && !!x.urg && x.urg.state === 'go');
 }
 
 function go(t) {

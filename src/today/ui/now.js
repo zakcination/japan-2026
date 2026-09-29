@@ -1,6 +1,6 @@
 /* ---------- tab «Сейчас»: one screen — what's on, what's next, when to leave ---------- */
 const liveEvs = evs => evs.filter(e => !e.skip && !e.auto && !e.bad);
-const routeUrl = e => (typeof Ios !== 'undefined' && Ios.routeUrl) ? Ios.routeUrl(e) : groute(e);
+const routeUrl = e => Ios.routeUrl(e);
 const stDot = st => {
   const m = { fixed: ['fixed', 'Куплено'], planned: ['planned', 'По плану'], flex: ['flex', 'Гибко'], input: ['input', 'Купить'] };
   const [k, l] = m[st] || m.planned;
@@ -59,7 +59,7 @@ RENDER.now = (x, root) => {
   const next = evs.find(e => e.ns > now && Core.isKey(e)) || evs.find(e => e.ns > now) || null;
   const u = x.urg;
   const dark = document.getElementById('today').dataset.th === 'dark';
-  let html = '';
+  let html = Ios.installHint();
   if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
   if (!x.cevs.length) {
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">Нет пунктов</h2>
@@ -83,6 +83,7 @@ RENDER.now = (x, root) => {
       <label>время <input id="tcPvTime" type="time" value="${hm(now)}"></label></p>`;
   }
   root.innerHTML = `<div class="tc-page">${html}</div>`;
+  Ios.wireInstall(root);
   root.querySelectorAll('[data-ticket]').forEach(b => b.addEventListener('click', () => showTicket(b.dataset.ticket)));
   const pd = root.querySelector('#tcPvDay'), pt = root.querySelector('#tcPvTime');
   if (pd) pd.addEventListener('change', () => { S.prevDay = +pd.value; viewDay = S.prevDay; save(); renderShell(); });

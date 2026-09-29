@@ -70,13 +70,12 @@ function openStop(day, id) {
   const hasTravel = Core.travel(e) > 0;
   const act = (ic, txt, sub, attrs) => `<button type="button" class="tc-act" ${attrs}>${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
   const link = (ic, txt, sub, href) => `<a class="tc-act" href="${href}" target="_blank" rel="noopener">${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></a>`;
-  const iosCal = typeof Ios !== 'undefined' && Ios.calendarForDay;
-  sheet(e.t, `
+    sheet(e.t, `
     <p class="tc-sub">${hm(e.ns)} → ${hm(e.ne)} · ${dur(e.ne - e.ns)}${hasTravel ? ` · выйти в ${hm(e.leave)}` : ''}${e.cost ? ` · ${money(e.cost)}` : ''}</p>
     <div class="tc-row">${stDot(e.st)}${e.bound ? `<span class="tc-sub">📅 только ${Core.ddmmyyyy(e.bound)}</span>` : ''}</div>
     ${e.note ? `<p class="tc-notepara">${esc(e.note)}</p>` : ''}
     <div class="tc-group">
-      ${link('pin', typeof Ios !== 'undefined' && Ios.isIOS ? 'Маршрут в Apple Картах' : 'Маршрут', 'общественный транспорт', routeUrl(e))}
+      ${link('pin', Ios.isIOS() ? 'Маршрут в Apple Картах' : 'Маршрут', 'общественный транспорт', routeUrl(e))}
       ${link('map', 'Открыть в Google Maps', '', gmap(e))}
       ${e.bk ? act('tix', 'Билет', '', `data-ticket="${esc(e.bk)}"`) : ''}
       ${Core.safeUrl(e.link) ? link('share', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
@@ -88,7 +87,7 @@ function openStop(day, id) {
       ${e.delay ? `<button type="button" class="tc-tile" data-delay="0">${icon('clock')}сброс</button>` : ''}
       <button type="button" class="tc-tile" data-edit>${icon('edit')}Изменить</button>
     </div>
-    ${iosCal ? `<div class="tc-group">${act('cal', 'Весь день — в Календарь', 'с напоминаниями «пора выходить»', 'data-cal')}</div>` : ''}`,
+    <div class="tc-group">${act('cal', 'Весь день — в Календарь', 'с напоминаниями «пора выходить»', 'data-cal')}</div>`,
   m => {
     m.querySelectorAll('[data-delay]').forEach(b => b.addEventListener('click', () => {
       const by = +b.dataset.delay;
@@ -99,6 +98,6 @@ function openStop(day, id) {
     if (sk) sk.addEventListener('click', () => { if (S.skip[id]) delete S.skip[id]; else S.skip[id] = true; save(); closeSheet(); renderShell(); });
     m.querySelector('[data-edit]').addEventListener('click', () => { closeSheet(); openEditor(day, id); });
     const tk = m.querySelector('[data-ticket]'); if (tk) tk.addEventListener('click', () => { closeSheet(); showTicket(tk.dataset.ticket); });
-    const cal = m.querySelector('[data-cal]'); if (cal) cal.addEventListener('click', () => Ios.calendarForDay(day));
+    m.querySelector('[data-cal]').addEventListener('click', () => Ios.calendarForDay(day));
   });
 }

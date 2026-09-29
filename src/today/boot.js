@@ -6,7 +6,7 @@ function setTitle() {
 }
 
 function openToday() { document.getElementById('today').hidden = false; S.open = true; save(); viewDay = null; renderShell(); }
-function closeToday() { document.getElementById('today').hidden = true; S.open = false; save(); }
+function closeToday() { document.getElementById('today').hidden = true; S.open = false; save(); Ios.keepAwake(false); }
 window.openToday = openToday;
 
 document.getElementById('btnToday').addEventListener('click', openToday);

@@ -11,6 +11,8 @@ from playwright.sync_api import sync_playwright
 SRC = pathlib.Path(__file__).resolve().parents[1]
 ROOT = SRC.parent
 PAGE = (SRC / "Japan_Guide_2026.html").resolve().as_uri()
+IPHONE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
+             "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")
 PHONE = {"width": 390, "height": 844}
 
 
@@ -55,9 +57,10 @@ def app(browser):
     made = []
 
     def open_(state=None, settings=None, trip=None, size=PHONE, url_suffix="", now="2026-09-30T12:00:00+09:00",
-              dark_os=False):
+              dark_os=False, ua=None):
+        extra = {"user_agent": ua} if ua else {}
         ctx = browser.new_context(viewport=size, device_scale_factor=2, has_touch=True, is_mobile=True,
-                                  color_scheme="dark" if dark_os else "light")
+                                  color_scheme="dark" if dark_os else "light", accept_downloads=True, **extra)
         pg = ctx.new_page()
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))

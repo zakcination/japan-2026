@@ -577,3 +577,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Тесты: ⚙ открывает лист, все поля ≥ 44, старых `td-` элементов нет; ⚙ есть и на «Итогах»; тема Авто/Светлая/Тёмная применяется и хранится; 3 человека → ¥630; правка, новый пункт и название дня; враждебный импорт (HTML в названиях, `javascript:` ссылка, кавычки в `lat`) не исполняется; «Вернуть шаблон» — в два нажатия.
 - [x] Найдено и исправлено: `where()` вставлял `lat/lng` из импорта в ссылку без проверки — теперь только числа; дети листа сжимались во flex-колонке (`.tc-group` пропадал) — `flex-shrink: 0`; свайп терялся, если погода перерисовывала список посреди жеста.
 - [x] `pytest` 47/47, тесты карты; визуальный просмотр (лист настроек, редактор, шестерёнка в строке капсулы); коммит.
+
+## Task 9: iPhone — Календарь, Apple Карты, экран не гаснет, «На экран Домой»
+
+**Files:** Create `src/today/ios.js`, `src/tests/test_ios.py`; Modify `src/today/ui/now.js` (подсказка установки, маршрут через `Ios.routeUrl`), `src/today/ui/day.js` (кнопка Календаря всегда), `src/today/ui/shell.js` (`Ios.keepAwake`), `src/today/boot.js`, `src/today/components.css`, `src/tests/conftest.py` (`ua=`, `IPHONE_UA`, загрузки).
+
+**Interfaces — Produces:** `Ios.isIOS(ua?, platform?, touch?)`, `Ios.standalone()`, `Ios.appleRoute(e)`, `Ios.escText`, `Ios.fold(line)`, `Ios.ics({name, dateISO, events, stamp, seq}) -> text/calendar`, `Ios.routeUrl(e)`, `Ios.dayEvents(day)`, `Ios.calendarForDay(day)`, `Ios.keepAwake(on)`, `Ios.installHint() -> html`, `Ios.wireInstall(root)`; ключ `japan2026.install.v1`.
+
+- [x] Тесты: .ics — CRLF, VTIMEZONE Asia/Tokyo, стабильный UID `<id>@japan-2026`, будильник в момент «выйти» (−45 мин), экранирование `; , \n`, строки ≤ 75 байт, сгиб не рвёт букву, переход через полночь; Apple Карты с `dirflg=r`, «кривые» координаты ищутся по названию; iPhone видит «Apple Картах» и лист «В Календарь» с временем будильников; на компьютере скачивается .ics; при «Пора выходить» экран не гаснет и отпускается на другой вкладке; подсказка установки только на iPhone в Safari и скрывается навсегда.
+- [x] `pytest` 54/54; визуальный просмотр; коммит.
+- [ ] На настоящем iPhone проверить: открытие .ics сразу в Календаре, Wake Lock, «На экран „Домой“» (в эмуляторе не проверяется).
