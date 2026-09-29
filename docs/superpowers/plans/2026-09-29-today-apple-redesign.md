@@ -507,3 +507,13 @@ git add src/today/core.js src/today/legacy.js src/tests/test_core.py src/build_g
 git commit -m "Extract the TODAY core into a tested module and glue modules at build time"
 ```
 
+## Task 2: `store.js` — хранение отдельно от интерфейса
+
+**Files:** Create `src/today/store.js`, `src/tests/test_store.py`; Modify `src/today/legacy.js`.
+
+**Interfaces — Produces** (в общем замыкании): `TPL, TRIP_KEY, SET_KEY, ST_KEY, CUR, clone, loadTrip(), T, isCustom(), saveTrip(), SET, loadSettings(), saveSettings(), S, save(), dateOf(day), plan(day, now), yen(v), home(v), both(v), money(pp), liveDayN(), clock() -> {live, day, min}, openDB(), ticketPut(id, file), ticketGet(id), ticketDel(id), haveTicket, refreshTickets(), bookingById(id), tripFromHash() -> Promise<bool>` (без вызова интерфейса; `setTitle()` вызывает загрузчик).
+
+- [x] Тесты-страховка до переноса (`test_store.py`: своя поездка из хранилища, импорт по `#trip=` со стиранием адреса, цены × люди) — зелёные на старом коде.
+- [x] Перенос блоков «поездка/настройки», «состояние/время/деньги», «билеты», `bookingById`, `tripFromHash` из `legacy.js` в `store.js` без изменений логики.
+- [x] `pytest` — всё зелёное; коммит.
+
