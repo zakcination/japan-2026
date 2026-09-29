@@ -84,7 +84,7 @@ def data_uri(stem):
 # Route: the bases of the trip, in the order they are travelled.
 ROUTE = [
     [35.5494, 139.7798],   # Haneda
-    [35.6262, 139.7236],   # Sansuiso, near Gotanda Station
+    [35.6262, 139.7236],   # first night near Gotanda Station
     [35.6887, 139.7003],   # Busta Shinjuku
     [35.4985, 138.7690],   # Kawaguchiko
     [35.1260, 138.9110],   # Mishima
@@ -114,16 +114,16 @@ TRANSFERS = [
 _NOW = "2026-09-28"
 _HOTEL = "Сейчас, если ещё не забронирован"
 BOOKING = {
-    "Sansuiso – Gotanda": {
-        "level": "done", "act": "2026-10-17",
-        "when": "Забронировано: 17–18 окт, 1 ночь, японский номер twin, общая ванная · ~42 259 ₸",
-        "note": "5 минут от станции Готанда. Заселение 14:00–23:30. В особых пожеланиях: поздний заезд, выезд до рассвета, курьер чемоданов в Киото.",
+    "Hotel – Gotanda": {
+        "level": "must", "act": "2026-10-01",
+        "when": "Первая ночь у станции Готанда — поздний заезд после прилёта",
+        "note": "От Готанды утром — 15 минут по JR Яманотэ до Busta Синдзюку. Предупредить о заезде после 22:00 и спросить про отправку чемоданов курьером.",
         "url": "",
     },
     "Busta Shinjuku": {
-        "level": "done", "act": "2026-10-18",
-        "when": "Куплено: автобус Keio, 18 окт 06:45 → ~08:30",
-        "note": "Рейс идёт до Mt. Fuji 5th Station — выходить на «Kawaguchiko Sta.». Билет показать при посадке и выходе.",
+        "level": "must", "act": "2026-09-18",
+        "when": "Автобус Синдзюку → Кавагутико, 06:45 — продажа открывается за месяц",
+        "note": "highwaybus.com → Shinjuku – Fujigoko / Mt. Fuji 5th Station → Outbound → выход Kawaguchiko Sta. (не конечная). Места Front / Window.",
         "url": "https://www.highwaybus.com/",
     },
     "Mishima Station": {
@@ -192,7 +192,7 @@ BOOKING = {
     "Haneda Airport (HND)": {
         "level": "info", "act": "2026-10-27",
         "when": "Прилёт 17 окт 21:20 · вылет 27 окт 20:15",
-        "note": "Туда MU575 из Шанхая, обратно MU540. В аэропорту быть за 2 часа.",
+        "note": "Время — из шаблона, впишите свои рейсы в «Сегодня → ⚙». В аэропорту быть за 2 часа.",
         "url": "",
     },
 }
@@ -200,8 +200,8 @@ BOOKING = {
 # arrival and departure are both Haneda, so one arc points home towards Almaty
 FLIGHTS = [
     {"kind": "both", "lat": 35.5494, "lng": 139.7798,
-     "label": "✈️ Алматы · через Шанхай",
-     "text": "Прилёт 17 окт 21:20 (MU575 из Шанхая). Вылет 27 окт 20:15 (MU540 в Шанхай, домой 28-го). Из центра выехать к 17:30."},
+     "label": "✈️ Ханэда · прилёт и вылет",
+     "text": "Шаблон: прилёт в Ханэду 17 окт вечером, вылет 27 окт 20:15. Из центра выехать к 17:30."},
 ]
 
 # Place names for the built-in base map. "trip" cities are the ones on the route and are
@@ -252,7 +252,11 @@ CAT_META = {
     "Airport":    {"emoji": "✈️", "label": "Аэропорт",              "short": "Аэропорт"},
 }
 
-TODAY = json.loads(pathlib.Path("today.json").read_text(encoding="utf-8"))
+# PERSONAL=1 builds our own copy with the private trip preloaded (never committed);
+# the default build is the public, universal template.
+import os
+PERSONAL = os.environ.get("PERSONAL") == "1"
+TODAY = json.loads(pathlib.Path("../survey/trip_miras_aikosh.json" if PERSONAL else "today.json").read_text(encoding="utf-8"))
 DAY_NOTES = {d["n"]: d["summary"] for d in TODAY["days"]}
 KONBINI = {d["n"]: d["konbini"] for d in TODAY["days"]}
 
@@ -366,7 +370,7 @@ HTML = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Мирас и Айкош · Япония</title>
+<title>Япония за 11 дней</title>
 <style>__LEAFLET_CSS__</style>
 <style>
   :root {
@@ -669,7 +673,7 @@ HTML = """<!DOCTYPE html>
 <div id="map"></div>
 
 <div class="topbar">
-  <div class="title">🇯🇵 Мирас и Айкош · 17–27 окт 2026</div>
+  <div class="title" id="tripTitle">🇯🇵 Япония за 11 дней</div>
   <button class="btn" id="btnToday" type="button">🗓<span class="lbl"> Сегодня</span></button>
   <button class="btn" id="btnRoute" type="button">🧭<span class="lbl"> Маршрут</span></button>
   <button class="btn" id="btnDays" type="button">📋<span class="lbl"> Дни</span></button>
@@ -708,7 +712,7 @@ HTML = """<!DOCTYPE html>
   <div class="row" id="legendCats"></div>
   <div class="row">🎨 жёлтая обводка — есть Ghibli-версия места</div>
   <div class="row">🎫 значок на метке — место требует брони, детали в панели «Брони»</div>
-  <div class="row">✈️ дуга из Ханэды — прилёт 17 окт 21:20 и вылет 27 окт 20:15, обе через Шанхай</div>
+  <div class="row">✈️ дуга из Ханэды — прилёт и вылет (время из шаблона, свои рейсы — в «Сегодня → ⚙»)</div>
   <div class="row">В каждом попапе есть ссылки «Google Maps» (адрес места) и «Маршрут» (проезд на транспорте)</div>
   <hr>
   <h3>Ключевые переезды</h3>
@@ -1683,10 +1687,13 @@ out = (HTML
        .replace("__BASEMAP__", BASEMAP)
        .replace("__TODAY_CSS__", pathlib.Path("today.css").read_text(encoding="utf-8"))
        .replace("__TODAY_JS__", pathlib.Path("today.js").read_text(encoding="utf-8")))
-open("Japan_Guide_2026.html", "w", encoding="utf-8").write(out)
+if PERSONAL:
+    out = out.replace("<title>Япония за 11 дней</title>", "<title>" + TODAY["name"] + "</title>", 1)
+OUT_FILE = "../survey/guide_personal.html" if PERSONAL else "Japan_Guide_2026.html"
+open(OUT_FILE, "w", encoding="utf-8").write(out)
 # len(out) counts characters; the page is mostly Cyrillic, so UTF-8 on disk is far
 # larger. Report what the phone actually downloads.
-_size = pathlib.Path("Japan_Guide_2026.html").stat().st_size
+_size = pathlib.Path(OUT_FILE).stat().st_size
 print(f"written: {_size} bytes ({_size / 1024:.0f} KiB), {len(out)} chars")
 print("places:", len(payload["places"]), "| visits:", len(payload["visits"]),
       "| with illustration:", sum(1 for s in payload["places"] if s["img"]),
