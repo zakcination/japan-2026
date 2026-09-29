@@ -537,3 +537,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Реализация по макету; при «Пора» карточка «Сейчас» скрывается, если до выхода 0.
 - [x] Один визуальный просмотр (день / пора / ночь); коммит.
 
+
+## Task 5: Вкладка «День»
+
+**Files:** Create `src/today/ui/day.js`, `src/tests/test_day.py`; Modify `src/today/components.css` (лента дней, список, круглые отметки, лист пункта).
+
+**Interfaces — Produces:** `RENDER.day`, `openStop(day, id)` (лист пункта; `Ios.calendarForDay(day)` появится кнопкой, когда подключится `ios.js`); элементы `.tc-daypick[data-day]`, `#tcList`, `.tc-item.{now,done,skip}`, `.tc-check input[type=checkbox][switch]`, `.tc-open`, `[data-delay]`, `[data-skip]`, `[data-edit]`, `#tcAdd`, `#tcDayEdit`.
+
+- [x] Тесты: 11 дней в ленте и 13 пунктов дня 2, текущий подсвечен; выбор дня и свайп влево → следующий день; отметка — нативный `switch`, сохраняется; лист пункта: кнопки ≥ 44, +15 и «Пропустить» пишут в хранилище; у купленного (FIXED) нет сдвига и пропуска.
+- [x] Реализация; стоимость на группу в строке и итог дня; сдвинутое время показывает старое зачёркнутым.
+- [x] `pytest` 32/32, тесты карты; визуальный просмотр (светлая лента, тёмный лист); коммит.
