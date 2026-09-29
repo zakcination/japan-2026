@@ -36,9 +36,10 @@ class FakeSupabase:
         f.plan["doc"] = {k: v for k, v in trip.items() if k not in ("group",)}
         f.parts = copy.deepcopy(trip.get("parts", []))
         f.recipes = {r["bk"]: dict(r, host_ref="") for r in trip.get("recipes", [])}
-        f.host_id = f._add("Мирас", "host"); f._add("Айкош", "host")
-        f.host_pin = "2468"
+        f.host_id = f._add("Мирас", "host"); f.host2_id = f._add("Айкош", "host")
+        f.host_pin, f.host2_pin = "2468", "1357"
         f.members[f.host_id]["pin_hash"] = _h(f.host_pin)
+        f.members[f.host2_id]["pin_hash"] = _h(f.host2_pin)  # hosts' PINs are set at setup; nothing is claimable by default
         return f
 
     def _add(self, name, role):
@@ -85,6 +86,11 @@ class FakeSupabase:
         if m["locked_until"] > self.clock(): raise RpcError(400, "locked, try later")
         if not (isinstance(p_pin, str) and len(p_pin) == 4 and p_pin.isdigit()): raise RpcError(400, "PIN must be 4 digits")
         if m["pin_hash"] is None:
+            # first claim of a PIN-less member: only a guest slot, and only from a device not already
+            # bound to someone else (a claimed member's device cannot also take over a fresh slot).
+            if m["role"] != "guest": raise RpcError(400, "PIN is set by the owner")
+            existing = self.devices.get(uid)
+            if existing is not None and existing != p_member: raise RpcError(400, "ask a host")
             m["pin_hash"] = _h(p_pin)
         elif m["pin_hash"] != _h(p_pin):
             m["fails"] += 1
@@ -98,6 +104,7 @@ class FakeSupabase:
 
     def rpc_group_state(self, token, p_trip):
         m = self._me(token); me = m["id"]
+        if p_trip != TRIP: raise RpcError(400, "not a member")   # nulls must fail closed, not open
         return copy.deepcopy({
             "me": self._pub(m), "trip": {"id": TRIP, "name": self.plan["doc"]["name"]}, "plan": self.plan,
             "members": [self._pub(x) for x in self.members.values()], "parts": self.parts, "joins": self.joins,
@@ -145,7 +152,11 @@ class FakeSupabase:
     def rpc_save_attachment(self, token, p_a):
         me = self._me(token)["id"]; x = dict(p_a)
         if x.get("kind") not in ("file", "link"): raise RpcError(400, "bad kind")
-        if x["kind"] == "link" and not str(x.get("url", "")).startswith("https://"): raise RpcError(400, "links must be https")
+        if x.get("url") and not str(x["url"]).startswith("https://"): raise RpcError(400, "links must be https")
+        if x["kind"] == "file":
+            if not str(x.get("path", "")).startswith(me + "/"): raise RpcError(400, "not your file")
+        else:
+            x.pop("path", None)   # a link never stores a path: it cannot be used to point at another member's file
         old = self.attachments.get(x["id"])
         if old and old["member"] != me: raise RpcError(400, "not yours")
         x["member"], x["shared"] = me, bool(x.get("shared"))
@@ -204,7 +215,9 @@ class FakeSupabase:
 
     def download(self, token, path):
         me = self._me(token)["id"]
-        ok = path.startswith(me + "/") or any(x["shared"] and x.get("path") == path for x in self.attachments.values())
+        ok = path.startswith(me + "/") or any(
+            x["shared"] and x.get("kind") == "file" and x.get("path") == path and path.startswith(x["member"] + "/")
+            for x in self.attachments.values())
         if not ok or path not in self.files: raise RpcError(404, "not found")
         return self.files[path]
 
@@ -217,6 +230,14 @@ class FakeSupabase:
 
             def rpc(self, token, name, args):
                 try: return 200, f.rpc(token, name, args)
+                except RpcError as e: return e.status, {"code": "P0001", "message": e.message}
+
+            def seed_file(self, path):
+                """Test-only: plant a file directly in storage, as if its owner had already uploaded it."""
+                f.files[path] = (b"x", "application/octet-stream")
+
+            def download(self, token, path):
+                try: f.download(token, path); return 200, {"ok": True}
                 except RpcError as e: return e.status, {"code": "P0001", "message": e.message}
         return C()
 

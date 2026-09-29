@@ -67,23 +67,30 @@ $$;
 create or replace function public._can_read_ticket(p_name text) returns boolean language sql stable security definer
 set search_path = public, extensions as $$
   select (storage.foldername(p_name))[1] = public._device_member()
-    or exists (select 1 from public.attachments a where a.shared and a.a->>'path' = p_name
+    or exists (select 1 from public.attachments a where a.shared and a.a->>'kind' = 'file' and a.a->>'path' = p_name
+               and (storage.foldername(p_name))[1] = a.member::text
                and a.member in (select id from public.members where trip = (
                  select mm.trip from public.member_devices d join public.members mm on mm.id = d.member where d.uid = auth.uid())));
 $$;
 
 create or replace function public.claim_member(p_member uuid, p_pin text) returns jsonb language plpgsql security definer
 set search_path = public, extensions as $$
-declare m public.members;
+declare m public.members; already uuid;
 begin
   if auth.uid() is null then raise exception 'sign in first' using errcode = 'P0001'; end if;
   select * into m from public.members where id = p_member for update;
   if m.id is null then raise exception 'no such member' using errcode = 'P0001'; end if;
   if m.locked_until is not null and m.locked_until > now() then raise exception 'locked, try later' using errcode = 'P0001'; end if;
-  if p_pin !~ '^\d{4}$' then raise exception 'PIN must be 4 digits' using errcode = 'P0001'; end if;
+  if p_pin is null or p_pin !~ '^[0-9]{4}$' then raise exception 'PIN must be 4 digits' using errcode = 'P0001'; end if;
   if m.pin_hash is null then
+    -- first claim of a PIN-less member: only a guest slot, and only from a device not already bound
+    -- to someone else on this trip (a claimed member's device cannot also take over a fresh slot).
+    if m.role <> 'guest' then raise exception 'PIN is set by the owner' using errcode = 'P0001'; end if;
+    select d.member into already from public.member_devices d join public.members mm on mm.id = d.member
+      where d.uid = auth.uid() and mm.trip = m.trip and d.member <> m.id;
+    if already is not null then raise exception 'ask a host' using errcode = 'P0001'; end if;
     update public.members set pin_hash = crypt(p_pin, gen_salt('bf')), fails = 0 where id = m.id;
-  elsif m.pin_hash <> crypt(p_pin, m.pin_hash) then
+  elsif m.pin_hash is distinct from crypt(p_pin, m.pin_hash) then
     update public.members set fails = case when fails + 1 >= 5 then 0 else fails + 1 end,
       locked_until = case when fails + 1 >= 5 then now() + interval '15 minutes' else locked_until end where id = m.id;
     return jsonb_build_object('error', 'wrong PIN');   -- committed; the app shows it
@@ -103,7 +110,7 @@ create or replace function public.group_state(p_trip text) returns jsonb languag
 set search_path = public, extensions as $$
 declare m public.members := public._me();
 begin
-  if m.trip <> p_trip then raise exception 'not a member' using errcode = 'P0001'; end if;
+  if m.trip is distinct from p_trip then raise exception 'not a member' using errcode = 'P0001'; end if;
   return jsonb_build_object(
     'me', jsonb_build_object('id', m.id, 'name', m.name, 'role', m.role),
     'trip', (select to_jsonb(t) from public.trips t where t.id = p_trip),
@@ -136,7 +143,7 @@ create or replace function public.save_my_stop(p_stop jsonb) returns boolean lan
 set search_path = public, extensions as $$
 declare m public.members := public._me(); owner uuid;
 begin
-  if (p_stop->>'id') !~ '^m-[A-Za-z0-9-]{1,60}$' then raise exception 'bad id' using errcode = 'P0001'; end if;
+  if p_stop->>'id' is null or (p_stop->>'id') !~ '^m-[A-Za-z0-9-]{1,60}$' then raise exception 'bad id' using errcode = 'P0001'; end if;
   select member into owner from public.my_stops where id = p_stop->>'id';
   if owner is not null and owner <> m.id then raise exception 'not yours' using errcode = 'P0001'; end if;
   insert into public.my_stops values (p_stop->>'id', m.id, p_stop - 'shared' - 'member', coalesce((p_stop->>'shared')::boolean, false))
@@ -153,7 +160,7 @@ create or replace function public.save_my_booking(p_b jsonb) returns boolean lan
 set search_path = public, extensions as $$
 declare m public.members := public._me();
 begin
-  if (p_b->>'id') !~ '^mb-[A-Za-z0-9-]{1,60}$' then raise exception 'bad id' using errcode = 'P0001'; end if;
+  if p_b->>'id' is null or (p_b->>'id') !~ '^mb-[A-Za-z0-9-]{1,60}$' then raise exception 'bad id' using errcode = 'P0001'; end if;
   perform public._https(p_b->>'url');
   insert into public.my_bookings values (p_b->>'id', m.id, p_b - 'member')
     on conflict (id) do update set b = excluded.b where public.my_bookings.member = m.id;
@@ -170,16 +177,19 @@ end $$;
 
 create or replace function public.save_attachment(p_a jsonb) returns boolean language plpgsql security definer
 set search_path = public, extensions as $$
-declare m public.members := public._me(); owner uuid;
+declare m public.members := public._me(); owner uuid; body jsonb;
 begin
-  if (p_a->>'kind') not in ('file','link') then raise exception 'bad kind' using errcode = 'P0001'; end if;
-  if (p_a->>'kind') = 'link' then
-    if coalesce(p_a->>'url','') !~ '^https://[^\s"''<>]+$' then raise exception 'links must be https' using errcode = 'P0001'; end if;
-  elsif coalesce(p_a->>'path','') not like m.id::text || '/%' then raise exception 'not your file' using errcode = 'P0001';
+  if coalesce(p_a->>'kind','') not in ('file','link') then raise exception 'bad kind' using errcode = 'P0001'; end if;
+  perform public._https(p_a->>'url');   -- run regardless of kind: a crafted 'file' with a javascript: url must not slip through
+  if (p_a->>'kind') = 'file' then
+    if coalesce(p_a->>'path','') not like m.id::text || '/%' then raise exception 'not your file' using errcode = 'P0001'; end if;
+    body := p_a - 'shared' - 'member';
+  else
+    body := p_a - 'shared' - 'member' - 'path';   -- a link never stores a path: it cannot be used to point at another member's file
   end if;
   select member into owner from public.attachments where id = p_a->>'id';
   if owner is not null and owner <> m.id then raise exception 'not yours' using errcode = 'P0001'; end if;
-  insert into public.attachments values (p_a->>'id', m.id, p_a - 'shared' - 'member', coalesce((p_a->>'shared')::boolean, false))
+  insert into public.attachments values (p_a->>'id', m.id, body, coalesce((p_a->>'shared')::boolean, false))
     on conflict (id) do update set a = excluded.a, shared = excluded.shared;
   return true;
 end $$;
@@ -266,3 +276,7 @@ create policy "tickets write own" on storage.objects for insert to authenticated
 drop policy if exists "tickets read own or shared" on storage.objects;
 create policy "tickets read own or shared" on storage.objects for select to authenticated
   using (bucket_id = 'tickets' and public._can_read_ticket(name));
+
+-- Hosts' PINs are set at trip setup by the owner, here in the SQL editor — claim_member refuses to set
+-- a PIN-less host's PIN from the app (see claim_member's 'PIN is set by the owner'). Example:
+-- update public.members set pin_hash = crypt('1234', gen_salt('bf')) where trip = 'miras-aikosh' and name = 'Айкош';

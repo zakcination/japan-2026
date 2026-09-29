@@ -22,6 +22,10 @@ def run_all(c, host_id, host_pin):
     host = c.signup(); ok(c.rpc(host, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
     s = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
     assert s["me"]["role"] == "host" and s["plan"]["version"] >= 1
+    # a null PIN must never be treated as "the right PIN" for an already-PIN'd member
+    w = c.signup(); err(c.rpc(w, "claim_member", {"p_member": host_id, "p_pin": None}), "PIN")
+    # nulls must fail closed, not open: a null trip is not the caller's trip
+    err(c.rpc(host, "group_state", {"p_trip": None}), "not a member")
     # host adds Saniya; she sets her PIN on first claim
     san = ok(c.rpc(host, "add_member", {"p_name": "Сания", "p_role": "guest"}))["id"]
     g = c.signup(); ok(c.rpc(g, "claim_member", {"p_member": san, "p_pin": "4821"}))
@@ -61,9 +65,31 @@ def run_all(c, host_id, host_pin):
     ok(c.rpc(g, "save_attachment", {"p_a": {"id": "a-1", "ref": "bk:bus18", "kind": "link", "url": "https://www.highwaybus.com/x", "name": "Бронь", "shared": False}}))
     hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
     assert not any(a["id"] == "a-1" for a in hs["attachments"])
+    # a missing/null kind must not skip the https check either
+    err(c.rpc(g, "save_attachment", {"p_a": {"id": "a-badkind", "ref": "bk:bus18", "url": "javascript:alert(3)", "name": "n"}}), "kind")
+    # a shared 'link' attachment with a crafted path must not leak another member's private ticket
+    trap = f"{host_id}/ticket.pdf"
+    ok(c.rpc(g, "save_attachment", {"p_a": {"id": "a-leak", "ref": "bk:bus18", "kind": "link",
+                                             "url": "https://example.com/x", "path": trap, "name": "leak", "shared": True}}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    leaked = next(a for a in hs["attachments"] if a["id"] == "a-leak")
+    assert "path" not in leaked, leaked
+    if hasattr(c, "seed_file"):   # the fake only: prove the crafted attachment cannot actually fetch the file
+        c.seed_file(trap)
+        st, _ = c.download(g, trap)
+        assert st >= 400
+    # nulls must fail closed, not open: a null id is not a valid id
+    err(c.rpc(g, "save_my_stop", {"p_stop": {"id": None, "day": 1, "ev": {"s": "09:00", "e": "10:00", "t": "x"}}}), "bad id")
+    err(c.rpc(g, "save_my_booking", {"p_b": {"id": None}}), "bad id")
     # host resets the PIN; the old device keeps working, a new claim needs the new PIN
     ok(c.rpc(host, "reset_pin", {"p_member": san}))
     z = c.signup(); ok(c.rpc(z, "claim_member", {"p_member": san, "p_pin": "1111"}))
+    # first-claim takeover: a claimed guest's device cannot also claim a fresh guest slot
+    guest2 = ok(c.rpc(host, "add_member", {"p_name": "Гость2", "p_role": "guest"}))["id"]
+    err(c.rpc(g, "claim_member", {"p_member": guest2, "p_pin": "1234"}), "ask a host")
+    # first-claim takeover: a PIN-less host can only get its PIN set by the owner, never by a claim
+    host2 = ok(c.rpc(host, "add_member", {"p_name": "Хост2", "p_role": "host"}))["id"]
+    v2 = c.signup(); err(c.rpc(v2, "claim_member", {"p_member": host2, "p_pin": "1234"}), "owner")
     # up to 3 devices per member: claiming from 4 sessions evicts the oldest
     first_host = host  # save the first session's token
     h2 = c.signup(); ok(c.rpc(h2, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
