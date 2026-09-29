@@ -2,7 +2,6 @@
    Everything here runs on data baked into the page (DATA.today) plus two stores on this
    device: localStorage for ticks, skips, delays and spend, IndexedDB for ticket files.
    Nothing needs the network, so the screen works offline once the page is open. */
-(function () {
 /* ---------- the trip: the built-in template, or the traveller's own copy on this device ---------- */
 const TPL = DATA.today;
 const TRIP_KEY = 'japan2026.trip.v1', SET_KEY = 'japan2026.settings.v1', ST_KEY = 'japan2026.today.v1';
@@ -26,8 +25,6 @@ function loadSettings() {
 }
 loadSettings();
 const saveSettings = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) {} };
-const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const dateOf = d => addDays(SET.start, d.n - 1);
 const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const WD = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -41,98 +38,24 @@ let S = { done: {}, skip: {}, delay: {}, spent: {}, walked: {}, view: null, prev
 try { Object.assign(S, JSON.parse(localStorage.getItem(ST_KEY) || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem(ST_KEY, JSON.stringify(S)); } catch (e) {} };
 
+/* the pure logic lives in core.js */
+const { pad, toMin, hm, dur, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, travel } = Core;
+const dateOf = d => addDays(SET.start, d.n - 1);
+const plan = (day, now) => Core.plan(day, now, S, dateOf(day));
+
 /* ---------- time ---------- */
-const pad = n => String(n).padStart(2, '0');
-const toMin = hm => { const [h, m] = hm.split(':').map(Number); return h * 60 + m; };
-const hm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
-const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? `${h} ч ${pad(m % 60)} мин` : `${m} мин`; };
-const ddmmyyyy = iso => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
 const yen = v => v == null ? '—' : '¥' + Math.round(v).toLocaleString('ru-RU');
 const home = v => SET.cur === 'JPY' || v == null ? '' : Math.round(v * SET.rate).toLocaleString('ru-RU') + ' ' + (CUR[SET.cur] || CUR.KZT).sym;
 const both = v => v == null || !v ? '—' : `${yen(v)}${home(v) ? ' · ' + home(v) : ''}`;
 /* costs in the data are per person; shown for the whole group */
 const money = pp => pp == null || !pp ? '—' : both(pp * SET.travelers);
 
-function japanNow() {
-  const p = {};
-  new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
-  return { date: `${p.year}-${p.month}-${p.day}`, min: (+p.hour % 24) * 60 + +p.minute, sec: +p.second };
-}
 const liveDayN = () => { const n = japanNow(); const d = T.days.find(x => dateOf(x) === n.date); return d ? d.n : null; };
 /* the clock the screen reasons with: real Japan time during the trip, the preview clock before it */
 function clock() {
   const live = liveDayN();
   if (live) return { live: true, day: live, min: japanNow().min };
   return { live: false, day: S.prevDay, min: toMin(S.prevTime || '09:00') };
-}
-
-/* ---------- sunrise / sunset (NOAA approximation, local, no network) ---------- */
-function sunTimes(iso, lat, lng) {
-  const rad = Math.PI / 180, d = new Date(iso + 'T12:00:00Z');
-  const n = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 0)) / 864e5);
-  const g = 2 * Math.PI / 365 * (n - 1);
-  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
-  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
-             - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
-  const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
-  const noon = 720 - 4 * lng - eq + 540;            // minutes, Japan time (UTC+9)
-  return { rise: noon - 4 * ha, set: noon + 4 * ha };
-}
-
-/* ---------- the replanner ----------
-   Anchors never move: fixed events, intercity transport and hotel check-ins still to be booked.
-   A delay pushes what follows; before an anchor the overrun is paid back from flexible blocks
-   first (latest first, down to nothing), then planned ones (down to half, never under 15 min).
-   What can't be paid back is shown as a conflict on the anchor — nothing extra is ever suggested. */
-const isAnchor = e => e.st === 'fixed' || ((e.cat === 'transport' || e.cat === 'hotel') && e.st === 'input');
-const travel = e => (e.walk || 0) + (e.ride || 0) + (e.buf || 0);
-
-function plan(day, now) {
-  const evs = day.ev.map(e => {
-    const s = toMin(e.s), en = e.e ? toMin(e.e) : s + 15;
-    const off = e.bound && dateOf(day) !== e.bound;
-    return { ...e, st: off ? 'input' : e.st, off, S: s, E: en < s ? en + 1440 : en, ns: s, ne: 0, cut: 0, auto: false, conflict: 0,
-             skip: !!S.skip[e.id], done: !!S.done[e.id], delay: +(S.delay[e.id] || 0) };
-  });
-  let t = null, seg = [];
-  for (const e of evs) {
-    if (e.skip) { e.ns = e.S; e.ne = e.E; continue; }
-    const reach = (e.walk || 0) + (e.ride || 0);
-    if (isAnchor(e)) {
-      e.ns = e.S; e.ne = e.E + (e.st === 'fixed' ? 0 : e.delay);
-      let over = t == null ? 0 : t + reach + (e.buf || 0) - e.S;
-      if (over > 0) {
-        // only what hasn't happened yet can give time back: future blocks, and the rest of the current one
-        const open = x => now == null || x.ne > now;
-        const future = seg.filter(open);
-        const order = [...future.filter(x => x.st === 'flex').reverse(), ...future.filter(x => x.st !== 'flex').reverse()];
-        for (const x of order) {
-          if (over <= 0) break;
-          const len = x.ne - Math.max(x.ns, now == null ? -1e9 : now);
-          const keep = x.st === 'flex' ? 0 : Math.max(15, Math.round((x.E - x.S) / 2));
-          const can = Math.max(0, Math.min(len, x.ne - x.ns - keep));
-          const c = Math.min(can, over);
-          if (!c) continue;
-          x.ne -= c; x.cut += c; over -= c;
-          if (x.ne - x.ns <= 0) x.auto = true;
-          // everything after x in the segment slides earlier by c
-          const i = seg.indexOf(x);
-          seg.slice(i + 1).forEach(y => { y.ns -= c; y.ne -= c; });
-        }
-        if (over > 0) e.conflict = over;
-      }
-      t = e.ne; seg = [];
-    } else {
-      e.ns = t == null ? e.S : Math.max(e.S, t + reach);
-      e.ne = e.ns + (e.E - e.S) + e.delay;
-      t = e.ne; seg.push(e);
-    }
-    e.leave = e.ns - travel(e);
-  }
-  evs.forEach(e => { if (e.leave == null) e.leave = e.ns - travel(e); });
-  return evs;
 }
 
 /* ---------- tickets: files kept in this browser (IndexedDB), readable offline ---------- */
@@ -559,7 +482,7 @@ function openSettings() {
     });
     const load = txt => {
       let j; try { j = JSON.parse(txt); } catch (e) { msg('Это не JSON. Проверьте, что скопирован весь текст.'); return; }
-      const ok = j && Array.isArray(j.days) && j.days.length && j.days.every(d => Number.isFinite(+d.n) && Array.isArray(d.ev) && d.ev.every(e => e.s && e.t));
+      const ok = Core.validTrip(j);
       if (!ok) { msg('Файл не похож на поездку: нужен список days, у каждого дня n и ev с полями s и t.'); return; }
       j.bookings = Array.isArray(j.bookings) ? j.bookings : [];
       T = j; saveTrip();
@@ -623,7 +546,7 @@ function openEditor(day, id) {
       Object.assign(x, { t: v('edT'), s: v('edS'), e: v('edE') || null, st: v('edSt'), cat: v('edCat'), pname: v('edPlace'),
         lat: num('edLat'), lng: num('edLng'), walk: num('edWalk') || 0, ride: num('edRide') || 0, buf: num('edBuf') || 0,
         cost: num('edCost'), mode: v('edMode'), num: v('edNum'), frm: v('edFrm'), to: v('edTo'), plat: v('edPlat'),
-        link: v('edLink'), note: v('edNote') });
+        link: Core.safeUrl(v('edLink')), note: v('edNote') });
       if (!id) d.ev.push(x);
       d.ev.sort((a, b) => a.s.localeCompare(b.s));
       saveTrip(); closeModal(); render();
@@ -704,4 +627,3 @@ if (/^https?:$/.test(location.protocol) && /github\.io$|^localhost$|^127\.0\.0\.
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 window.addEventListener('japan2026:wx', render);
-})();

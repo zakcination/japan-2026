@@ -254,11 +254,21 @@ def test_anchor_never_moves_and_flex_is_cut_first(core):
     assert evs["e0"]["cut"] == 0                      # the past cruise is not touched
 
 
-def test_unpayable_delay_shows_conflict_not_move(core):
+def test_unpayable_gap_between_anchors_shows_conflict_not_move(core):
+    pg = core()
+    day = {"n": 5, "ev": [
+        {"id": "a", "s": "16:00", "e": "16:50", "t": "Дзюдо", "cat": "event", "st": "fixed"},
+        {"id": "b", "s": "17:00", "e": "18:40", "t": "Поезд", "cat": "transport", "st": "input", "walk": 20, "ride": 10, "buf": 15}]}
+    evs = by_id(run(pg, day, 15 * 60))
+    assert evs["b"]["ns"] == 17 * 60                  # the train does not move
+    assert evs["b"]["conflict"] == 35                 # 16:50 + 45 min to get there - 17:00
+
+
+def test_delay_of_current_stop_is_paid_back_from_itself(core):
     pg = core()
     evs = by_id(run(pg, DAY, 13 * 60, {"delay": {"e2": 300}}))
-    assert evs["e4"]["ns"] == 17 * 60
-    assert evs["e4"]["conflict"] > 0
+    assert evs["e4"]["ns"] == 17 * 60 and evs["e4"]["conflict"] == 0
+    assert evs["e2"]["ne"] == 16 * 60 + 15
 
 
 def test_date_bound_event_off_its_date_needs_input(core):
@@ -387,7 +397,9 @@ const Core = (() => {
       return { ...e, st: off ? 'input' : e.st, off, bad, S: s, E: en < s ? en + 1440 : en, ns: s, ne: 0, cut: 0, auto: false,
                conflict: 0, skip: !!skip[e.id], done: !!done[e.id], delay: +(delay[e.id] || 0) };
     });
-    const evs = all.filter(e => !e.bad), bad = all.filter(e => e.bad);
+    // stable sort by start: trips edited by hand or imported may list stops out of order
+    const evs = all.filter(e => !e.bad).map((e, i) => [e, i]).sort((x, y) => x[0].S - y[0].S || x[1] - y[1]).map(x => x[0]);
+    const bad = all.filter(e => e.bad);
     let t = null, seg = [];
     for (const e of evs) {
       if (e.skip) { e.ns = e.S; e.ne = e.E; continue; }

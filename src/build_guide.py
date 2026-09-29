@@ -1680,13 +1680,30 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 </html>
 """
 
+# The TODAY screen ships as modules under src/today/, glued into one closure in this order.
+TODAY_MODULES = ["core.js", "store.js", "trips.js", "ios.js", "ui/shell.js", "ui/now.js", "ui/day.js",
+                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "legacy.js", "boot.js"]
+TODAY_STYLES = ["theme.css", "components.css"]
+
+
+def today_js():
+    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_MODULES if pathlib.Path("today", m).exists()]
+    return "(function () {\n'use strict';\n" + "\n".join(parts) + "\n})();"
+
+
+def today_css():
+    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_STYLES if pathlib.Path("today", m).exists()]
+    legacy = pathlib.Path("today.css")
+    return (legacy.read_text(encoding="utf-8") if legacy.exists() else "") + "\n".join(parts)
+
+
 out = (HTML
        .replace("__LEAFLET_CSS__", LEAFLET_CSS + "\n" + CLUSTER_CSS)
        .replace("__LEAFLET_JS__", LEAFLET_JS + "\n" + CLUSTER_JS)
        .replace("__DATA__", json.dumps(payload, ensure_ascii=False))
        .replace("__BASEMAP__", BASEMAP)
-       .replace("__TODAY_CSS__", pathlib.Path("today.css").read_text(encoding="utf-8"))
-       .replace("__TODAY_JS__", pathlib.Path("today.js").read_text(encoding="utf-8")))
+       .replace("__TODAY_CSS__", today_css())
+       .replace("__TODAY_JS__", today_js()))
 if PERSONAL:
     out = out.replace("<title>Япония за 11 дней</title>", "<title>" + TODAY["name"] + "</title>", 1)
 OUT_FILE = "../survey/guide_personal.html" if PERSONAL else "Japan_Guide_2026.html"
