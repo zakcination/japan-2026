@@ -14,7 +14,7 @@ const Ios = (() => {
   }
 
   /* ---------- iCalendar (RFC 5545) ---------- */
-  const escText = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const escText = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
   const enc = new TextEncoder();
   /* lines longer than 75 octets continue on the next line after CRLF + space, never inside a UTF-8 character */
   function fold(line) {

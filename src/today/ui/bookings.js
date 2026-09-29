@@ -85,9 +85,13 @@ function showTicket(id) {
     if ((rec.type || '').startsWith('image/')) {
       const i = new Image(); i.src = ticketURL; i.alt = 'Билет: ' + (b ? b.t : ''); hold.appendChild(i);
       hint.textContent = 'Прибавьте яркость — так контролёр отсканирует быстрее.';
-    } else {
-      const f = document.createElement('iframe'); f.src = ticketURL; f.title = 'Билет'; hold.appendChild(f);
+    } else if (rec.type === 'application/pdf') {
+      URL.revokeObjectURL(ticketURL);
+      ticketURL = URL.createObjectURL(new Blob([rec.blob], { type: 'application/pdf' }));
+      const f = document.createElement('iframe'); f.src = ticketURL; f.title = 'Билет'; f.setAttribute('sandbox', ''); hold.appendChild(f);
       hint.textContent = 'Если PDF не показался — прикрепите вместо него скриншот QR.';
+    } else {
+      hint.textContent = 'Этот файл не картинка и не PDF — прикрепите скриншот QR.';
     }
     const file = new File([rec.blob], rec.name || 'ticket', { type: rec.type || '' });
     const sh = m.querySelector('#tcTicketShare');

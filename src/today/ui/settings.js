@@ -95,8 +95,8 @@ function openSettings() {
     });
     const load = txt => {
       let j; try { j = JSON.parse(txt); } catch (e) { msg('Это не JSON. Проверьте, что скопирован весь текст.'); return; }
-      if (!Core.validTrip(j)) { msg('Не похоже на поездку: нужен список days, у каждого дня n и ev с полями s и t.'); return; }
-      j.bookings = Array.isArray(j.bookings) ? j.bookings : [];
+      j = Core.cleanTrip(j);
+      if (!j) { msg('Не похоже на поездку: нужен список days, у каждого дня n и ev с полями s и t.'); return; }
       T = j; saveTrip();
       SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date || SET.start,
               cur: j.currency in CUR ? j.currency : SET.cur, rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };

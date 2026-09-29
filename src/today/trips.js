@@ -8,7 +8,7 @@ const Trips = (() => {
   const known = id => typeof id === 'string' && /^[a-z0-9-]{1,40}$/.test(id) && LIST.some(t => t.id === id);
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const put = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
-  const readShared = () => { try { const c = JSON.parse(get(SHARED_KEY) || 'null'); return c && Core.validTrip(c.trip) ? c : null; } catch (e) { return null; } };
+  const readShared = () => { try { const c = JSON.parse(get(SHARED_KEY) || 'null'); const t = c && Core.cleanTrip(c.trip); return t ? { ...c, trip: t } : null; } catch (e) { return null; } };
 
   let id = known(get(ID_KEY)) ? get(ID_KEY) : 'template';
   let asked = null;                 // a ?trip= link that differs from the local copy being shown
@@ -39,9 +39,8 @@ const Trips = (() => {
     try {
       const res = await fetch(`trips/${id}.json`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(res.status);
-      const j = await res.json();
-      if (!Core.validTrip(j)) throw new Error('not a trip');
-      j.bookings = Array.isArray(j.bookings) ? j.bookings : [];
+      const j = Core.cleanTrip(await res.json());
+      if (!j) throw new Error('not a trip');
       const old = readShared();
       put(SHARED_KEY, JSON.stringify({ id, at: Date.now(), trip: j }));
       net = 'ok';

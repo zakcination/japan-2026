@@ -100,3 +100,13 @@ def test_install_hint_only_in_iphone_safari_and_hides_for_good(app):
     a.page.reload()
     a.page.wait_for_selector(".tc-tab")
     assert a.page.locator("#tcInstall").count() == 0
+
+
+def test_ics_escapes_a_lone_carriage_return(core):
+    pg = core(("core.js", "ios.js"))
+    txt = pg.evaluate("""() => Ios.ics({ name: 'x', dateISO: '2026-10-18', stamp: '20260929T120000Z', events: [
+      { id: 'a', t: 'Стоп' + String.fromCharCode(13) + 'ATTENDEE:mailto:x@y', ns: 600, ne: 660 } ] })""")
+    lines = txt.split("\r\n")
+    assert not any(l.startswith("ATTENDEE") for l in lines)
+    assert "\r" not in txt.replace("\r\n", "")
+    assert "SUMMARY:Стоп\\nATTENDEE:mailto:x@y" in txt

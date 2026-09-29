@@ -67,3 +67,16 @@ def test_delete_ticket_takes_two_taps(app):
     a.page.click("#tcTicketDel")          # second tap confirms
     a.page.wait_for_selector("[data-attach='bus18']", state="attached")
     assert not a.page.locator("#tcTicket").is_visible()
+
+
+def test_a_non_pdf_non_image_ticket_is_not_rendered(app):
+    a = tix(app)
+    html = b"<script>window.__pwned=1</script>"
+    a.page.set_input_files("[data-attach='bus18']", files=[{"name": "t.html", "mimeType": "text/html", "buffer": html}])
+    a.page.wait_for_selector("[data-ticket='bus18']")
+    a.page.click("[data-ticket='bus18']")
+    from playwright.sync_api import expect
+    expect(a.page.locator("#tcTicketHint")).to_contain_text("PDF")
+    assert a.page.locator("#tcTicket iframe").count() == 0
+    assert "не картинка и не PDF" in a.page.inner_text("#tcTicket")
+    assert a.page.evaluate("window.__pwned") is None

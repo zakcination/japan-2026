@@ -81,7 +81,8 @@ def test_import_hostile_trip_is_escaped(app):
     evil = '<img src=x onerror="window.__pwned=1">'
     trip = {"name": evil, "days": [{"n": 1, "label": evil, "ev": [{"id": "x1", "s": "10:00", "e": "11:00", "t": evil,
             "link": "javascript:alert(1)",
-            "lat": '1" onclick="window.__pwned=1', "lng": 2}]}], "bookings": [{"id": "b", "days": [1], "t": evil, "when": evil}]}
+            "lat": '1" onclick="window.__pwned=1', "lng": 2, "bound": evil, "ride": evil, "walk": evil, "buf": evil},
+            {"id": "constructor", "s": "12:00", "e": "12:30", "t": "обычный пункт"}]}], "bookings": [{"id": "b", "days": [1], "t": evil, "when": evil}]}
     s.locator("#setJson").fill(json.dumps(trip))
     s.locator("#setLoad").click()
     for t in ("now", "day", "tix", "stats"):
@@ -90,7 +91,9 @@ def test_import_hostile_trip_is_escaped(app):
     a.page.click(".tc-item .tc-open")
     assert a.page.evaluate("window.__pwned") is None
     assert a.page.locator("#tcSheet a[href^='javascript']").count() == 0
-    assert a.page.locator("#tcSheet [onclick], #today [onclick], #today [onerror]").count() == 0
+    assert a.page.locator("#tcSheet [onclick], #today [onclick], #today [onerror], img[src=x]").count() == 0
+    a.page.keyboard.press("Escape")
+    assert "done" not in a.page.locator(".tc-item", has_text="обычный пункт").get_attribute("class")
     assert a.errors == []
 
 

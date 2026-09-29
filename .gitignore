@@ -9,3 +9,5 @@ src/.img_cache/
 .venv/
 .pytest_cache/
 __pycache__/
+survey/
+research/

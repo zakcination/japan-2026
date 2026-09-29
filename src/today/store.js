@@ -6,7 +6,7 @@ const CUR = { KZT: { sym: '₸', rate: 2.81 }, USD: { sym: '$', rate: 0.0067 }, 
               RUB: { sym: '₽', rate: 0.56 }, JPY: { sym: '¥', rate: 1 } };
 const clone = x => JSON.parse(JSON.stringify(x));
 function loadTrip() {
-  try { const j = JSON.parse(localStorage.getItem(TRIP_KEY) || 'null'); if (j && Array.isArray(j.days) && j.days.length) return j; } catch (e) {}
+  try { const j = Core.cleanTrip(JSON.parse(localStorage.getItem(TRIP_KEY) || 'null')); if (j) return j; } catch (e) {}
   return clone(TPL);
 }
 let T = loadTrip();
@@ -89,8 +89,8 @@ async function tripFromHash() {
     const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
     const bin = Uint8Array.from(atob(b64 + '='.repeat((4 - b64.length % 4) % 4)), c => c.charCodeAt(0));
     const txt = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-    const j = JSON.parse(txt);
-    if (!j || !Array.isArray(j.days) || !j.days.length) return false;
+    const j = Core.cleanTrip(JSON.parse(txt));
+    if (!j) return false;
     T = j; saveTrip();
     SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date, cur: j.currency || 'KZT',
             rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };

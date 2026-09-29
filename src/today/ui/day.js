@@ -72,7 +72,7 @@ function openStop(day, id) {
   const link = (ic, txt, sub, href) => `<a class="tc-act" href="${href}" target="_blank" rel="noopener">${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></a>`;
     sheet(e.t, `
     <p class="tc-sub">${hm(e.ns)} → ${hm(e.ne)} · ${dur(e.ne - e.ns)}${hasTravel ? ` · выйти в ${hm(e.leave)}` : ''}${e.cost ? ` · ${money(e.cost)}` : ''}</p>
-    <div class="tc-row">${stDot(e.st)}${e.bound ? `<span class="tc-sub">📅 только ${Core.ddmmyyyy(e.bound)}</span>` : ''}</div>
+    <div class="tc-row">${stDot(e.st)}${e.bound ? `<span class="tc-sub">📅 только ${esc(Core.ddmmyyyy(e.bound))}</span>` : ''}</div>
     ${e.note ? `<p class="tc-notepara">${esc(e.note)}</p>` : ''}
     <div class="tc-group">
       ${link('pin', Ios.isIOS() ? 'Маршрут в Apple Картах' : 'Маршрут', 'общественный транспорт', routeUrl(e))}

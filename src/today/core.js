@@ -43,6 +43,7 @@ const Core = (() => {
      under 15 min) — and only from what hasn't happened yet. What can't be paid back is shown as a
      conflict on the anchor. Nothing extra is ever suggested. */
   function plan(day, now, marks, dateISO) {
+    const own = (o, k) => !!o && Object.prototype.hasOwnProperty.call(o, k);
     const skip = (marks && marks.skip) || {}, done = (marks && marks.done) || {}, delay = (marks && marks.delay) || {};
     const all = (day.ev || []).map(e => {
       const s = toMin(e.s), en0 = e.e ? toMin(e.e) : NaN;
@@ -50,7 +51,7 @@ const Core = (() => {
       const en = Number.isFinite(en0) ? en0 : s + 15;
       const off = !!(e.bound && dateISO && dateISO !== e.bound);
       return { ...e, st: off ? 'input' : e.st, off, bad, S: s, E: en < s ? en + 1440 : en, ns: s, ne: 0, cut: 0, auto: false,
-               conflict: 0, skip: !!skip[e.id], done: !!done[e.id], delay: +(delay[e.id] || 0) };
+               conflict: 0, skip: own(skip, e.id) && !!skip[e.id], done: own(done, e.id) && !!done[e.id], delay: own(delay, e.id) ? +delay[e.id] || 0 : 0 };
     });
     // stable sort by start: trips edited by hand or imported may list stops out of order
     const evs = all.filter(e => !e.bad).map((e, i) => [e, i]).sort((x, y) => x[0].S - y[0].S || x[1] - y[1]).map(x => x[0]);
@@ -113,8 +114,31 @@ const Core = (() => {
   const validTrip = j => !!(j && Array.isArray(j.days) && j.days.length &&
     j.days.every(d => Number.isFinite(+d.n) && Array.isArray(d.ev) &&
       d.ev.every(e => e && typeof e.t === 'string' && /^\d{1,2}:\d{2}$/.test(String(e.s)))));
+  /* Every trip that comes from outside (a file, a link, the site, this phone's storage) goes through
+     here: numbers become numbers, day numbers integers, a date-bound stop keeps only a real date.
+     Returns a clean copy, or null when it isn't a trip. */
+  const NUM = ['walk', 'ride', 'buf', 'cost', 'km', 'lat', 'lng'];
+  const numOr = (v, d) => v === '' || v == null || !Number.isFinite(+v) ? d : +v;
+  function cleanTrip(j) {
+    if (!validTrip(j)) return null;
+    const t = JSON.parse(JSON.stringify(j));
+    t.days = t.days.map(d => ({ ...d, n: Math.round(+d.n), sun: Array.isArray(d.sun) && d.sun.length === 2 && d.sun.every(v => Number.isFinite(+v)) ? d.sun.map(Number) : null,
+      ev: d.ev.map(e => {
+        const x = { ...e, id: String(e.id == null ? '' : e.id), t: String(e.t) };
+        NUM.forEach(k => { x[k] = numOr(e[k], k === 'lat' || k === 'lng' || k === 'cost' || k === 'km' ? null : 0); });
+        if (x.bound != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(x.bound))) delete x.bound;
+        return x;
+      }) }));
+    t.bookings = (Array.isArray(t.bookings) ? t.bookings : []).filter(b => b && typeof b === 'object').map(b => ({
+      ...b, id: String(b.id == null ? '' : b.id), t: String(b.t == null ? '' : b.t),
+      days: Array.isArray(b.days) ? b.days.map(Number).filter(Number.isFinite) : [], cost: numOr(b.cost, null) }));
+    if (!['KZT', 'USD', 'EUR', 'RUB', 'JPY'].includes(t.currency)) delete t.currency;
+    ['travelers', 'rate'].forEach(k => { if (t[k] != null && !(+t[k] > 0)) delete t[k]; });
+    if (t.start != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(t.start))) delete t.start;
+    return t;
+  }
   const safeUrl = u => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u)) ? u : '';
 
   return { pad, toMin, hm, dur, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
-           plan, urgent, themeFor, dayProgress, validTrip, safeUrl };
+           plan, urgent, themeFor, dayProgress, validTrip, cleanTrip, safeUrl };
 })();
