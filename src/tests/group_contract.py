@@ -7,12 +7,14 @@ TRIP = "miras-aikosh"
 def ok(r):
     st, body = r
     assert st == 200, (st, body)
+    assert not (isinstance(body, dict) and "error" in body), (st, body)
     return body
 
 
 def err(r, code_part):
     st, body = r
-    assert st >= 400 and code_part in json.dumps(body, ensure_ascii=False), (st, body)
+    text = json.dumps(body, ensure_ascii=False)
+    assert (st >= 400 or (isinstance(body, dict) and "error" in body)) and code_part in text, (st, body)
 
 
 def run_all(c, host_id, host_pin):
