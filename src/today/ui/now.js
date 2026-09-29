@@ -60,6 +60,10 @@ RENDER.now = (x, root) => {
   const u = x.urg;
   const dark = document.getElementById('today').dataset.th === 'dark';
   let html = Ios.installHint();
+  const asked = Trips.asked();
+  if (asked) html += `<section class="tc-card tc-note" id="tcAsked"><span class="tc-lbl">Ссылка на другую поездку</span>
+    <span class="tc-sub">Ссылка ведёт на «${esc(Trips.nameOf(asked))}», а на телефоне ваша версия с правками.</span>
+    <button type="button" class="tc-btn primary" id="tcAskedGo">Открыть «${esc(Trips.nameOf(asked))}»</button></section>`;
   if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
   if (!x.cevs.length) {
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">Нет пунктов</h2>
@@ -84,6 +88,11 @@ RENDER.now = (x, root) => {
   }
   root.innerHTML = `<div class="tc-page">${html}</div>`;
   Ios.wireInstall(root);
+  const ag = root.querySelector('#tcAskedGo');
+  if (ag) ag.addEventListener('click', () => twoTap(ag, 'Точно? Ваши правки удалятся', () => {
+    Trips.backToShared(); setTitle(); viewDay = null; renderShell();
+    Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+  }));
   root.querySelectorAll('[data-ticket]').forEach(b => b.addEventListener('click', () => showTicket(b.dataset.ticket)));
   const pd = root.querySelector('#tcPvDay'), pt = root.querySelector('#tcPvTime');
   if (pd) pd.addEventListener('change', () => { S.prevDay = +pd.value; viewDay = S.prevDay; save(); renderShell(); });

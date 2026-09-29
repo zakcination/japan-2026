@@ -1,8 +1,9 @@
 /* Offline for the trip guide on GitHub Pages.
    The page is one file, so caching it once makes the whole guide work with no signal.
    Page: network first (so updates arrive), cache when offline.
+   Trips (trips/*.json): network first, last good copy when offline.
    Weather: network first, last good answer when offline. Everything else: cache first. */
-const CACHE = 'japan2026-v1';
+const CACHE = 'japan2026-v2';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -22,6 +23,13 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (req.mode === 'navigate') { e.respondWith(networkFirst(req)); return; }
+  if (url.origin === location.origin && /\/trips\/[a-z0-9-]+\.json$/.test(url.pathname)) {
+    e.respondWith(fetch(req).then(res => {
+      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(url.pathname, copy)); }
+      return res;
+    }).catch(() => caches.match(url.pathname).then(r => r || new Response('', { status: 504 }))));
+    return;
+  }
   if (/open-meteo\.com$/.test(url.hostname)) {
     e.respondWith(fetch(req).then(res => {
       if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }

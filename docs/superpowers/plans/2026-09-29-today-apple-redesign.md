@@ -587,3 +587,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Тесты: .ics — CRLF, VTIMEZONE Asia/Tokyo, стабильный UID `<id>@japan-2026`, будильник в момент «выйти» (−45 мин), экранирование `; , \n`, строки ≤ 75 байт, сгиб не рвёт букву, переход через полночь; Apple Карты с `dirflg=r`, «кривые» координаты ищутся по названию; iPhone видит «Apple Картах» и лист «В Календарь» с временем будильников; на компьютере скачивается .ics; при «Пора выходить» экран не гаснет и отпускается на другой вкладке; подсказка установки только на iPhone в Safari и скрывается навсегда.
 - [x] `pytest` 54/54; визуальный просмотр; коммит.
 - [ ] На настоящем iPhone проверить: открытие .ics сразу в Календаре, Wake Lock, «На экран „Домой“» (в эмуляторе не проверяется).
+
+## Task 10: Поездки файлами — `trips/*.json`, `?trip=`, офлайн-копия, CSP
+
+**Files:** Create `trips/template.json`, `trips/miras-aikosh.json`, `trips/index.json` (генерирует `src/today_data.py`), `src/today/trips.js`, `src/tests/test_trips.py`; Delete `src/today.json`, сборка `PERSONAL=1`, `survey/private_overrides.json`, `survey/trip_miras_aikosh.json`, `survey/guide_personal.html`; Modify `src/today_data.py` (личные значения открыто, `updated` двигается только при изменении), `src/build_guide.py` (шаблон и список вшиты, CSP, `black-translucent`), `src/today/ui/settings.js`, `src/today/ui/now.js`, `src/today/boot.js`, `sw.js` (network-first для `trips/*.json`, кэш v2), `src/tests/conftest.py` (фикстура `site` — http-сервер; `url=`, `routes=`), `README.md`.
+
+**Interfaces — Produces:** `Trips.list`, `Trips.id()`, `Trips.asked()`, `Trips.refresh() -> Promise<bool>`, `Trips.switchTo(id)`, `Trips.backToShared()`, `Trips.version()`, `Trips.nameOf(id)`, `Trips.shareUrl()`; ключи `japan2026.tripid.v1`, `japan2026.shared.v1`; ⚙: `#setTrip`, `#setVersion`, `#setLocal`/`#setReset`, `#setShare`; «Сейчас»: `#tcAsked`/`#tcAskedGo`.
+
+- [x] Тесты: ссылка `?trip=miras-aikosh` открывает нашу поездку и запоминается; без сети — сохранённая копия («без сети»); первый раз без сети — шаблон; новая общая версия приходит, отметки остаются; свои правки побеждают до «Вернуться к общей версии» (два нажатия); сломанный файл игнорируется, враждебный — экранируется; неизвестный id игнорируется; смена поездки в ⚙ сбрасывает отметки; CSP не мешает приложению и блокирует чужой скрипт.
+- [x] Проверено: наш файл совпадает с прежним личным, шаблон — с прежним `today.json`; номеров билетов, мест, адресов, личных телефонов нет (есть только публичный телефон записи заведения).
+- [x] `pytest` 63/63, тесты карты; коммит.

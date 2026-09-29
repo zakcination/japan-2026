@@ -252,11 +252,10 @@ CAT_META = {
     "Airport":    {"emoji": "✈️", "label": "Аэропорт",              "short": "Аэропорт"},
 }
 
-# PERSONAL=1 builds our own copy with the private trip preloaded (never committed);
-# the default build is the public, universal template.
-import os
-PERSONAL = os.environ.get("PERSONAL") == "1"
-TODAY = json.loads(pathlib.Path("../survey/trip_miras_aikosh.json" if PERSONAL else "today.json").read_text(encoding="utf-8"))
+# The template trip and the list of trips are baked in (they open with no signal the first time);
+# a trip chosen with ?trip=<id> is fetched from trips/<id>.json next to index.html.
+TODAY = json.loads(pathlib.Path("../trips/template.json").read_text(encoding="utf-8"))
+TRIPS_INDEX = json.loads(pathlib.Path("../trips/index.json").read_text(encoding="utf-8"))
 DAY_NOTES = {d["n"]: d["summary"] for d in TODAY["days"]}
 KONBINI = {d["n"]: d["konbini"] for d in TODAY["days"]}
 
@@ -356,6 +355,7 @@ payload = {
         {"city": "Nagoya",      "lat": 35.1709, "lng": 136.8815, "days": [5, 6]},
     ],
     "today": TODAY,
+    "trips": TRIPS_INDEX,
     "labels": [{"n": n, "lat": la, "lng": ln, "z": z, "trip": t} for n, la, ln, z, t in PLACE_LABELS],
     "wxBaked": WX_BAKED,
     "kzSpots": KZ_SPOTS,
@@ -367,9 +367,10 @@ HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src 'self' https://*.open-meteo.com; frame-src blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Япония за 11 дней</title>
 <style>__LEAFLET_CSS__</style>
 <style>
@@ -1699,9 +1700,7 @@ out = (HTML
        .replace("__BASEMAP__", BASEMAP)
        .replace("__TODAY_CSS__", today_css())
        .replace("__TODAY_JS__", today_js()))
-if PERSONAL:
-    out = out.replace("<title>Япония за 11 дней</title>", "<title>" + TODAY["name"] + "</title>", 1)
-OUT_FILE = "../survey/guide_personal.html" if PERSONAL else "Japan_Guide_2026.html"
+OUT_FILE = "Japan_Guide_2026.html"
 open(OUT_FILE, "w", encoding="utf-8").write(out)
 # len(out) counts characters; the page is mostly Cyrillic, so UTF-8 on disk is far
 # larger. Report what the phone actually downloads.

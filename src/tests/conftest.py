@@ -22,6 +22,22 @@ def built():
 
 
 @pytest.fixture(scope="session")
+def site(built, tmp_path_factory):
+    """The built page as index.html with trips/ next to it, over http (fetch doesn't work on file://).
+    No sw.js here, so no service worker gets between the tests and the files."""
+    import functools, http.server, shutil, threading
+    root = tmp_path_factory.mktemp("site")
+    shutil.copy(SRC / "Japan_Guide_2026.html", root / "index.html")
+    shutil.copytree(ROOT / "trips", root / "trips")
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    handler.log_message = lambda *a: None
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}/index.html"
+    srv.shutdown()
+
+
+@pytest.fixture(scope="session")
 def browser():
     with sync_playwright() as p:
         b = p.chromium.launch()
@@ -57,7 +73,7 @@ def app(browser):
     made = []
 
     def open_(state=None, settings=None, trip=None, size=PHONE, url_suffix="", now="2026-09-30T12:00:00+09:00",
-              dark_os=False, ua=None):
+              dark_os=False, ua=None, url=None, routes=None):
         extra = {"user_agent": ua} if ua else {}
         ctx = browser.new_context(viewport=size, device_scale_factor=2, has_touch=True, is_mobile=True,
                                   color_scheme="dark" if dark_os else "light", accept_downloads=True, **extra)
@@ -71,7 +87,9 @@ def app(browser):
             "(s => { if (sessionStorage.getItem('seeded')) return; sessionStorage.setItem('seeded', '1');"
             " for (const [k, v] of Object.entries(s)) if (v) localStorage.setItem(k, JSON.stringify(v)); })("
             + json.dumps(seed) + ")")
-        pg.goto(PAGE + url_suffix)
+        for pattern, handler in (routes or {}).items():
+            pg.route(pattern, handler)
+        pg.goto((url or PAGE) + url_suffix)
         pg.wait_for_selector("#today", state="attached")
         made.append(ctx)
         return App(pg, errors)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """The trip, hour by hour — one source for the TODAY screen and for the map pins.
 
-    python3 today_data.py        -> writes today.json and stops.json
+    python3 today_data.py        -> writes ../trips/{template,miras-aikosh,index}.json and stops.json
 
 Statuses: fixed (booked or immovable), planned (the recommended route), flex (drop it when
 tired or late), input (waiting for the travellers' data). Fixed events are never moved by
@@ -17,18 +17,16 @@ import pathlib
 FX = 2.81          # ₸ per ¥, National Bank of Kazakhstan, 29.09.2026
 
 
-# Our own bookings, names and flight numbers live in ../survey/private_overrides.json, which is
-# never committed. Here each personal value is only a key; without that file the key falls back
-# to the template value, so the public repo builds the universal template on its own.
-_PRIV_FILE = pathlib.Path(__file__).resolve().parent.parent / "survey" / "private_overrides.json"
-PRIVATE = json.loads(_PRIV_FILE.read_text(encoding="utf-8")) if _PRIV_FILE.exists() else {}
+# Our own trip (trips/miras-aikosh.json) is public by the owners' choice: names, flights, the first
+# hotel and what is bought. Ticket numbers, seats, addresses, phones and card data never go here —
+# tickets are attached on the phone and stay on the device.
 
 
 class P:
-    """A value that differs between our own trip file and the public template:
-    `key` looks up the private value, `tpl` is what everyone else gets."""
-    def __init__(self, key, tpl):
-        self.own, self.tpl = PRIVATE.get(key, tpl), tpl
+    """A value that differs between our own trip and the public template:
+    `own` is ours, `tpl` is what everyone else gets."""
+    def __init__(self, own, tpl):
+        self.own, self.tpl = own, tpl
 
 
 def resolve(x, personal):
@@ -94,9 +92,9 @@ PL = {
 # Bookings: shown on the TODAY screen for the days they belong to; a ticket photo/PDF is
 # attached on the phone and kept offline in the browser.
 BOOKINGS = [
-    dict(id="flight_in", days=[1], t=P("p01", "Прилёт в Ханэду"), when=P("p02", "17.10 · 21:20 (пример — впишите свой рейс)"), st=P("p03", "input"), cost=None),
-    dict(id="h_sansuiso", days=[1, 2], t=P("p04", "Отель у ст. Готанда, 1 ночь"), when=P("p05", "17.10 → 18.10 · заезд поздно — предупредить"), st=P("p06", "input"), cost=P("p07", None)),
-    dict(id="bus18", days=[2], t="Автобус Keio: Busta → Kawaguchiko Sta.", when=P("p08", "18.10 · 06:45 · highwaybus.com"), st=P("p09", "input"), cost=4400),
+    dict(id="flight_in", days=[1], t=P("Рейс MU575 Шанхай → Ханэда", "Прилёт в Ханэду"), when=P("17.10.2026 · 17:15 → 21:20", "17.10 · 21:20 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
+    dict(id="h_sansuiso", days=[1, 2], t=P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда, 1 ночь"), when=P("17.10 → 18.10 · заезд до 23:30", "17.10 → 18.10 · заезд поздно — предупредить"), st=P("fixed", "input"), cost=P(15039, None)),
+    dict(id="bus18", days=[2], t="Автобус Keio: Busta → Kawaguchiko Sta.", when=P("18.10 · 06:45 · рейс 1431", "18.10 · 06:45 · highwaybus.com"), st=P("fixed", "input"), cost=4400),
     dict(id="bus_mishima", days=[2], t="Автобус Fujikyu: Кавагутико → Мисима", when="18.10 · 17:00 → 18:40", st="input", cost=5400),
     dict(id="shin18", days=[2], t="Синкансэн Мисима → Киото", when="18.10 · после 19:00", st="input", cost=21000),
     dict(id="h_kyoto", days=[2, 3, 4], t="Отель в Киото", when="18.10 → 20.10 · 2 ночи", st="input", cost=None),
@@ -108,10 +106,10 @@ BOOKINGS = [
     dict(id="disney", days=[8], t="Tokyo Disneyland", when="24.10 · 09:00–21:00", st="input", cost=24800),
     dict(id="sky", days=[9], t="Shibuya Sky", when="25.10 · ~16:30", st="input", cost=6800),
     dict(id="teamlab", days=[10], t="teamLab Borderless", when="26.10", st="input", cost=7200),
-    dict(id="flight_out", days=[11], t=P("p10", "Вылет из Ханэды"), when=P("p11", "27.10 · 20:15 (пример — впишите свой рейс)"), st=P("p12", "input"), cost=None),
+    dict(id="flight_out", days=[11], t=P("Рейс MU540 Ханэда → Шанхай", "Вылет из Ханэды"), when=P("27.10.2026 · 20:15", "27.10 · 20:15 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
 ]
 
-HOTEL = {1: P("p13", "Отель у ст. Готанда"), 2: "Отель в Киото (не выбран)", 3: "Отель в Киото (не выбран)",
+HOTEL = {1: P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда"), 2: "Отель в Киото (не выбран)", 3: "Отель в Киото (не выбран)",
          4: "Отель в Нагое (не выбран)", 5: "Отель в Нагое (не выбран)", 6: "Отель в Токио (не выбран)",
          7: "Отель в Токио (не выбран)", 8: "Отель в Токио (не выбран)", 9: "Отель в Токио (не выбран)",
          10: "Отель в Токио (не выбран)", 11: "— вылет 20:15"}
@@ -123,14 +121,14 @@ def E(s, e, t, place, cat, st, **kw):
     return ev
 
 DAYS = [
- dict(n=1, city="Токио", label="Токио", wcity="Tokyo", sun=(35.55, 139.78), summary=P("p14", "Прилёт в Ханэду вечером, ночь у станции Готанда"),
+ dict(n=1, city="Токио", label="Токио", wcity="Tokyo", sun=(35.55, 139.78), summary=P("Прилёт в Ханэду в 21:20, ночь в рёкане Sansuiso в Готанде", "Прилёт в Ханэду вечером, ночь у станции Готанда"),
       konbini="Конбини у станции Готанда: вода и завтрак на раннее утро 18-го",
       ev=[
-   E("21:20", "22:00", P("p15", "Прилёт в Ханэду, паспортный контроль и багаж"), "hnd", "transport", P("p16", "input"), mode="Самолёт", num=P("p17", ""), frm=P("p18", "—"), to="Ханэда T3", bk="flight_in",
+   E("21:20", "22:00", P("Прилёт MU575, паспортный контроль и багаж", "Прилёт в Ханэду, паспортный контроль и багаж"), "hnd", "transport", P("fixed", "input"), mode="Самолёт", num=P("MU575", ""), frm=P("Шанхай", "—"), to="Ханэда T3", bk="flight_in",
      note="Сразу: наличные в банкомате 7-Bank, настроить Suica в Wallet."),
    E("22:00", "22:35", "Ханэда → Готанда", "gotanda", "transport", "planned", mode="Keikyu + Toei Asakusa", frm="Ханэда T3", to="Готанда", walk=5, cost=1000,
      note="Часть поездов Keikyu идёт по линии Asakusa без пересадки; иначе пересадка в Сэнгакудзи. ~¥500 на человека."),
-   E("22:40", "23:00", P("p19", "Заселение в отель у ст. Готанда"), "sansuiso", "hotel", P("p20", "input"), walk=5, bk="h_sansuiso",
+   E("22:40", "23:00", P("Заселение в рёкан Sansuiso", "Заселение в отель у ст. Готанда"), "sansuiso", "hotel", P("fixed", "input"), walk=5, bk="h_sansuiso",
      note="Заселение до 23:30. Сразу оформить курьерскую отправку чемоданов в Киото и договориться о раннем выходе."),
    E("23:00", "23:20", "Конбини: вода и завтрак на 5 утра", "gotanda", "konbini", "flex", walk=5, cost=1500),
  ]),
@@ -143,7 +141,7 @@ DAYS = [
    E("05:15", "05:40", "Подъём, завтрак из конбини", "sansuiso", "routine", "planned"),
    E("05:55", "06:15", "Готанда → Синдзюку", "busta", "transport", "planned", mode="JR Яманотэ", frm="Готанда", to="Синдзюку, New South Gate", walk=5, cost=420,
      note="Выход через New South Gate (新南改札), Busta прямо над ним, 4-й этаж."),
-   E("06:45", "08:30", "Автобус Синдзюку → Кавагутико", "kwgk", "transport", P("p21", "input"), mode="Автобус Keio", num=P("p22", ""), frm="Busta Shinjuku", to="Kawaguchiko Sta. (не конечная!)",
+   E("06:45", "08:30", "Автобус Синдзюку → Кавагутико", "kwgk", "transport", P("fixed", "input"), mode="Автобус Keio", num=P("рейс 1431 (места — в билете)", ""), frm="Busta Shinjuku", to="Kawaguchiko Sta. (не конечная!)",
      plat="номер выхода — на табло Busta", buf=15, cost=4400, bk="bus18",
      note="Автобус идёт до Mt. Fuji 5th Station — выходить на «Kawaguchiko Sta.», Fuji-Q Highland раньше. Билет показывать при посадке и выходе. Бронь — highwaybus.com, продажа за месяц."),
    E("08:40", "09:10", "Lawson с Фудзи над крышей", "lawson", "activity", "planned", walk=5, km=0.8,
@@ -212,7 +210,7 @@ DAYS = [
    E("11:15", "13:00", "Квартал Осу: винтаж, Mandarake", "osu", "activity", "flex", ride=15, walk=5, mode="Метро", km=2.0),
    E("13:00", "14:00", "Обед: Yamamotoya Ookute (халяль)", "osu", "food", "planned", cost=3000),
    E("14:15", "15:00", "Отдых в отеле, взять флаг", "nagoya_h", "hotel", "flex", ride=15, mode="Метро"),
-   E("16:00", "18:30", P("p23", "Финалы пара-дзюдо PJU06, Asian Para Games 2026"), "budokan", "event", "fixed", bound="2026-10-21", ride=12, walk=20, buf=25,
+   E("16:00", "18:30", P("Финалы пара-дзюдо PJU06 — болеем за Казахстан", "Финалы пара-дзюдо PJU06, Asian Para Games 2026"), "budokan", "event", "fixed", bound="2026-10-21", ride=12, walk=20, buf=25,
      mode="Aonami line до Кохоку (港北) + 15 мин пешком", frm="вокзал Нагоя", to="Aichi Budokan", cost=4000, bk="judo",
      link="https://aichi-budo.sakura.ne.jp/access.html", note="Билеты ещё не куплены (¥2 000 на человека). Время окончания — оценка."),
    E("18:45", "19:30", "Обратно к вокзалу Нагоя", "nagoya_st", "transport", "planned", walk=15, mode="Aonami line", cost=540),
@@ -254,7 +252,7 @@ DAYS = [
       ev=[
    E("07:30", "08:15", "Отель → Майхама", "tdl", "transport", "planned", mode="JR Keiyo", frm="Отель", to="Майхама", walk=10, buf=10, cost=900),
    E("08:30", "09:00", "Очередь на вход", "tdl", "routine", "planned"),
-   E("09:00", "21:00", "Tokyo Disneyland", "tdl", "event", P("p24", "planned"), cost=24800, bk="disney", km=10.0,
+   E("09:00", "21:00", "Tokyo Disneyland", "tdl", "event", P("fixed", "planned"), cost=24800, bk="disney", km=10.0,
      note="Билет на дату (ещё не куплен). Свою еду проносить нельзя; халяля почти нет — снеки. Если укачивает — избегать симуляторов."),
    E("21:00", "22:00", "Обратно в отель", "tokyo_h", "transport", "planned", walk=10, mode="JR", cost=900),
  ]),
@@ -288,7 +286,7 @@ DAYS = [
       summary="Последнее утро, покупки, в 17:15 выезд в Ханэду, вылет 20:15",
       konbini="Последний 7-Eleven: снеки домой, остаток Suica",
       transfer=dict(frm="Токио", to="Ханэда", s="17:15", e="18:00", how="Keikyu / метро", dur="~45 мин",
-                    after=[P("p25", "Регистрация на рейс"), "Tax-free покупки — под рукой", "Вылет 20:15"]),
+                    after=[P("Регистрация на MU540", "Регистрация на рейс"), "Tax-free покупки — под рукой", "Вылет 20:15"]),
       ev=[
    E("08:00", "10:00", "Завтрак, сборы, выселение, вещи на хранение", "tokyo_h", "hotel", "planned"),
    E("10:00", "12:00", "Асакуса / Каппабаси — последние покупки", "sensoji", "activity", "flex", walk=10, km=2.0),
@@ -297,8 +295,8 @@ DAYS = [
    E("16:30", "17:00", "Забрать вещи из отеля", "tokyo_h", "hotel", "planned", ride=10),
    E("17:15", "18:00", "Отель → Ханэда", "hnd", "transport", "planned", mode="Keikyu / Toei Asakusa", frm="Отель", to="Ханэда T3", walk=5, buf=15, cost=1200),
    E("18:00", "18:15", "В аэропорту за 2 часа: регистрация", "hnd", "routine", "planned"),
-   E("20:15", "22:40", P("p26", "Вылет из Ханэды"), "hnd", "transport", P("p27", "input"), mode="Самолёт", num=P("p28", ""), frm="Ханэда T3", to=P("p29", "—"), bk="flight_out",
-     note=P("p30", "Впишите свой рейс и время.")),
+   E("20:15", "22:40", P("Вылет MU540 в Шанхай", "Вылет из Ханэды"), "hnd", "transport", P("fixed", "input"), mode="Самолёт", num=P("MU540", ""), frm="Ханэда T3", to=P("Шанхай", "—"), bk="flight_out",
+     note=P("Ночь в Шанхае, домой MU6041 28.10 в 15:45.", "Впишите свой рейс и время.")),
  ]),
 ]
 
@@ -324,17 +322,37 @@ def trip(personal):
         if b.get("cost"):
             b["cost"] = round(b["cost"] / 2)
         bks.append(b)
-    return dict(schema=1, name=P("p31", "Япония за 11 дней · шаблон").own if personal else "Япония за 11 дней · шаблон",
+    return dict(schema=1, name="Мирас и Айкош · Япония 2026" if personal else "Япония за 11 дней · шаблон",
                 template="japan-11d-2026", travelers=2, start=DATES[1], currency="KZT", rate=FX,
                 bookings=bks, days=days)
 
 
+TRIPS = pathlib.Path(__file__).resolve().parent.parent / "trips"      # served next to index.html
+
+
+def write_trip(tid, data):
+    """trips/<id>.json; `updated` moves only when the content does, so rebuilding changes nothing."""
+    import datetime
+    path = TRIPS / f"{tid}.json"
+    try:
+        old = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        old = {}
+    stamp = old.get("updated")
+    if {k: v for k, v in old.items() if k != "updated"} != data or not stamp:
+        stamp = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).isoformat(timespec="minutes")
+    path.write_text(json.dumps({**data, "updated": stamp},
+                               ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+
+
 def build():
-    tpl = trip(False)
-    json.dump(tpl, open("today.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    own = trip(True)
-    pathlib.Path("../survey").mkdir(exist_ok=True)
-    json.dump(own, open("../survey/trip_miras_aikosh.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    TRIPS.mkdir(exist_ok=True)
+    tpl, own = trip(False), trip(True)
+    tpl["id"], own["id"] = "template", "miras-aikosh"
+    write_trip("template", tpl)
+    write_trip("miras-aikosh", own)
+    (TRIPS / "index.json").write_text(json.dumps([dict(id="template", name=tpl["name"]), dict(id="miras-aikosh", name=own["name"])],
+                                                 ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
     # the map pins come from the template schedule: every event at a named place is a visit
     stops, seen = [], set()
@@ -352,7 +370,7 @@ def build():
                               overnight=night, lat=lat, lng=lng))
     json.dump(stops, open("stops.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(len(tpl["days"]), "days,", sum(len(d["ev"]) for d in tpl["days"]), "events,", len(stops), "map visits;",
-          "personal file -> survey/trip_miras_aikosh.json")
+          "trips/template.json, trips/miras-aikosh.json, trips/index.json")
 
 
 if __name__ == "__main__":

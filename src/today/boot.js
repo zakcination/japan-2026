@@ -17,6 +17,9 @@ setTitle();
 tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; renderShell(); } });
 if (S.tab && TABS.some(t => t[0] === S.tab && t[0] !== 'map')) tab = S.tab;
 refreshTickets().then(renderShell);
+Trips.refresh().then(changed => { if (changed) { setTitle(); viewDay = null; renderShell(); } });
+// installed on the Home Screen: ask Safari to keep the tickets and the trip copy
+if (Ios.standalone() && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // '#map' in the link opens straight onto the map (also used by the map tests)
 if (S.open === false || location.hash === '#map') document.getElementById('today').hidden = true; else renderShell();
 setInterval(() => {

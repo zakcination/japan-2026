@@ -21,7 +21,16 @@ const resetMarks = () => { S.done = {}; S.skip = {}; S.delay = {}; S.spent = {};
 
 function openSettings() {
   const theme = SET.theme || 'auto';
+  const custom = isCustom(), asked = Trips.asked();
+  const install = Ios.isIOS() && !Ios.standalone();
   sheet('Моя поездка', `
+    <div class="tc-form">
+      ${sel('setTrip', 'Поездка', Trips.id(), Trips.list.map(t => [t.id, t.name]))}
+      <p class="tc-foot" id="setVersion">${esc(Trips.version())}</p>
+    </div>
+    ${custom ? `<div class="tc-card tc-note" id="setLocal"><b>У вас свои правки — ${asked ? `ссылка ведёт на «${esc(Trips.nameOf(asked))}», но` : ''} общая версия не подтягивается</b>
+      <button type="button" class="tc-btn primary" id="setReset">Вернуться к общей версии</button></div>` : ''}
+    ${install ? `<p class="tc-foot">${icon('share')} «Поделиться» → «На экран „Домой“» — так приложение работает без сети, а билеты не сотрутся.</p>` : ''}
     <div class="tc-fs"><span class="tc-sech">Тема · днём светлая, после заката тёмная</span>
       <div class="tc-seg3s" role="radiogroup" aria-label="Тема">${THEMES.map(([k, l]) =>
         `<label class="tc-seg3"><input type="radio" name="tcTheme" value="${k}"${k === theme ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
@@ -39,7 +48,7 @@ function openSettings() {
     <div class="tc-group">
       <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Экспорт JSON<small>файл для другого телефона или друзей</small></span></button>
       <label class="tc-act">${icon('clip')}<span>Импорт из файла<small>.json от другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
-      <button type="button" class="tc-act" id="setReset">${icon('close')}<span>${isCustom() ? 'Вернуть шаблон' : 'Шаблон активен'}</span></button>
+      <button type="button" class="tc-act" id="setShare">${icon('share')}<span>Поделиться поездкой<small>${esc(Trips.shareUrl().replace(/^https?:\/\//, ''))}</small></span></button>
     </div>
     <label class="tc-f" for="setJson"><span>JSON поездки — можно вставить свой</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
     <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Загрузить</button>
@@ -100,15 +109,20 @@ function openSettings() {
       f.text().then(load, () => msg('Не удалось прочитать файл.'));
     });
     const rs = m.querySelector('#setReset');
-    rs.addEventListener('click', () => {
-      if (!isCustom()) return;
-      twoTap(rs.querySelector('span'), 'Точно? Ваши правки удалятся', () => {
-        try { localStorage.removeItem(TRIP_KEY); } catch (err) {}
-        const theme = SET.theme;
-        try { localStorage.removeItem(SET_KEY); } catch (err) {}
-        T = clone(TPL); loadSettings(); SET.theme = theme; saveSettings(); resetMarks();
-        setTitle(); viewDay = null; closeSheet(); renderShell();
-      });
+    if (rs) rs.addEventListener('click', () => twoTap(rs, 'Точно? Ваши правки удалятся', () => {
+      Trips.backToShared(); setTitle(); viewDay = null; closeSheet(); renderShell();
+      Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+    }));
+    const tp = m.querySelector('#setTrip');
+    if (custom) tp.disabled = true;
+    tp.addEventListener('change', () => {
+      Trips.switchTo(tp.value); setTitle(); viewDay = null; closeSheet(); renderShell();
+      Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+    });
+    m.querySelector('#setShare').addEventListener('click', () => {
+      const url = Trips.shareUrl();
+      if (navigator.share) { navigator.share({ url, title: T.name || 'Поездка' }).catch(() => {}); return; }
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => msg('Ссылка скопирована.'), () => msg(url));
     });
   });
 }
