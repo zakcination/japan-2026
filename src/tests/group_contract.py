@@ -62,6 +62,17 @@ def run_all(c, host_id, host_pin):
     # host resets the PIN; the old device keeps working, a new claim needs the new PIN
     ok(c.rpc(host, "reset_pin", {"p_member": san}))
     z = c.signup(); ok(c.rpc(z, "claim_member", {"p_member": san, "p_pin": "1111"}))
+    # up to 3 devices per member: claiming from 4 sessions evicts the oldest
+    first_host = host  # save the first session's token
+    h2 = c.signup(); ok(c.rpc(h2, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
+    h3 = c.signup(); ok(c.rpc(h3, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
+    h4 = c.signup(); ok(c.rpc(h4, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
+    # first session is now evicted
+    err(c.rpc(first_host, "group_state", {"p_trip": TRIP}), "not a member")
+    # newest session works
+    ok(c.rpc(h4, "group_state", {"p_trip": TRIP}))
+    # re-assign host to a still-valid session for any future use
+    host = h4
     return True
 
 
