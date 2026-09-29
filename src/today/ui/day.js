@@ -43,18 +43,22 @@ RENDER.day = (x, root) => {
   root.querySelectorAll('.tc-open').forEach(b => b.addEventListener('click', () => openStop(x.day, b.closest('.tc-item').dataset.id)));
   root.querySelector('#tcAdd').addEventListener('click', () => openEditor(x.day, null));
   root.querySelector('#tcDayEdit').addEventListener('click', () => openDayEditor(x.day));
-  // swipe left / right on the list changes the day
-  const list = root.querySelector('#tcList');
-  let sx = null, sy = null;
-  list.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
-  list.addEventListener('pointerup', e => {
-    if (sx == null) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    const n = x.day.n + (dx < 0 ? 1 : -1);
-    if (T.days.some(d => d.n === n)) pick(n);
-  });
 };
+
+/* swipe left / right on the list changes the day; listened on the document so a re-render
+   in the middle of a gesture (weather arriving, the minute tick) doesn't lose it */
+let swipe = null;
+document.addEventListener('pointerdown', e => {
+  swipe = tab === 'day' && e.target.closest && e.target.closest('#tcList') ? { x: e.clientX, y: e.clientY } : null;
+});
+document.addEventListener('pointerup', e => {
+  if (!swipe || tab !== 'day') return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  const n = (viewDay || 1) + (dx < 0 ? 1 : -1);
+  if (T.days.some(d => d.n === n)) { viewDay = n; renderShell(); }
+});
+document.addEventListener('pointercancel', () => { swipe = null; });
 
 /* the stop sheet: details and every action for one stop */
 function openStop(day, id) {

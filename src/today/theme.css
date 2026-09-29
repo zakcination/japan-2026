@@ -16,3 +16,9 @@
   color-scheme: dark;
 }
 #today { background: var(--bg); color: var(--text); font-family: var(--sf); -webkit-font-smoothing: antialiased; }
+
+/* the screen itself: a full-page layer over the map */
+#today { position: fixed; inset: 0; z-index: 1500; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+#today[hidden] { display: none !important; }
+#today .tc-wrap { max-width: 640px; margin: 0 auto; padding: 8px 16px 0; box-sizing: border-box; }
+:where(#today, .tc-sheet-bg, .tc-ticket) button { font: inherit; color: inherit; cursor: pointer; }

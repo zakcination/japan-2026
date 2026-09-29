@@ -99,3 +99,23 @@ async function tripFromHash() {
     return true;
   } catch (e) { return false; }
 }
+
+/* ---------- places, links, weather ---------- */
+/* only numbers go into a link as coordinates; anything else is searched for by name, URL-encoded */
+const where = e => {
+  const lat = e.lat === '' || e.lat == null ? NaN : +e.lat, lng = e.lng === '' || e.lng == null ? NaN : +e.lng;
+  return Number.isFinite(lat) && Number.isFinite(lng) ? `${lat}%2C${lng}` : encodeURIComponent((e.pname || e.to || e.t || '') + ' Japan');
+};
+const gmap = e => `https://www.google.com/maps/search/?api=1&query=${where(e)}`;
+const groute = e => `https://www.google.com/maps/dir/?api=1&destination=${where(e)}&travelmode=transit`;
+let viewDay = null;
+function weatherFor(day) {
+  try {
+    const v = typeof wxFor === 'function' ? wxFor(day.wcity, dateOf(day)) : null;
+    if (!v) return null;
+    const src = WX.byCity[day.wcity] || {};
+    const i = (src.time || []).indexOf(dateOf(day));
+    const prob = src.precipitation_probability_max ? src.precipitation_probability_max[i] : null;
+    return { ...v, prob, forecast: WX.source === 'forecast' };
+  } catch (e) { return null; }
+}

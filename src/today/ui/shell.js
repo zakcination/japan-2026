@@ -1,5 +1,5 @@
 /* ---------- shell: header (capsule, day segments, title), tabs, theme, bottom sheet, tick ----------
-   Tabs register a renderer in RENDER[tab]; a tab without one falls back to the legacy screen. */
+   Tabs register a renderer in RENDER[tab]. */
 const WD2 = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const ICONS = {
   now: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -19,7 +19,7 @@ const ICONS = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   skip: '<path d="M6 5l8 7-8 7zM18 5v14"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
-  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   clip: '<path d="M16 7l-7.5 7.5a2.5 2.5 0 0 0 3.5 3.5L19.5 10a4.5 4.5 0 0 0-6.4-6.4L5.6 11.1"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   bulb: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3"/>',
@@ -66,6 +66,7 @@ function segmentsHTML(x) {
     `<span class="tc-seg${d.n < x.cday.n ? ' done' : d.n === x.cday.n ? ' cur' : ''}"${d.n === x.cday.n ? ` style="--p:${p}%"` : ''}></span>`).join('') + '</div>';
 }
 
+const gearHTML = () => `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
 function titleHTML(day) {
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
   return `<div class="tc-title"><h1>${esc(day.label)}</h1><span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span></div>`;
@@ -103,11 +104,11 @@ function renderShell() {
   const head = document.getElementById('tcHead');
   const withHead = tab !== 'stats';
   head.hidden = !withHead;
-  head.innerHTML = withHead ? capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day) : '';
+  head.innerHTML = withHead ? gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day) : '';
   document.querySelectorAll('.tc-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   root.dataset.tab = tab;
   const main = document.getElementById('todayBody');
-  if (RENDER[tab]) RENDER[tab](x, main); else renderLegacy();
+  (RENDER[tab] || RENDER.now)(x, main);
 }
 
 function go(t) {

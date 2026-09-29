@@ -685,7 +685,7 @@ HTML = """<!DOCTYPE html>
 
 <aside class="cardpanel" id="cardPanel"></aside>
 
-<div id="today" role="region" aria-label="Сегодня"><div class="td-wrap" id="todayBody"></div></div>
+<div id="today" role="region" aria-label="Сегодня"><main class="tc-wrap" id="todayBody"></main></div>
 
 <div class="rail">
   <div class="scroller" id="dayChips"></div>
@@ -1689,8 +1689,7 @@ def today_js():
 
 def today_css():
     parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_STYLES if pathlib.Path("today", m).exists()]
-    legacy = pathlib.Path("today.css")
-    return (legacy.read_text(encoding="utf-8") if legacy.exists() else "") + "\n".join(parts)
+    return "\n".join(parts)
 
 
 out = (HTML

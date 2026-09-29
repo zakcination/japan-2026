@@ -567,3 +567,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Тесты: шапка скрыта, три кольца, «2/11» и «сделано/всего»; 11 столбиков, прошлые и текущий отмечены, «всего ¥…»; факт пешком и траты вводятся и сохраняются, поля ≥ 44; закат ЧЧ:ММ.
 - [x] Реализация по макету: кольца — поездка (дни + доля текущего дня), сегодня (сделано/пункты), бюджет (потрачено/план дня); плитки пешком/транспорт/потрачено/закат+погода.
 - [x] `pytest` 40/40; визуальный просмотр; коммит.
+
+## Task 8: ⚙ «Моя поездка» и редакторы в листах; старый экран удалён
+
+**Files:** Create `src/today/ui/settings.js`, `src/today/boot.js`, `src/tests/test_settings.py`; Delete `src/today/legacy.js`, `src/today.css`; Modify `src/today/store.js` (ссылки, `viewDay`, `weatherFor`), `src/today/ui/shell.js` (шестерёнка, без запасного старого экрана), `src/today/ui/stats.js`, `src/today/ui/day.js` (свайп слушается на документе), `src/today/theme.css` (слой `#today`, `.tc-wrap`), `src/today/components.css`, `src/build_guide.py` (`<main class="tc-wrap">`, только новые стили).
+
+**Interfaces — Produces:** `openSettings()`, `openEditor(day, id|null)`, `openDayEditor(day)`, `gearHTML()` (`#tcGear[data-gear]`), `setTitle()`, `openToday()`, `closeToday()`; поля `#setName #setTrav #setStart #setCur #setRate #setSave #setExport #setFile #setReset #setJson #setLoad #setCopy`, тема — `input[name=tcTheme]` в `label.tc-seg3`; редактор `#edT #edS #edE … #edSave #edDel`; день `#dyLabel … #dySave`.
+
+- [x] Тесты: ⚙ открывает лист, все поля ≥ 44, старых `td-` элементов нет; ⚙ есть и на «Итогах»; тема Авто/Светлая/Тёмная применяется и хранится; 3 человека → ¥630; правка, новый пункт и название дня; враждебный импорт (HTML в названиях, `javascript:` ссылка, кавычки в `lat`) не исполняется; «Вернуть шаблон» — в два нажатия.
+- [x] Найдено и исправлено: `where()` вставлял `lat/lng` из импорта в ссылку без проверки — теперь только числа; дети листа сжимались во flex-колонке (`.tc-group` пропадал) — `flex-shrink: 0`; свайп терялся, если погода перерисовывала список посреди жеста.
+- [x] `pytest` 47/47, тесты карты; визуальный просмотр (лист настроек, редактор, шестерёнка в строке капсулы); коммит.
