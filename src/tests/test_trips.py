@@ -172,4 +172,15 @@ def test_organiser_changes_to_start_and_people_reach_the_phone(app, site):
     expect(a.page).to_have_title("Мирас +1")
     a.page.click(".tc-tab[data-tab='day']")
     assert "Пн 19" in a.page.inner_text(".tc-title")          # day 2 is now the 19th
-    assert "¥630" in a.page.inner_text("#tcList").replace(" ", " ")
+    assert "¥210/чел" in a.page.inner_text("#tcList").replace(" ", " ")
+
+
+def test_home_screen_app_opens_the_chosen_trip(app, site):
+    """A Home Screen app has its own storage: its manifest must start on ?trip=<id>, not the template."""
+    a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
+    expect(a.page).to_have_title(re.compile("Мирас"))
+    assert a.page.get_attribute("link[rel=manifest]", "href") == "manifest-miras-aikosh.webmanifest"
+    m = json.loads((ROOT / "manifest-miras-aikosh.webmanifest").read_text(encoding="utf-8"))
+    assert m["start_url"] == m["id"] == "./?trip=miras-aikosh"
+    b = app(state=NIGHT, url=site)
+    assert b.page.get_attribute("link[rel=manifest]", "href") == "manifest.webmanifest"

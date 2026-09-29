@@ -33,12 +33,12 @@ def test_trip_link_imports_and_clears_the_address(app):
     assert json.loads(a.page.evaluate("localStorage.getItem('japan2026.trip.v1')"))["name"] == "Из ссылки"
 
 
-def test_travellers_setting_scales_prices(app):
+def test_prices_stay_per_person_whatever_the_group_size(app):
     a = app(settings={"travelers": 4, "start": "2026-10-17", "cur": "KZT", "rate": 2.81},
             state={"prevDay": 2, "prevTime": "05:20"})
     a.page.click(".tc-tab[data-tab='day']")
     text = a.page.inner_text("#today")
-    assert "¥840" in text          # JR Yamanote ¥210 per person × 4
+    assert "¥210/чел" in text      # JR Yamanote, per person (owners' choice)
 
 
 def test_link_without_bookings_opens_every_tab_and_resets_marks(app):

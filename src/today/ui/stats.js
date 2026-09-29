@@ -1,6 +1,6 @@
 /* ---------- tab «Итоги»: three rings, budget by day, tiles (walk, transport, spent, sunset) ---------- */
 const WALK_KMH = 4.5;
-const dayBudget = evs => evs.filter(e => !e.skip && !e.auto).reduce((s, e) => s + (+e.cost || 0), 0) * SET.travelers;
+const dayBudget = evs => evs.filter(e => !e.skip && !e.auto).reduce((s, e) => s + (+e.cost || 0), 0);   // per person
 const num1 = v => (Math.round(v * 10) / 10).toLocaleString('ru-RU');
 
 function ringsSVG(parts, center) {
@@ -48,7 +48,7 @@ RENDER.stats = (x, root) => {
       </div>
     </section>
     <section class="tc-card" id="tcBudget">
-      <div class="tc-row"><span class="tc-lbl">Бюджет по дням, ¥</span><span class="tc-lbl">всего ${both(total)}</span></div>
+      <div class="tc-row"><span class="tc-lbl">Бюджет на человека, ¥</span><span class="tc-lbl">всего ${both(total)}</span></div>
       <div class="tc-bars" role="img" aria-label="Бюджет по дням, всего ${yen(total)}">${budgets.map(b =>
         `<div class="tc-barcol${b.d.n < x.cday.n ? ' done' : b.d.n === x.cday.n ? ' cur' : ''}${b.d === day ? ' on' : ''}">
           <i style="height:${Math.max(4, Math.round(b.v / max * 100))}%"></i><small>${+dateOf(b.d).slice(8)}</small></div>`).join('')}</div>

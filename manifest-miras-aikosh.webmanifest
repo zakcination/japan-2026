@@ -1,9 +1,9 @@
 {
-  "name": "Япония за 11 дней",
+  "name": "Мирас и Айкош · Япония 2026",
   "short_name": "Япония",
   "description": "Что сейчас, что дальше и когда выходить — поездка по Японии, офлайн",
   "lang": "ru",
-  "start_url": "./",
+  "start_url": "./?trip=miras-aikosh",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F2F2F7",
@@ -27,5 +27,5 @@
       "type": "image/png"
     }
   ],
-  "id": "./"
+  "id": "./?trip=miras-aikosh"
 }

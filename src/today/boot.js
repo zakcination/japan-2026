@@ -32,7 +32,7 @@ setInterval(() => {
 /* On a real web host (GitHub Pages) the guide installs as an app and keeps working offline. */
 if (/^https?:$/.test(location.protocol) && /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname)) {
   const add = (rel, href) => { const l = document.createElement('link'); l.rel = rel; l.href = href; document.head.appendChild(l); };
-  add('manifest', 'manifest.webmanifest');
+  add('manifest', Trips.id() === 'template' ? 'manifest.webmanifest' : `manifest-${Trips.id()}.webmanifest`);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 window.addEventListener('japan2026:wx', renderShell);

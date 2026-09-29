@@ -46,8 +46,8 @@ const plan = (day, now) => Core.plan(day, now, S, dateOf(day));
 const yen = v => v == null ? '—' : '¥' + Math.round(v).toLocaleString('ru-RU');
 const home = v => SET.cur === 'JPY' || v == null ? '' : Math.round(v * SET.rate).toLocaleString('ru-RU') + ' ' + (CUR[SET.cur] || CUR.KZT).sym;
 const both = v => v == null || !v ? '—' : `${yen(v)}${home(v) ? ' · ' + home(v) : ''}`;
-/* costs in the data are per person; shown for the whole group */
-const money = pp => pp == null || !pp ? '—' : both(pp * SET.travelers);
+/* costs are per person (owners' choice): «¥210/чел · 590 ₸» */
+const money = pp => pp == null || !pp ? '—' : `${yen(pp)}/чел${home(pp) ? ' · ' + home(pp) : ''}`;
 
 const liveDayN = () => { const n = japanNow(); const d = T.days.find(x => dateOf(x) === n.date); return d ? d.n : null; };
 /* the clock the screen reasons with: real Japan time during the trip, the preview clock before it */

@@ -49,9 +49,10 @@ const Ios = (() => {
       if (e.loc) L.push('LOCATION:' + escText(e.loc));
       if (e.note) L.push('DESCRIPTION:' + escText(e.note));
       if (e.url) L.push('URL:' + e.url);
-      L.push('BEGIN:VALARM', 'ACTION:DISPLAY',
+      if (e.alarm !== false) L.push('BEGIN:VALARM', 'ACTION:DISPLAY',
         'DESCRIPTION:' + escText((Number.isFinite(e.leave) && e.leave < e.ns ? 'Пора выходить: ' : 'Скоро: ') + e.t),
-        `TRIGGER:-PT${before}M`, 'END:VALARM', 'END:VEVENT');
+        `TRIGGER:-PT${before}M`, 'END:VALARM');
+      L.push('END:VEVENT');
     });
     L.push('END:VCALENDAR');
     return L.map(fold).join('\r\n') + '\r\n';
@@ -66,6 +67,8 @@ const Ios = (() => {
     const evs = day.n === x.cday.n ? x.cevs : plan(day, null);
     return evs.filter(e => !e.skip && !e.auto && !e.bad && e.cat !== 'routine').map(e => ({
       id: e.id, t: e.t, ns: e.ns, ne: e.ne, leave: Core.travel(e) > 0 ? e.leave : null,
+      // alarms only on what matters: departures, bought/booked things, events (owners' choice)
+      alarm: Core.isAnchor(e) || !!e.bk || e.cat === 'event' || e.cat === 'transport',
       loc: e.frm && e.to ? `${e.frm} → ${e.to}` : (e.pname || e.to || ''),
       note: [e.note, routeUrl(e)].filter(Boolean).join('\n'), url: Core.safeUrl(e.link),
     }));
@@ -77,9 +80,9 @@ const Ios = (() => {
     const when = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
     sheet('В Календарь', `
       <p class="tc-sub">${esc(when)} · ${evs.length} ${evs.length === 1 ? 'событие' : evs.length < 5 && evs.length ? 'события' : 'событий'}.
-        Напоминание приходит в момент «выйти», даже если приложение закрыто.</p>
+        Напоминания — только на важном: переезды, брони и события; приходят в момент «выйти», даже если приложение закрыто.</p>
       <div class="tc-group" id="tcCal">${evs.map(e => `<div class="tc-calrow"><b>${hm(e.ns)}</b><span>${esc(e.t)}</span>
-        <em>${icon('bell')}${hm(e.leave != null ? e.leave : e.ns - 10)}</em></div>`).join('')}</div>
+        ${e.alarm ? `<em>${icon('bell')}${hm(e.leave != null ? e.leave : e.ns - 10)}</em>` : '<em></em>'}</div>`).join('')}</div>
       <button type="button" class="tc-btn primary wide" id="tcCalGo">${icon('cal')}${isIOS() ? 'Добавить в Календарь iPhone' : 'Скачать .ics'}</button>`,
     m => m.querySelector('#tcCalGo').addEventListener('click', () => {
       const txt = ics({ name: T.name, dateISO: iso, events: evs,
@@ -108,7 +111,7 @@ const Ios = (() => {
     if (!isIOS() || standalone() || hidden) return '';
     return `<section class="tc-card tc-install" id="tcInstall"><span class="tc-install-ic" aria-hidden="true"><i></i></span>
       <div><b>Установите на экран «Домой»</b><span class="tc-sub">Нажмите ${icon('share')} «Поделиться» → «На экран „Домой“».
-        Так приложение работает без сети, а билеты не сотрутся.</span></div>
+        Сделайте это до того, как прикреплять билеты: у приложения на экране «Домой» своё хранилище.</span></div>
       <button type="button" class="tc-x" id="tcInstallX" aria-label="Скрыть подсказку">${icon('close')}</button></section>`;
   }
   function wireInstall(root) {

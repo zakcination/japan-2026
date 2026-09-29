@@ -45,13 +45,13 @@ def test_theme_choice(app):
     assert a.page.get_attribute("#today", "data-th") == "light"
 
 
-def test_travellers_change_prices(app):
+def test_prices_are_per_person(app):
     a = open_(app)
     s = settings(a)
-    s.locator("#setTrav").fill("3")
-    s.locator("#setSave").click()
+    assert s.locator("#setTrav").count() == 0
+    a.page.keyboard.press("Escape")
     a.page.click(".tc-tab[data-tab='day']")
-    assert "¥630" in a.page.inner_text("#tcList").replace(" ", " ")
+    assert "¥210/чел" in a.page.inner_text("#tcList").replace("\u00a0", " ")
 
 
 def test_edit_add_and_day_label(app):

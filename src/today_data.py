@@ -370,6 +370,11 @@ def build():
     tpl["id"], own["id"] = "template", "miras-aikosh"
     write_trip("template", tpl)
     write_trip("miras-aikosh", own)
+    # a Home Screen app has its own storage, so each trip gets a manifest that opens that trip
+    base = json.loads((TRIPS.parent / "manifest.webmanifest").read_text(encoding="utf-8"))
+    for t in (own,):
+        m = dict(base, id=f"./?trip={t['id']}", start_url=f"./?trip={t['id']}", name=t["name"], short_name="Япония")
+        (TRIPS.parent / f"manifest-{t['id']}.webmanifest").write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (TRIPS / "index.json").write_text(json.dumps([dict(id="template", name=tpl["name"]), dict(id="miras-aikosh", name=own["name"])],
                                                  ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 

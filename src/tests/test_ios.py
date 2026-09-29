@@ -63,8 +63,11 @@ def test_iphone_gets_apple_maps_and_calendar_sheet(app):
     assert "В Календарь" in s.inner_text()
     rows = s.locator("#tcCal .tc-calrow")
     assert rows.count() >= 8
+    bus = s.locator("#tcCal .tc-calrow", has_text="Кавагутико → Мисима").inner_text()
+    assert "17:00" in bus and "16:15" in bus                      # a departure: alarm at leave time
     oishi = s.locator("#tcCal .tc-calrow", has_text="Oishi Park").inner_text()
-    assert "13:00" in oishi and "12:30" in oishi
+    assert "13:00" in oishi and "12:30" not in oishi              # a sight: no alarm
+    assert s.locator("#tcCal .tc-calrow em svg").count() < rows.count()
     assert "Календарь iPhone" in s.inner_text()
 
 

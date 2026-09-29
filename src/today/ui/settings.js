@@ -36,7 +36,6 @@ function openSettings() {
         `<label class="tc-seg3"><input type="radio" name="tcTheme" value="${k}"${k === theme ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
     <div class="tc-form">
       ${fld('setName', 'Название', T.name || '')}
-      ${fld('setTrav', 'Путешественников', SET.travelers, 'number', 'min="1" max="20" step="1" inputmode="numeric"')}
       ${fld('setStart', 'Первый день', SET.start, 'date')}
       ${sel('setCur', 'Валюта дома', SET.cur, Object.keys(CUR).map(k => [k, k + ' ' + CUR[k].sym]))}
       ${fld('setRate', 'Курс: 1 ¥ =', SET.rate, 'number', 'min="0" step="0.0001" inputmode="decimal"')}
@@ -63,7 +62,6 @@ function openSettings() {
     m.querySelector('#setSave').addEventListener('click', () => {
       const name = m.querySelector('#setName').value.trim();
       if (name && name !== T.name) { T.name = name; saveTrip(); }
-      SET.travelers = Math.max(1, Math.min(20, Math.round(+m.querySelector('#setTrav').value) || 1));
       SET.start = m.querySelector('#setStart').value || SET.start;
       SET.cur = m.querySelector('#setCur').value in CUR ? m.querySelector('#setCur').value : 'KZT';
       SET.rate = +m.querySelector('#setRate').value || (CUR[SET.cur] || CUR.KZT).rate;
