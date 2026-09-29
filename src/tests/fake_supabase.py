@@ -1,0 +1,244 @@
+"""An in-memory stand-in for the parts of Supabase the app uses: anonymous auth, the group RPCs, ticket storage.
+Semantics mirror supabase/migrations/001_group.sql; the contract (group_contract.py) keeps them honest."""
+import copy, hashlib, json, pathlib, time, uuid
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+TRIP = "miras-aikosh"
+
+
+class RpcError(Exception):
+    def __init__(self, status, message):
+        super().__init__(message); self.status, self.message = status, message
+
+
+def _h(pin):
+    return hashlib.sha256(("salt:" + pin).encode()).hexdigest()   # the real DB uses bcrypt
+
+
+class FakeSupabase:
+    def __init__(self):
+        self.tokens = {}            # access token -> uid
+        self.refresh = {}           # refresh token -> uid
+        self.devices = {}           # uid -> member id
+        self.members = {}           # id -> {id, name, role, pin_hash, fails, locked_until}
+        self.plan = {"doc": None, "version": 1}
+        self.parts, self.joins, self.recipes, self.tasks = [], [], {}, []
+        self.my_stops, self.my_bookings, self.task_state, self.attachments = {}, {}, {}, {}
+        self.files = {}
+        self.clock = time.time      # tests may replace it
+        self.fail_network = False   # tests flip it to simulate no signal
+
+    # ---------- seed ----------
+    @classmethod
+    def seeded(cls):
+        f = cls()
+        trip = json.loads((ROOT / "trips" / f"{TRIP}.json").read_text(encoding="utf-8"))
+        f.plan["doc"] = {k: v for k, v in trip.items() if k not in ("group",)}
+        f.parts = copy.deepcopy(trip.get("parts", []))
+        f.recipes = {r["bk"]: dict(r, host_ref="") for r in trip.get("recipes", [])}
+        f.host_id = f._add("Мирас", "host"); f._add("Айкош", "host")
+        f.host_pin = "2468"
+        f.members[f.host_id]["pin_hash"] = _h(f.host_pin)
+        return f
+
+    def _add(self, name, role):
+        i = str(uuid.uuid4())
+        self.members[i] = {"id": i, "name": name, "role": role, "pin_hash": None, "fails": 0, "locked_until": 0}
+        return i
+
+    # ---------- auth ----------
+    def signup(self):
+        uid = str(uuid.uuid4()); a, r = "at-" + uid, "rt-" + uid
+        self.tokens[a] = uid; self.refresh[r] = uid
+        return {"access_token": a, "refresh_token": r, "expires_in": 3600, "user": {"id": uid}}
+
+    def refresh_token(self, rt):
+        uid = self.refresh.get(rt)
+        if not uid: raise RpcError(401, "invalid refresh token")
+        a = "at-" + str(uuid.uuid4()); self.tokens[a] = uid
+        return {"access_token": a, "refresh_token": rt, "expires_in": 3600, "user": {"id": uid}}
+
+    # ---------- helpers ----------
+    def _me(self, token, need_host=False):
+        uid = self.tokens.get(token)
+        if not uid: raise RpcError(401, "JWT expired or invalid")
+        mid = self.devices.get(uid)
+        if not mid: raise RpcError(400, "not a member")
+        m = self.members[mid]
+        if need_host and m["role"] != "host": raise RpcError(400, "host only")
+        return m
+
+    def _pub(self, m):
+        return {k: m[k] for k in ("id", "name", "role")}
+
+    # ---------- RPCs ----------
+    def rpc(self, token, name, a):
+        fn = getattr(self, "rpc_" + name, None)
+        if not fn: raise RpcError(404, "no such function")
+        return fn(token, **a)
+
+    def rpc_claim_member(self, token, p_member, p_pin):
+        uid = self.tokens.get(token)
+        if not uid: raise RpcError(401, "JWT expired or invalid")
+        m = self.members.get(p_member)
+        if not m: raise RpcError(400, "no such member")
+        if m["locked_until"] > self.clock(): raise RpcError(400, "locked, try later")
+        if not (isinstance(p_pin, str) and len(p_pin) == 4 and p_pin.isdigit()): raise RpcError(400, "PIN must be 4 digits")
+        if m["pin_hash"] is None:
+            m["pin_hash"] = _h(p_pin)
+        elif m["pin_hash"] != _h(p_pin):
+            m["fails"] += 1
+            if m["fails"] >= 5: m["locked_until"], m["fails"] = self.clock() + 900, 0
+            raise RpcError(400, "wrong PIN")
+        m["fails"] = 0
+        mine = [u for u, x in self.devices.items() if x == p_member]
+        if len(mine) >= 3: del self.devices[mine[0]]
+        self.devices[uid] = p_member
+        return self._pub(m)
+
+    def rpc_group_state(self, token, p_trip):
+        m = self._me(token); me = m["id"]
+        return copy.deepcopy({
+            "me": self._pub(m), "trip": {"id": TRIP, "name": self.plan["doc"]["name"]}, "plan": self.plan,
+            "members": [self._pub(x) for x in self.members.values()], "parts": self.parts, "joins": self.joins,
+            "recipes": [r if m["role"] == "host" or True else r for r in self.recipes.values()],
+            "tasks": [t for t in self.tasks if t.get("assignee") in (None, me)],
+            "my_stops": [s for s in self.my_stops.values() if s["member"] == me or s["shared"]],
+            "my_bookings": [b for b in self.my_bookings.values() if b["member"] == me],
+            "task_state": [dict(ref=k[1], **v) for k, v in self.task_state.items() if k[0] == me],
+            "attachments": [x for x in self.attachments.values() if x["member"] == me or x["shared"]],
+            "now": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.clock()))})
+
+    def rpc_set_join(self, token, p_scope, p_ref, p_mode):
+        me = self._me(token)["id"]
+        if p_scope not in ("part", "day", "stop", "mine") or p_mode not in ("in", "out", "none"): raise RpcError(400, "bad join")
+        self.joins = [j for j in self.joins if not (j["member"] == me and j["scope"] == p_scope and j["ref"] == str(p_ref))]
+        if p_mode != "none": self.joins.append({"member": me, "scope": p_scope, "ref": str(p_ref), "mode": p_mode})
+        return True
+
+    def rpc_save_my_stop(self, token, p_stop):
+        me = self._me(token)["id"]; s = dict(p_stop)
+        if not str(s.get("id", "")).startswith("m-"): raise RpcError(400, "bad id")
+        old = self.my_stops.get(s["id"])
+        if old and old["member"] != me: raise RpcError(400, "not yours")
+        s["member"], s["shared"] = me, bool(s.get("shared"))
+        self.my_stops[s["id"]] = s
+        return True
+
+    def rpc_delete_my_stop(self, token, p_id):
+        me = self._me(token)["id"]
+        if self.my_stops.get(p_id, {}).get("member") == me: del self.my_stops[p_id]
+        return True
+
+    def rpc_save_my_booking(self, token, p_b):
+        me = self._me(token)["id"]; b = dict(p_b)
+        if not str(b.get("id", "")).startswith("mb-"): raise RpcError(400, "bad id")
+        if b.get("url") and not str(b["url"]).startswith("https://"): raise RpcError(400, "links must be https")
+        b["member"] = me; self.my_bookings[b["id"]] = b
+        return True
+
+    def rpc_set_task_state(self, token, p_ref, p_done):
+        me = self._me(token)["id"]
+        self.task_state[(me, p_ref)] = {"done": bool(p_done), "at": self.clock()}
+        return True
+
+    def rpc_save_attachment(self, token, p_a):
+        me = self._me(token)["id"]; x = dict(p_a)
+        if x.get("kind") not in ("file", "link"): raise RpcError(400, "bad kind")
+        if x["kind"] == "link" and not str(x.get("url", "")).startswith("https://"): raise RpcError(400, "links must be https")
+        old = self.attachments.get(x["id"])
+        if old and old["member"] != me: raise RpcError(400, "not yours")
+        x["member"], x["shared"] = me, bool(x.get("shared"))
+        self.attachments[x["id"]] = x
+        return True
+
+    def rpc_delete_attachment(self, token, p_id):
+        me = self._me(token)["id"]
+        if self.attachments.get(p_id, {}).get("member") == me: del self.attachments[p_id]
+        return True
+
+    def rpc_save_plan(self, token, p_doc, p_version):
+        self._me(token, need_host=True)
+        if p_version != self.plan["version"]: raise RpcError(400, "plan version changed")
+        self.plan = {"doc": p_doc, "version": p_version + 1}
+        return self.plan["version"]
+
+    def rpc_save_part(self, token, p_part):
+        self._me(token, need_host=True)
+        self.parts = [p for p in self.parts if p["id"] != p_part["id"]] + [p_part]
+        return True
+
+    def rpc_save_recipe(self, token, p_r):
+        self._me(token, need_host=True)
+        if p_r.get("url") and not str(p_r["url"]).startswith("https://"): raise RpcError(400, "links must be https")
+        self.recipes[p_r["bk"]] = dict(p_r)
+        return True
+
+    def rpc_add_member(self, token, p_name, p_role):
+        self._me(token, need_host=True)
+        if p_role not in ("host", "guest") or not str(p_name).strip(): raise RpcError(400, "bad member")
+        return {"id": self._add(str(p_name).strip()[:40], p_role)}
+
+    def rpc_reset_pin(self, token, p_member):
+        self._me(token, need_host=True)
+        m = self.members[p_member]; m["pin_hash"], m["fails"], m["locked_until"] = None, 0, 0
+        return True
+
+    def rpc_save_task(self, token, p_task):
+        self._me(token, need_host=True)
+        t = dict(p_task); t.setdefault("id", "t-" + str(uuid.uuid4()))
+        self.tasks = [x for x in self.tasks if x["id"] != t["id"]] + [t]
+        return t["id"]
+
+    def rpc_import_tasks(self, token, p_tasks):
+        self._me(token, need_host=True)
+        for t in p_tasks: self.rpc_save_task(token, t)
+        return len(p_tasks)
+
+    # ---------- storage ----------
+    def upload(self, token, path, body, ctype):
+        me = self._me(token)["id"]
+        if not path.startswith(me + "/"): raise RpcError(403, "not your folder")
+        self.files[path] = (body, ctype)
+        return {"Key": "tickets/" + path}
+
+    def download(self, token, path):
+        me = self._me(token)["id"]
+        ok = path.startswith(me + "/") or any(x["shared"] and x.get("path") == path for x in self.attachments.values())
+        if not ok or path not in self.files: raise RpcError(404, "not found")
+        return self.files[path]
+
+    # ---------- plumbing for tests ----------
+    def client(self):
+        f = self
+
+        class C:
+            def signup(self): return f.signup()["access_token"]
+
+            def rpc(self, token, name, args):
+                try: return 200, f.rpc(token, name, args)
+                except RpcError as e: return e.status, {"code": "P0001", "message": e.message}
+        return C()
+
+    def route(self, route):
+        """Playwright handler for https://*.supabase.co/** — call page.route(pattern, fake.route)."""
+        req = route.request
+        if self.fail_network: return route.abort()
+        path = req.url.split(".supabase.co", 1)[1]
+        tok = (req.headers.get("authorization") or "").replace("Bearer ", "")
+        cors = {"access-control-allow-origin": "*"}
+        def send(status, obj=None, body=None, ctype="application/json"):
+            route.fulfill(status=status, headers=cors, content_type=ctype,
+                          body=body if body is not None else json.dumps(obj, ensure_ascii=False))
+        try:
+            if req.method == "OPTIONS": return route.fulfill(status=204, headers={**cors, "access-control-allow-headers": "*", "access-control-allow-methods": "*"})
+            if path.startswith("/auth/v1/signup"): return send(200, self.signup())
+            if path.startswith("/auth/v1/token"): return send(200, self.refresh_token(json.loads(req.post_data or "{}").get("refresh_token")))
+            if path.startswith("/rest/v1/rpc/"): return send(200, self.rpc(tok, path.split("/rpc/")[1], json.loads(req.post_data or "{}")))
+            if path.startswith("/storage/v1/object/authenticated/tickets/"):
+                body, ctype = self.download(tok, path.split("/tickets/", 1)[1]); return send(200, body=body, ctype=ctype)
+            if path.startswith("/storage/v1/object/tickets/") and req.method == "POST":
+                return send(200, self.upload(tok, path.split("/tickets/", 1)[1], req.post_data_buffer, req.headers.get("content-type", "")))
+            return send(404, {"message": "not found"})
+        except RpcError as e:
+            return send(e.status, {"code": "P0001", "message": e.message})

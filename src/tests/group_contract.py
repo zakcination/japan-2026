@@ -1,0 +1,92 @@
+"""RPC scenarios shared by the fake (pytest) and the real Supabase project (python3 src/tests/group_contract.py)."""
+import json, os, sys, urllib.request
+
+TRIP = "miras-aikosh"
+
+
+def ok(r):
+    st, body = r
+    assert st == 200, (st, body)
+    return body
+
+
+def err(r, code_part):
+    st, body = r
+    assert st >= 400 and code_part in json.dumps(body, ensure_ascii=False), (st, body)
+
+
+def run_all(c, host_id, host_pin):
+    """host_id/host_pin: a seeded host (seed sets PIN for the first host via the owner)."""
+    host = c.signup(); ok(c.rpc(host, "claim_member", {"p_member": host_id, "p_pin": host_pin}))
+    s = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert s["me"]["role"] == "host" and s["plan"]["version"] >= 1
+    # host adds Saniya; she sets her PIN on first claim
+    san = ok(c.rpc(host, "add_member", {"p_name": "Сания", "p_role": "guest"}))["id"]
+    g = c.signup(); ok(c.rpc(g, "claim_member", {"p_member": san, "p_pin": "4821"}))
+    # a stranger (signed in, not claimed) sees nothing and can write nothing
+    x = c.signup()
+    err(c.rpc(x, "group_state", {"p_trip": TRIP}), "not a member")
+    err(c.rpc(x, "set_join", {"p_scope": "part", "p_ref": "fuji", "p_mode": "in"}), "not a member")
+    # wrong PIN 5 times locks the member, even with the right PIN after
+    y = c.signup()
+    for _ in range(5):
+        err(c.rpc(y, "claim_member", {"p_member": san, "p_pin": "0000"}), "PIN")
+    err(c.rpc(y, "claim_member", {"p_member": san, "p_pin": "4821"}), "locked")
+    # guest joins a part and opts out of one stop
+    ok(c.rpc(g, "set_join", {"p_scope": "part", "p_ref": "fuji", "p_mode": "in"}))
+    ok(c.rpc(g, "set_join", {"p_scope": "stop", "p_ref": "d2e5", "p_mode": "out"}))
+    gs = ok(c.rpc(g, "group_state", {"p_trip": TRIP}))
+    mine = [j for j in gs["joins"] if j["member"] == san]
+    assert {(j["scope"], j["ref"], j["mode"]) for j in mine} == {("part", "fuji", "in"), ("stop", "d2e5", "out")}
+    # guest cannot change the plan, hosts can (with version check)
+    err(c.rpc(g, "save_plan", {"p_doc": gs["plan"]["doc"], "p_version": gs["plan"]["version"]}), "host")
+    v = gs["plan"]["version"]
+    ok(c.rpc(host, "save_plan", {"p_doc": gs["plan"]["doc"], "p_version": v}))
+    err(c.rpc(host, "save_plan", {"p_doc": gs["plan"]["doc"], "p_version": v}), "version")
+    # own stops: private unless shared
+    ok(c.rpc(g, "save_my_stop", {"p_stop": {"id": "m-1", "day": 3, "ev": {"s": "10:00", "e": "12:00", "t": "Осака"}, "shared": False}}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert not any(m["id"] == "m-1" for m in hs["my_stops"])
+    ok(c.rpc(g, "save_my_stop", {"p_stop": {"id": "m-1", "day": 3, "ev": {"s": "10:00", "e": "12:00", "t": "Осака"}, "shared": True}}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert any(m["id"] == "m-1" for m in hs["my_stops"])
+    # task state is private
+    ok(c.rpc(g, "set_task_state", {"p_ref": "bk:bus18", "p_done": True}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert not any(t["ref"] == "bk:bus18" for t in hs["task_state"])
+    # attachments: private unless shared; links must be https
+    err(c.rpc(g, "save_attachment", {"p_a": {"id": "a-1", "ref": "bk:bus18", "kind": "link", "url": "javascript:alert(1)", "name": "x"}}), "https")
+    ok(c.rpc(g, "save_attachment", {"p_a": {"id": "a-1", "ref": "bk:bus18", "kind": "link", "url": "https://www.highwaybus.com/x", "name": "Бронь", "shared": False}}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert not any(a["id"] == "a-1" for a in hs["attachments"])
+    # host resets the PIN; the old device keeps working, a new claim needs the new PIN
+    ok(c.rpc(host, "reset_pin", {"p_member": san}))
+    z = c.signup(); ok(c.rpc(z, "claim_member", {"p_member": san, "p_pin": "1111"}))
+    return True
+
+
+class Real:
+    """python3 src/tests/group_contract.py <url> <anon-key> <host-member-uuid> <host-pin>"""
+    def __init__(self, url, anon):
+        self.url, self.anon = url.rstrip("/"), anon
+
+    def _post(self, path, body, token=None):
+        req = urllib.request.Request(self.url + path, data=json.dumps(body).encode(), method="POST",
+                                     headers={"apikey": self.anon, "Content-Type": "application/json",
+                                              "Authorization": "Bearer " + (token or self.anon)})
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, json.loads(r.read() or b"null")
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read() or b"null")
+
+    def signup(self):
+        return self._post("/auth/v1/signup", {})[1]["access_token"]
+
+    def rpc(self, token, name, args):
+        return self._post(f"/rest/v1/rpc/{name}", args, token)
+
+
+if __name__ == "__main__":
+    url, anon, host_id, pin = sys.argv[1:5]
+    print("contract ok:", run_all(Real(url, anon), host_id, pin))
