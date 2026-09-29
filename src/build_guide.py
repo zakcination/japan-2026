@@ -686,10 +686,6 @@ HTML = """<!DOCTYPE html>
 <aside class="cardpanel" id="cardPanel"></aside>
 
 <div id="today" role="region" aria-label="Сегодня"><div class="td-wrap" id="todayBody"></div></div>
-<div class="td-ticket" id="tdTicket" hidden role="dialog" aria-label="Билет">
-  <div class="hold"></div><p id="tdTicketCap"></p>
-  <button class="td-btn" type="button" id="tdTicketClose">Закрыть</button>
-</div>
 
 <div class="rail">
   <div class="scroller" id="dayChips"></div>

@@ -309,25 +309,6 @@ function wire(root, day) {
 }
 function alertLine(msg) { const r = document.getElementById('todayBody'); r.prepend(el('div', 'td-warn', esc(msg))); }
 
-let ticketURL = null;
-function showTicket(id) {
-  const box = document.getElementById('tdTicket');
-  const b = bookingById(id);
-  const cap = document.getElementById('tdTicketCap');
-  const holder = box.querySelector('.hold');
-  holder.replaceChildren();
-  if (ticketURL) { URL.revokeObjectURL(ticketURL); ticketURL = null; }
-  cap.textContent = b ? `${b.t} · ${b.when}` : 'Билет';
-  ticketGet(id).then(rec => {
-    if (!rec) { holder.appendChild(el('p', null, 'Билет ещё не прикреплён. Прикрепите скриншот QR в разделе «Брони дня».')); return; }
-    ticketURL = URL.createObjectURL(rec.blob);
-    if ((rec.type || '').startsWith('image/')) { const i = new Image(); i.src = ticketURL; i.alt = 'Билет'; holder.appendChild(i); }
-    else { const f = document.createElement('iframe'); f.src = ticketURL; f.title = 'Билет'; holder.appendChild(f);
-           holder.appendChild(el('p', null, 'Если PDF не показался — прикрепите вместо него скриншот QR.')); }
-  }).catch(() => holder.appendChild(el('p', null, 'Хранилище билетов недоступно в этом окне.')));
-  box.hidden = false;
-}
-
 /* ---------- modal: settings, event editor, day editor ---------- */
 function modal(title, bodyHTML, onReady) {
   let m = document.getElementById('tdModal');
@@ -510,8 +491,7 @@ function closeToday() { document.getElementById('today').hidden = true; S.open =
 window.openToday = openToday;
 
 document.getElementById('btnToday').addEventListener('click', openToday);
-document.getElementById('tdTicketClose').addEventListener('click', () => { document.getElementById('tdTicket').hidden = true; });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.getElementById('tdTicket').hidden = true; closeModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTicket(); closeModal(); closeSheet(); } });
 setTitle();
 
 tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; renderShell(); } });

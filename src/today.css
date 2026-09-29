@@ -148,13 +148,6 @@
 .td-ovrow small { font-size: 12px; color: var(--muted); }
 .td-ovrow.on { background: var(--t-accent-bg); }
 
-/* ticket viewer */
-.td-ticket { position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,.88); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; padding: calc(16px + var(--safe-t)) 16px calc(16px + var(--safe-b)); gap: 12px; }
-.td-ticket[hidden] { display: none !important; }
-.td-ticket img, .td-ticket iframe { max-width: 100%; max-height: 80vh; background: #fff; border-radius: 10px; border: 0; }
-.td-ticket iframe { width: 100%; height: 80vh; }
-.td-ticket p { color: #fff; font-size: 14px; margin: 0; text-align: center; }
 .td-foot { font-size: 12px; color: var(--muted); text-align: center; }
 @media (prefers-reduced-motion: reduce) { #today * { transition: none !important; } }
 

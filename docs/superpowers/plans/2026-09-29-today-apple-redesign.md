@@ -547,3 +547,13 @@ git commit -m "Extract the TODAY core into a tested module and glue modules at b
 - [x] Тесты: 11 дней в ленте и 13 пунктов дня 2, текущий подсвечен; выбор дня и свайп влево → следующий день; отметка — нативный `switch`, сохраняется; лист пункта: кнопки ≥ 44, +15 и «Пропустить» пишут в хранилище; у купленного (FIXED) нет сдвига и пропуска.
 - [x] Реализация; стоимость на группу в строке и итог дня; сдвинутое время показывает старое зачёркнутым.
 - [x] `pytest` 32/32, тесты карты; визуальный просмотр (светлая лента, тёмный лист); коммит.
+
+## Task 6: Вкладка «Брони» и билет на весь экран
+
+**Files:** Create `src/today/ui/bookings.js`, `src/tests/test_bookings.py`; Modify `src/today/components.css`, `src/today/theme.css` (токены и для `.tc-ticket`), `src/today/legacy.js` (старый просмотр билета удалён, Esc закрывает билет/окно/лист), `src/build_guide.py` (разметка `#tdTicket` удалена), `src/today.css`.
+
+**Interfaces — Produces:** `RENDER.tix`, `Wake.on() -> Promise<bool>`, `Wake.off()` (Wake Lock; `ios.js` использует его же для «Пора выходить»), `showTicket(id)`, `closeTicket()`, `attach(id, input)`; элементы `#tcBkToday`, `#tcBkAll`, `.tc-bk`, `[data-bkst]`, `[data-attach]`, `[data-ticket]`, `#tcTicket`, `#tcTicketDone`, `#tcTicketShare`, `#tcTicketDel`.
+
+- [x] Тесты: 5 броней дня 2 и 10 остальных, кнопки ≥ 44; «куплено» сохраняется в поездке; прикрепить PNG → QR → билет на весь экран, экран не гаснет (поддельный Wake Lock: взят и отпущен); удаление билета — в два нажатия.
+- [x] Реализация по макету: чёрный фон, код на белом, «Поделиться» только если `navigator.canShare` с файлом; Wake Lock берётся снова после возврата на вкладку.
+- [x] `pytest` 36/36, тесты карты (заодно `test_offline.py` запускается из `src/`); визуальный просмотр; коммит.
