@@ -98,7 +98,7 @@ function openSettings() {
       j = Core.cleanTrip(j);
       if (!j) { msg('Не похоже на поездку: нужен список days, у каждого дня n и ev с полями s и t.'); return; }
       T = j; saveTrip();
-      SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date || SET.start,
+      SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || SET.start,
               cur: j.currency in CUR ? j.currency : SET.cur, rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };
       saveSettings(); resetMarks();
       setTitle(); viewDay = null; closeSheet(); renderShell();
@@ -110,14 +110,20 @@ function openSettings() {
     });
     const rs = m.querySelector('#setReset');
     if (rs) rs.addEventListener('click', () => twoTap(rs, 'Точно? Ваши правки удалятся', () => {
-      Trips.backToShared(); setTitle(); viewDay = null; closeSheet(); renderShell();
-      Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+      Trips.backToShared().then(ok => {
+        if (!ok) { msg('Нет сети, а эта поездка ещё не сохранена на телефоне — попробуйте, когда появится интернет.'); return; }
+        setTitle(); viewDay = null; closeSheet(); renderShell();
+      });
     }));
     const tp = m.querySelector('#setTrip');
     if (custom) tp.disabled = true;
     tp.addEventListener('change', () => {
-      Trips.switchTo(tp.value); setTitle(); viewDay = null; closeSheet(); renderShell();
-      Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+      tp.disabled = true;
+      Trips.switchTo(tp.value).then(ok => {
+        tp.disabled = false;
+        if (!ok) { tp.value = Trips.id(); msg('Нет сети, а эта поездка ещё не сохранена на телефоне — попробуйте, когда появится интернет.'); return; }
+        setTitle(); viewDay = null; closeSheet(); renderShell();
+      });
     });
     m.querySelector('#setShare').addEventListener('click', () => {
       const url = Trips.shareUrl();

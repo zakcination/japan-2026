@@ -1,14 +1,30 @@
 /* ---------- tab «Брони»: today's bookings, the whole trip, ticket files, the full-screen ticket ---------- */
 
 /* keep the screen on while a ticket or the leave alert is shown (Safari 16.4+); silently absent elsewhere */
+/* One wanted state, one request in flight: quick on/off/on never leaks a lock, and a lock Safari
+   dropped (phone locked, tab hidden) is taken again when the page is visible. */
 const Wake = {
-  lock: null,
-  async on() {
-    if (this.lock || !navigator.wakeLock) return !!this.lock;
-    try { this.lock = await navigator.wakeLock.request('screen'); return true; } catch (e) { return false; }
+  want: false, lock: null, busy: null, failed: false,
+  on() { if (!this.want) this.failed = false; this.want = true; return this.sync(); },
+  off() { this.want = false; return this.sync(); },
+  sync() {
+    if (this.busy) return this.busy;
+    if (this.want && !this.lock && !this.failed && navigator.wakeLock && !document.hidden) {
+      this.busy = navigator.wakeLock.request('screen').then(l => {
+        this.lock = l;
+        if (l.addEventListener) l.addEventListener('release', () => { if (this.lock === l) this.lock = null; });
+      }, () => { this.failed = true; }).then(() => { this.busy = null; return this.sync(); });
+      return this.busy;
+    }
+    if (!this.want && this.lock) { const l = this.lock; this.lock = null; Promise.resolve(l.release()).catch(() => {}); }
+    return Promise.resolve(!!this.lock);
   },
-  off() { if (this.lock) { const l = this.lock; this.lock = null; l.release().catch(() => {}); } },
 };
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (Wake.lock && Wake.lock.released) Wake.lock = null;
+  Wake.failed = false; Wake.sync();
+});
 
 const bkDay = b => T.days.find(d => d.n === (b.days || [])[0]);
 
@@ -117,8 +133,3 @@ function closeTicket() {
   if (ticketURL) { URL.revokeObjectURL(ticketURL); ticketURL = null; }
   Wake.off();
 }
-/* Safari drops the wake lock when the page is hidden; take it again when the ticket is still up */
-document.addEventListener('visibilitychange', () => {
-  const m = document.getElementById('tcTicket');
-  if (!document.hidden && m && !m.hidden) { Wake.lock = null; Wake.on(); }
-});

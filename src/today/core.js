@@ -71,11 +71,15 @@ const Core = (() => {
             if (over <= 0) break;
             const len = x.ne - Math.max(x.ns, now == null ? -1e9 : now);
             const keep = x.st === 'flex' ? 0 : Math.max(15, Math.round((x.E - x.S) / 2));
-            const c = Math.min(Math.max(0, Math.min(len, x.ne - x.ns - keep)), over);
-            if (!c) continue;
+            // shortening x helps only as far as the stops after it were pushed: a stop is never
+            // moved before its own start, and slack between stops already absorbs the overrun
+            const after = seg.slice(seg.indexOf(x) + 1);
+            const pushed = after.reduce((m, y) => Math.min(m, y.ns - y.S), Infinity);
+            const c = Math.min(Math.max(0, Math.min(len, x.ne - x.ns - keep)), over, pushed);
+            if (!(c > 0)) continue;
             x.ne -= c; x.cut += c; over -= c;
             if (x.ne - x.ns <= 0) x.auto = true;
-            seg.slice(seg.indexOf(x) + 1).forEach(y => { y.ns -= c; y.ne -= c; });
+            after.forEach(y => { y.ns -= c; y.ne -= c; });
           }
           if (over > 0) e.conflict = over;
         }
@@ -134,7 +138,9 @@ const Core = (() => {
       days: Array.isArray(b.days) ? b.days.map(Number).filter(Number.isFinite) : [], cost: numOr(b.cost, null) }));
     if (!['KZT', 'USD', 'EUR', 'RUB', 'JPY'].includes(t.currency)) delete t.currency;
     ['travelers', 'rate'].forEach(k => { if (t[k] != null && !(+t[k] > 0)) delete t[k]; });
-    if (t.start != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(t.start))) delete t.start;
+    const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) && !isNaN(Date.parse(v));
+    t.days.forEach(d => { if (d.date != null && !isDate(d.date)) delete d.date; });
+    if (!isDate(t.start)) { if (t.days[0].date) t.start = t.days[0].date; else delete t.start; }
     return t;
   }
   const safeUrl = u => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u)) ? u : '';

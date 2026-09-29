@@ -90,8 +90,10 @@ RENDER.now = (x, root) => {
   Ios.wireInstall(root);
   const ag = root.querySelector('#tcAskedGo');
   if (ag) ag.addEventListener('click', () => twoTap(ag, 'Точно? Ваши правки удалятся', () => {
-    Trips.backToShared(); setTitle(); viewDay = null; renderShell();
-    Trips.refresh().then(ch => { if (ch) { setTitle(); renderShell(); } });
+    Trips.backToShared().then(ok => {
+      if (!ok) { ag.textContent = 'Нет сети — попробуйте позже'; return; }
+      setTitle(); viewDay = null; renderShell();
+    });
   }));
   root.querySelectorAll('[data-ticket]').forEach(b => b.addEventListener('click', () => showTicket(b.dataset.ticket)));
   const pd = root.querySelector('#tcPvDay'), pt = root.querySelector('#tcPvTime');

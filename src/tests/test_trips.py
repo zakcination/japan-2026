@@ -139,3 +139,37 @@ def test_csp_blocks_foreign_scripts_but_not_the_app(app, site):
     a.page.wait_for_timeout(300)
     assert any("script-src" in v for v in a.page.evaluate("__csp"))
     assert a.errors == []
+
+
+def test_switching_offline_to_a_trip_not_on_the_phone_changes_nothing(app, site):
+    a = app(state={**NIGHT, "done": {"d2e3": True}}, url=site, routes={"**/trips/*.json": abort})
+    a.page.click("#tcGear")
+    a.page.select_option("#setTrip", "miras-aikosh")
+    expect(a.page.locator("#setMsg")).to_contain_text("Нет сети")
+    assert "шаблон" in a.page.title()
+    assert json.loads(a.page.evaluate("localStorage.getItem('japan2026.today.v1')"))["done"] == {"d2e3": True}
+
+
+def test_each_trip_keeps_its_own_offline_copy(app, site):
+    a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
+    expect(a.page).to_have_title(re.compile("Мирас"))
+    a.page.click("#tcGear")
+    a.page.select_option("#setTrip", "template")
+    expect(a.page).to_have_title(re.compile("шаблон"))
+    a.page.route("**/trips/*.json", abort)
+    a.page.click("#tcGear")
+    a.page.select_option("#setTrip", "miras-aikosh")
+    expect(a.page).to_have_title(re.compile("Мирас"))
+
+
+def test_organiser_changes_to_start_and_people_reach_the_phone(app, site):
+    a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
+    expect(a.page).to_have_title(re.compile("Мирас"))
+    a.page.click("#tcGear")
+    a.page.keyboard.press("Escape")
+    a.page.route("**/trips/miras-aikosh.json", fulfil(dict(OURS, start="2026-10-18", travelers=3, name="Мирас +1")))
+    a.page.reload()
+    expect(a.page).to_have_title("Мирас +1")
+    a.page.click(".tc-tab[data-tab='day']")
+    assert "Пн 19" in a.page.inner_text(".tc-title")          # day 2 is now the 19th
+    assert "¥630" in a.page.inner_text("#tcList").replace(" ", " ")

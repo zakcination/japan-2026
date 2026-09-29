@@ -63,6 +63,18 @@ def core(browser):
         p.close()
 
 
+def until(page, js, timeout=5000):
+    """Poll a JS expression until it is truthy. The page's CSP forbids the string eval that
+    page.wait_for_function relies on; page.evaluate goes through the debugger and is allowed."""
+    import time
+    end = time.time() + timeout / 1000
+    while time.time() < end:
+        if page.evaluate(js):
+            return
+        time.sleep(0.05)
+    raise AssertionError("timed out waiting for " + js)
+
+
 class App:
     def __init__(self, page, errors):
         self.page, self.errors = page, errors

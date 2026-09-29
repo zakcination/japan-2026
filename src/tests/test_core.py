@@ -115,3 +115,18 @@ def test_day_progress(core):
     pg = core()
     evs = run(pg, DAY, None)
     assert pg.evaluate("([e]) => [Core.dayProgress(e, null), Core.dayProgress(e, 0), Core.dayProgress(e, 2000)]", [evs]) == [0, 0, 1]
+
+
+def test_cut_only_what_reaches_the_anchor(core):
+    """Flex 10–11, planned 12–13, fixed flight 13:30 with an hour to get there: the free hour between
+    them already covers A, so B is shortened by 30 and nothing moves before its own start."""
+    pg = core()
+    r = pg.evaluate("""() => Core.plan({ ev: [
+      { id: 'a', s: '10:00', e: '11:00', t: 'A', st: 'flex', cat: 'activity' },
+      { id: 'b', s: '12:00', e: '13:00', t: 'B', st: 'planned', cat: 'activity' },
+      { id: 'f', s: '13:30', e: '15:00', t: 'Flight', st: 'fixed', cat: 'transport', ride: 60 } ] }, null, {}, null)
+      .map(e => [e.id, e.ns, e.ne, e.cut, e.conflict])""")
+    a, b, f = r
+    assert a[1:4] == [600, 660, 0]
+    assert b[1] == 720 and b[2] == 750 and b[3] == 30
+    assert f[4] == 0

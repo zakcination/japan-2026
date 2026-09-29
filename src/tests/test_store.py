@@ -1,6 +1,8 @@
 """Storage behaviour that must survive the module split: own trip, the #trip= link, settings."""
 import base64
 import json
+
+from conftest import until
 import zlib
 
 
@@ -26,7 +28,7 @@ def test_own_trip_from_storage_is_shown(app):
 
 def test_trip_link_imports_and_clears_the_address(app):
     a = app(url_suffix=link_for(trip("Из ссылки")), state={"prevDay": 1, "prevTime": "09:00"})
-    a.page.wait_for_function("() => !location.hash.includes('trip=')")
+    until(a.page, "() => !location.hash.includes('trip=')")
     assert a.page.title() == "Из ссылки"
     assert json.loads(a.page.evaluate("localStorage.getItem('japan2026.trip.v1')"))["name"] == "Из ссылки"
 
@@ -37,3 +39,24 @@ def test_travellers_setting_scales_prices(app):
     a.page.click(".tc-tab[data-tab='day']")
     text = a.page.inner_text("#today")
     assert "¥840" in text          # JR Yamanote ¥210 per person × 4
+
+
+def test_link_without_bookings_opens_every_tab_and_resets_marks(app):
+    t = {"name": "Без броней", "days": [{"n": 1, "label": "Д1", "ev": [{"id": "d2e3", "s": "10:00", "e": "11:00", "t": "Пункт"}]}]}
+    a = app(state={"prevDay": 1, "prevTime": "09:00", "done": {"d2e3": True}}, url_suffix=link_for(t))
+    until(a.page, "() => document.title === 'Без броней'")
+    for tab in ("now", "day", "stats", "tix"):
+        a.page.click(f".tc-tab[data-tab='{tab}']")
+    assert "броней нет" in a.page.inner_text("#todayBody")
+    assert json.loads(a.page.evaluate("localStorage.getItem('japan2026.today.v1')"))["done"] == {}
+    assert a.errors == []
+
+
+def test_a_stop_past_midnight_stays_on_screen(app):
+    t = {"name": "Ночь", "start": "2026-10-17", "days": [
+        {"n": 1, "label": "Первый", "ev": [{"id": "a", "s": "23:30", "e": "00:30", "t": "Онсэн", "st": "planned", "cat": "activity"}]},
+        {"n": 2, "label": "Второй", "ev": [{"id": "b", "s": "09:00", "e": "10:00", "t": "Завтрак", "st": "planned", "cat": "food"}]}],
+        "bookings": []}
+    a = app(trip=t, now="2026-10-18T00:10:00+09:00")
+    assert "Онсэн" in a.page.inner_text("#tcNow")
+    assert "Первый" in a.page.inner_text(".tc-title h1")

@@ -2,6 +2,8 @@
 import base64
 import json
 
+from conftest import until
+
 # 1×1 white PNG
 PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==")
 
@@ -51,11 +53,11 @@ def test_attach_and_show_ticket_keeps_screen_on(app):
     t.wait_for(state="visible")
     t.locator("img").wait_for()
     assert "Автобус Keio" in t.inner_text()
-    a.page.wait_for_function("__wake.req === 1")
+    until(a.page, "__wake.req === 1")
     assert "Экран не погаснет" in t.inner_text()
     a.page.click("#tcTicketDone")
     assert not t.is_visible()
-    a.page.wait_for_function("__wake.rel === 1")
+    until(a.page, "__wake.rel === 1")
 
 
 def test_delete_ticket_takes_two_taps(app):

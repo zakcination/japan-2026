@@ -100,7 +100,7 @@
 .tc-bignow em { font: 600 15px/1.2 var(--sf); font-style: normal; color: var(--sec); text-align: right; }
 .tc-preview { margin: 2px 4px 0; font: 500 13px/1.8 var(--sf); color: var(--sec); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 .tc-preview select, .tc-preview input { font: 600 14px var(--sf); color: var(--text); background: var(--card); border: 1px solid var(--sep);
-  border-radius: 8px; padding: 6px 8px; min-height: 36px; }
+  border-radius: 10px; padding: 6px 10px; min-height: 44px; font-size: 16px; }
 
 /* ---------- tab «День» ---------- */
 .tc-days { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; scroll-snap-type: x proximity; }

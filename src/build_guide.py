@@ -1699,17 +1699,17 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
 TODAY_MODULES = ["core.js", "store.js", "trips.js", "ios.js", "ui/shell.js", "ui/now.js", "ui/day.js",
-                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "legacy.js", "boot.js"]
+                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 
 
 def today_js():
-    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_MODULES if pathlib.Path("today", m).exists()]
+    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_MODULES]   # a missing module fails the build
     return "(function () {\n'use strict';\n" + "\n".join(parts) + "\n})();"
 
 
 def today_css():
-    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_STYLES if pathlib.Path("today", m).exists()]
+    parts = [pathlib.Path("today", m).read_text(encoding="utf-8") for m in TODAY_STYLES]
     return "\n".join(parts)
 
 

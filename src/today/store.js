@@ -17,12 +17,20 @@ function loadSettings() {
   let s = {};
   try { s = JSON.parse(localStorage.getItem(SET_KEY) || '{}') || {}; } catch (e) {}
   const cur = s.cur || T.currency || 'KZT';
-  SET = { travelers: +(s.travelers || T.travelers || 2), start: s.start || T.start || T.days[0].date,
+  SET = { travelers: +(s.travelers || T.travelers || 2), start: s.start || T.start || TPL.start,
           cur, rate: +(s.rate || (cur === (T.currency || 'KZT') ? T.rate : 0) || (CUR[cur] || CUR.KZT).rate),
           theme: ['auto', 'light', 'dark'].includes(s.theme) ? s.theme : 'auto' };
 }
 loadSettings();
-const saveSettings = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) {} };
+/* only what differs from the trip is stored, so a new version of a shared trip (start date,
+   people, currency) still reaches the phone unless the traveller changed that field here */
+const tripDefaults = () => { const cur = T.currency || 'KZT';
+  return { travelers: +(T.travelers || 2), start: T.start || TPL.start, cur, rate: +(T.rate || (CUR[cur] || CUR.KZT).rate) }; };
+const saveSettings = () => {
+  const d = tripDefaults(), o = { theme: SET.theme };
+  ['travelers', 'start', 'cur', 'rate'].forEach(k => { if (SET[k] !== d[k]) o[k] = SET[k]; });
+  try { localStorage.setItem(SET_KEY, JSON.stringify(o)); } catch (e) {}
+};
 
 /* ---------- state on this device ---------- */
 let S = { done: {}, skip: {}, delay: {}, spent: {}, walked: {}, view: null, prevDay: 2, prevTime: '13:24', open: true };
@@ -45,7 +53,13 @@ const liveDayN = () => { const n = japanNow(); const d = T.days.find(x => dateOf
 /* the clock the screen reasons with: real Japan time during the trip, the preview clock before it */
 function clock() {
   const live = liveDayN();
-  if (live) return { live: true, day: live, min: japanNow().min };
+  if (live) {
+    // after midnight, yesterday's stop that is still going (an onsen till 00:30) keeps the screen
+    const now = japanNow().min, prev = T.days.find(d => d.n === live - 1);
+    if (prev && now < 360 && plan(prev, now + 1440).some(e => !e.skip && !e.auto && !e.bad && e.ne > now + 1440))
+      return { live: true, day: prev.n, min: now + 1440 };
+    return { live: true, day: live, min: now };
+  }
   return { live: false, day: S.prevDay, min: toMin(S.prevTime || '09:00') };
 }
 
@@ -92,7 +106,8 @@ async function tripFromHash() {
     const j = Core.cleanTrip(JSON.parse(txt));
     if (!j) return false;
     T = j; saveTrip();
-    SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || j.days[0].date, cur: j.currency || 'KZT',
+    S.done = {}; S.skip = {}; S.delay = {}; S.spent = {}; S.walked = {}; save();
+    SET = { theme: SET.theme || 'auto', travelers: +(j.travelers || 2), start: j.start || TPL.start, cur: j.currency || 'KZT',
             rate: +(j.rate || (CUR[j.currency] || CUR.KZT).rate) };
     saveSettings();
     history.replaceState(null, '', location.pathname + location.search);   // don't leave the trip in the address bar

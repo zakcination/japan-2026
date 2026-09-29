@@ -1,7 +1,7 @@
 """iPhone extras: the .ics builder, Apple Maps, Calendar sheet, screen kept on at «Пора выходить», install hint."""
 import re
 
-from conftest import IPHONE_UA
+from conftest import IPHONE_UA, until
 
 WAKE = """
 window.__wake = { req: 0, rel: 0 };
@@ -82,10 +82,11 @@ def test_desktop_downloads_ics(app):
 def test_screen_stays_on_while_it_is_time_to_leave(app):
     a = app(state={"prevDay": 2, "prevTime": "16:18"})
     a.page.evaluate(WAKE)
-    a.page.evaluate("window.dispatchEvent(new Event('japan2026:tick'))")
-    a.page.wait_for_function("__wake.req === 1")
     a.page.click(".tc-tab[data-tab='day']")
-    a.page.wait_for_function("__wake.rel === 1")
+    a.page.click(".tc-tab[data-tab='now']")
+    until(a.page, "__wake.req === 1")
+    a.page.click(".tc-tab[data-tab='day']")
+    until(a.page, "__wake.rel === 1")
 
 
 def test_install_hint_only_in_iphone_safari_and_hides_for_good(app):
@@ -110,3 +111,33 @@ def test_ics_escapes_a_lone_carriage_return(core):
     assert not any(l.startswith("ATTENDEE") for l in lines)
     assert "\r" not in txt.replace("\r\n", "")
     assert "SUMMARY:Стоп\\nATTENDEE:mailto:x@y" in txt
+
+
+SLOW_WAKE = """
+window.__wake = { active: 0, req: 0, locks: [] };
+Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: {
+  request: () => new Promise(res => setTimeout(() => {
+    __wake.active++; __wake.req++;
+    const l = { released: false, h: [], addEventListener(t, f) { this.h.push(f); },
+      release() { if (!this.released) { this.released = true; __wake.active--; this.h.forEach(f => f()); } return Promise.resolve(); } };
+    __wake.locks.push(l); res(l);
+  }, 60)) } });
+"""
+
+
+def test_quick_renders_never_leak_a_wake_lock_and_it_comes_back_after_unlock(app):
+    a = app(state={"prevDay": 2, "prevTime": "16:18"})
+    a.page.evaluate(SLOW_WAKE)
+    a.page.click(".tc-tab[data-tab='day']")
+    a.page.click(".tc-tab[data-tab='now']")
+    for _ in range(3):
+        a.page.evaluate("window.dispatchEvent(new Event('japan2026:tick'))")
+    a.page.wait_for_timeout(400)
+    assert a.page.evaluate("__wake.active") == 1
+    # Safari drops the lock when the phone locks; back on the page it is taken again
+    a.page.evaluate("__wake.locks.at(-1).release(); document.dispatchEvent(new Event('visibilitychange'))")
+    a.page.wait_for_timeout(300)
+    assert a.page.evaluate("__wake.active") == 1 and a.page.evaluate("__wake.req") == 2
+    a.page.click(".tc-tab[data-tab='day']")
+    a.page.wait_for_timeout(300)
+    assert a.page.evaluate("__wake.active") == 0
