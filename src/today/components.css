@@ -154,7 +154,7 @@
 .tc-tile .tc-ic { width: 20px; height: 20px; color: var(--tint); }
 
 /* ---------- tab «Брони» ---------- */
-#today section { display: flex; flex-direction: column; gap: 8px; }
+#tcBkToday, #tcBkAll { display: flex; flex-direction: column; gap: 8px; }
 .tc-sech { margin: 6px 4px 0; font: 600 13px/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
 .tc-bk { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--sep); }
 .tc-bk:first-child { border-top: 0; }
@@ -189,3 +189,29 @@
 .tc-tk-btn[hidden] { display: none; }
 .tc-tk-btn.light { background: #fff; color: #000; }
 .tc-tk-top .tc-tk-btn { min-height: 44px; }
+
+/* ---------- tab «Итоги» ---------- */
+.tc-stats-title { padding: calc(12px + var(--safe-t)) 4px 0; }
+.tc-ringcard { flex-direction: row; align-items: center; gap: 18px; }
+.tc-rings { width: min(46vw, 190px); height: auto; flex: 0 0 auto; }
+.tc-rings circle { fill: none; stroke-width: 10; stroke-linecap: round; }
+.tc-rings circle.bg { opacity: .18; }
+.tc-rings circle.fg { transition: stroke-dasharray .6s ease; }
+.tc-rings text { font: 700 20px var(--rd); fill: var(--text); }
+.tc-legend { display: flex; flex-direction: column; gap: 12px; }
+.tc-legend div { display: flex; flex-direction: column; gap: 1px; }
+.tc-lg { font: 600 13px/1.2 var(--sf); }
+.tc-legend b { font: 700 24px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
+.tc-legend small { font: 400 12px/1.2 var(--sf); color: var(--sec); }
+.tc-bars { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; height: 140px; align-items: end; }
+.tc-barcol { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+.tc-barcol i { display: block; width: min(18px, 70%); border-radius: 6px; background: var(--seg); max-height: calc(100% - 20px); }
+.tc-barcol.done i { background: var(--text); }
+.tc-barcol.cur i { background: var(--ring3); }
+.tc-barcol small { font: 500 11px/1 var(--sf); color: var(--sec); }
+.tc-barcol.on small { color: var(--text); font-weight: 700; }
+.tc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tc-tile2 { gap: 4px; }
+.tc-tv { font: 700 26px/1.1 var(--rd); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.tc-tile2 input { margin-top: 6px; min-height: 44px; width: 100%; box-sizing: border-box; border: 0; border-radius: 12px;
+  background: var(--inset); color: var(--text); font: 600 16px var(--sf); padding: 0 12px; }
