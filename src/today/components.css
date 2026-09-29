@@ -311,9 +311,9 @@ button.tc-mini { cursor: pointer; }
 .tc-mini b { font: 600 28px/1.05 var(--rd); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .tc-mini small { font: 500 13px/1.2 var(--sf); color: var(--sec); margin-top: auto; }
 .tc-mini-fl b { font-size: 22px; margin-top: 6px; }
-.tc-sun { background: linear-gradient(180deg, #2E6BD6, #5B9BEF); color: #fff; box-shadow: none; }
+.tc-sun { background: linear-gradient(180deg, #1D4E9E, #2E66BF); color: #fff; box-shadow: none; }
 #today[data-th="dark"] .tc-sun { background: linear-gradient(180deg, #16223F, #2A3B66); }
-.tc-sun .tc-mini-lbl, .tc-sun small { color: rgba(255,255,255,.82); }
+.tc-sun .tc-mini-lbl, .tc-sun small { color: rgba(255,255,255,.94); }
 .tc-sun-arc { width: 100%; height: 26px; overflow: visible; margin: 3px 0 2px; }
 .tc-sun-arc path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .tc-sun-arc .lit { stroke: rgba(255,255,255,.95); }
@@ -325,3 +325,23 @@ button.tc-mini { cursor: pointer; }
 .tc-toprow.one .tc-sun { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "l arc" "t arc" "s arc"; column-gap: 16px; min-height: 0; }
 .tc-toprow.one .tc-mini-lbl { grid-area: l; } .tc-toprow.one .tc-sun b { grid-area: t; } .tc-toprow.one .tc-sun small { grid-area: s; }
 .tc-toprow.one .tc-sun-arc { grid-area: arc; height: 100%; min-height: 56px; align-self: center; }
+
+/* ---------- weather tile (shares the top row with the sun) ---------- */
+.tc-wx { background: linear-gradient(180deg, #1F5A9E, #2F72BD); color: #fff; box-shadow: none; }
+#today[data-th="dark"] .tc-wx { background: linear-gradient(180deg, #1B2A47, #2C4270); }
+.tc-wx .tc-mini-lbl, .tc-wx small { color: rgba(255,255,255,.92); }
+.tc-wx b .lo { font-size: 18px; opacity: .8; }
+.tc-wx-note { font-size: 11.5px !important; opacity: .85; }
+.tc-wx-hours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; margin: 4px 0 2px; }
+.tc-wx-hours span { display: flex; flex-direction: column; align-items: center; gap: 1px; border-radius: 10px; padding: 2px 0; }
+.tc-wx-hours span.now { background: rgba(255,255,255,.2); }
+.tc-wx-hours span.stop::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #fff; margin-top: 1px; }
+.tc-wx-hours small { font: 600 11px/1 var(--sf); margin: 0; }
+.tc-wx-hours i { font-style: normal; font-size: 15px; line-height: 1.2; }
+.tc-wx-hours em { font: 600 13px/1 var(--rd); font-style: normal; font-variant-numeric: tabular-nums; }
+.tc-flline { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 16px; border: 0; border-radius: 18px;
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: 600 16px/1.2 var(--sf); cursor: pointer; }
+.tc-flline > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.tc-flline small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+#today .tc-flline .tc-ic { width: 20px; height: 20px; color: var(--sec); }
+#today .tc-flline .tc-ic:first-child { color: var(--tint); }

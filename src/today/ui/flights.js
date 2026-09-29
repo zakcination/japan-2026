@@ -38,8 +38,7 @@ function flightCardHTML(x) {
 /* before the trip with no flights entered: a small tile next to the sun */
 function flightTileHTML(x) {
   if (x.c.live || myFlights().length) return '';
-  return `<button type="button" class="tc-mini tc-mini-fl" id="tcFlights" aria-label="Добавить свой рейс — появится обратный отсчёт">
-    <span class="tc-mini-lbl">${icon('plane')}Рейс</span><b>Добавить</b><small>номер и дата — будет отсчёт</small></button>`;
+  return `<button type="button" class="tc-flline" id="tcFlights">${icon('plane')}<span>Добавить свой рейс<small>номер и дата — будет обратный отсчёт</small></span>${icon('arrow')}</button>`;
 }
 function wireFlightCard(root) { const b = root.querySelector('#tcFlights'); if (b) b.addEventListener('click', openFlights); }
 

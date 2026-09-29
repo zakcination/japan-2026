@@ -62,3 +62,29 @@ def test_sun_widget_shows_the_next_sunrise_or_sunset(app):
     night = at(app, "21:00")
     assert "ВОСХОД" in night.page.inner_text("#tcSun").upper() and "Закат:" in night.page.inner_text("#tcSun")
     assert "down" in night.page.locator("#tcSun .tc-sun-arc circle").get_attribute("class")
+
+
+HOURLY = {"hourly": {"time": [f"2026-10-18T{h:02d}:00" for h in range(24)],
+                     "temperature_2m": [10 + h // 2 for h in range(24)],
+                     "precipitation_probability": [70 if h >= 15 else 10 for h in range(24)],
+                     "weather_code": [61 if h >= 15 else 2 for h in range(24)]}}
+
+
+def test_weather_tile_hour_by_hour_with_rain_hint(app):
+    import json as _j
+    route = lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(HOURLY))
+    a = at(app, "13:24", now="2026-10-10T12:00:00+09:00", routes={"https://api.open-meteo.com/v1/forecast?*hourly=*": route})
+    from conftest import until
+    until(a.page, "document.querySelectorAll('#tcWx .tc-wx-hours span').length === 4")
+    wx = a.page.inner_text("#tcWx")
+    assert "16°" in wx and "дождь с 15:00" in wx and "сейч." in wx
+    sun = a.page.locator("#tcSun").bounding_box(); w = a.page.locator("#tcWx").bounding_box()
+    assert abs(sun["y"] - w["y"]) < 1 and abs(sun["width"] - w["width"]) < 2      # side by side, same width
+    assert fits_one_screen(a.page)
+
+
+def test_weather_tile_before_the_forecast_shows_typical_weather(app):
+    a = at(app, "13:24")                                  # 30.09: the 18th is beyond 16 days
+    wx = a.page.locator("#tcWx")
+    if wx.count():                                        # the climate data may be missing offline
+        assert "по часам — с 02.10" in wx.inner_text()

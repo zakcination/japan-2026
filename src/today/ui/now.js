@@ -80,7 +80,7 @@ function sunTileHTML(x) {
     <small>${ev[2]}: ${hm(ev[3])}</small></div>`;
 }
 function topRowHTML(x) {
-  const tiles = [sunTileHTML(x), flightTileHTML(x)].filter(Boolean);
+  const tiles = [weatherTileHTML(x), sunTileHTML(x)].filter(Boolean);
   return tiles.length ? `<div class="tc-toprow${tiles.length === 1 ? ' one' : ''}">${tiles.join('')}</div>` : '';
 }
 
@@ -111,6 +111,7 @@ RENDER.now = (x, root) => {
     if (cut.length) html += `<section class="tc-card tc-note"><span class="tc-lbl">План пересчитан</span>
       <span class="tc-sub">${cut.map(e => e.auto ? `убрано: ${esc(e.t)}` : `${esc(e.t)} −${e.cut} мин`).join(' · ')}</span></section>`;
   }
+  html += flightTileHTML(x);                   // below now / next: a low-priority prompt
   if (!x.c.live) {
     const d0 = dateOf(T.days[0]), days = Math.round((Date.parse(d0) - Date.parse(japanNow().date)) / 864e5);
     html += `<p class="tc-preview">${days > 0 ? `Предпросмотр · поездка через ${days} дн.` : 'Предпросмотр'} ·
