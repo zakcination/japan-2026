@@ -84,7 +84,122 @@ function topRowHTML(x) {
   return tiles.length ? `<div class="tc-toprow${tiles.length === 1 ? ' one' : ''}">${tiles.join('')}</div>` : '';
 }
 
+/* ---------- before the trip, departure day, transit, after: «Сейчас» by phase ---------- */
+const dayOne = () => Date.parse(dateOf(T.days[0]) + 'T00:00:00+09:00');
+function daysWord(n) { return n % 10 === 1 && n % 100 !== 11 ? 'день' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дня' : 'дней'; }
+/* the header capsule before the trip: only for sales opening within 48 h */
+function preCapsuleHTML() {
+  const o = Prep.opening(prepItems(), Date.now()); if (!o) return '';
+  const left = Math.max(0, Date.parse(o.opens) - Date.now()), name = o.title.replace(/^Купить: /, '').split(',')[0].slice(0, 18);
+  return `<button type="button" class="tc-cap soon" id="tcCap" aria-label="${esc(o.title)}: продажи через ${Core.cd(left / 60000)}">
+    <span class="tc-cap-ic">${icon('tix')}</span><span class="tc-cap-t">${esc(name)}</span>
+    <span class="tc-cap-sep" aria-hidden="true"></span><span class="tc-cap-n">${Core.cd(left / 60000)}</span></button>`;
+}
+function preTitleHTML(x) {
+  if (x.ph.phase === 'post') return `<div class="tc-title"><h1>Япония</h1><span>поездка завершена</span></div>`;
+  if (x.ph.phase === 'departure') return `<div class="tc-title"><h1>Япония</h1><span>вылет сегодня</span></div>`;
+  const n = Math.max(0, Math.ceil(((x.ph.dep || dayOne()) - Date.now()) / 864e5));
+  return `<div class="tc-title"><h1>Япония</h1><span>через ${n} ${daysWord(n)}</span></div>`;
+}
+/* «17 дней», from T-2 «1 д 5 ч», on the last day «5:12» */
+function countdownText(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
+  if (ms > 2 * 864e5) { const n = Math.ceil(ms / 864e5); return `${n} ${daysWord(n)}`; }
+  if (ms > 864e5) return `${d} д ${h} ч`;
+  return Core.cd(m);
+}
+/* the first day, step by step: the flight out, the stops (Shanghai ones in Shanghai time), Haneda, the hotel */
+function day1HTML(expanded) {
+  const d1 = T.days[0], base = dayOne(), now = Date.now();
+  const evs = plan(d1, null).filter(e => !e.bad && !e.skip);
+  const l0 = myFlights()[0], steps = [];
+  if (l0 && Flights.times(l0).dep < base + 864e5) {
+    const t = atAirport(Flights.times(l0).dep, l0.frm, l0.frmOff);
+    steps.push({ t: `Вылет ${Flights.pretty(l0.no)} из ${Flights.airport(l0.frm)}`, short: t.hm, zone: `${t.dm} по ${Flights.airport(l0.frm)}`, at: Flights.times(l0).dep });
+  }
+  evs.forEach(e => {
+    const w = hm(Core.localMin(e, e.ns));
+    steps.push({ t: e.t, short: w, zone: e.sh ? 'по Шанхаю' : '', at: base + e.ns * 60000, end: base + e.ne * 60000 });
+  });
+  if (!steps.length) return '';
+  const cur = steps.findIndex((s, i) => now >= s.at && now < (s.end || (steps[i + 1] || {}).at || Infinity));
+  if (!expanded) {
+    const key = [steps[0], ...steps.slice(1).filter(s => /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
+    return `<button type="button" class="tc-card tc-day1" id="tcDay1"><span class="tc-row"><span class="tc-lbl">Первые сутки</span>${icon('arrow')}</span>
+      <span class="tc-sub">${key.map(s => esc(s.short + ' ' + s.t.split(/[:,]/)[0])).join(' → ')}</span></button>`;
+  }
+  return `<section class="tc-card tc-day1" id="tcDay1"><span class="tc-lbl">Первые сутки</span><ol class="tc-steps">${steps.map((s, i) =>
+    `<li class="${i === cur ? 'now' : cur >= 0 && i < cur ? 'done' : ''}"><b>${esc(s.short)}${s.zone ? `<small>${esc(s.zone)}</small>` : ''}</b><span>${esc(s.t)}</span></li>`).join('')}</ol></section>`;
+}
+function renderPre(x, root) {
+  const now = Date.now(), list = prepItems(), dep = x.ph.dep, dep0 = dep || dayOne();
+  const f = Prep.first(list, now, dep0), g = Prep.groups(list);
+  const leg = x.ph.leg, t0 = dep && leg ? atAirport(dep, leg.frm, leg.frmOff) : null;
+  const chain = myFlights();
+  const out = leg ? chain.slice(0, chain.findIndex(l => Flights.isJapan(l.to)) + 1) : [];
+  const route = out.length ? [out[0].frm, ...out.map(l => l.to)].map(c => esc(Flights.airport(c))).join(' → ') : '';
+  const opening = list.filter(i => !i.done && i.opens && Date.parse(i.opens) > now).sort((a, b) => Date.parse(a.opens) - Date.parse(b.opens))[0];
+  const cities = T.days.map(d => String(d.city || '').split(' →')[0].trim()).filter((c, i, a) => c && c !== a[i - 1]);
+  const url = f.item ? Core.safeUrl(f.item.url) : '';
+  const word = n => n % 10 === 1 && n % 100 !== 11 ? 'дело' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дела' : 'дел';
+  let html = Ios.installHint();
+  html += `<section class="tc-card tc-count" id="tcCount"><div class="tc-row"><span class="tc-lbl">До вылета</span>${leg ? `<span class="tc-fl-no">${esc(Flights.pretty(leg.no))}</span>` : ''}</div>
+    <b class="tc-count-n">${esc(countdownText(dep0 - now))}</b>
+    ${route ? `<span class="tc-fl-route">${route}</span>` : ''}
+    ${t0 ? `<span class="tc-sub">Вылет ${t0.dm} в ${t0.hm} по времени ${esc(Flights.airport(leg.frm))} · <a class="tc-inl" href="${Flights.statusUrl(leg.no)}" target="_blank" rel="noopener">статус рейса</a></span>`
+      : `<span class="tc-sub">до первого дня поездки, ${Core.ddmmyyyy(dateOf(T.days[0])).slice(0, 5)}</span>`}</section>`;
+  html += f.item ? `<section class="tc-card tc-first" id="tcFirst"><span class="tc-lbl">Сначала это</span><b>${esc(f.item.title)}</b>
+      ${f.item.due ? `<span class="tc-sub${f.item.due.slice(0, 10) < japanNow().date ? ' tc-late' : ''}">${f.item.due.slice(0, 10) < japanNow().date ? 'срок был' : 'до'} ${Core.ddmmyyyy(f.item.due.slice(0, 10)).slice(0, 5)}</span>` : ''}
+      <div class="tc-actions two">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('share')}Открыть сайт</a>` : ''}${f.item.auto
+        ? '' : `<button type="button" class="tc-btn${url ? '' : ' primary'}" data-first-done="${esc(f.item.id)}">${icon('check')}Готово</button>`}</div>
+      ${f.rest ? `<button type="button" class="tc-link" data-ready="all">ещё ${f.rest} ${word(f.rest)} ›</button>` : ''}</section>`
+    : `<section class="tc-card tc-first" id="tcFirst"><span class="tc-lbl">Сначала это</span>
+      <b>${list.every(i => i.done) ? 'Всё готово ✓' : 'Сейчас делать нечего'}</b>
+      ${opening ? `<span class="tc-sub">${esc(opening.title)} — продажи откроются ${Core.ddmmyyyy(opening.opens.slice(0, 10)).slice(0, 5)}</span>` : ''}</section>`;
+  html += `<section class="tc-ready" id="tcReady" aria-label="Готовность">${g.map(r => `<button type="button" class="tc-ready-chip" data-ready="${r.key}"
+      aria-label="${esc(r.title)}: ${r.done} из ${r.total}"><svg viewBox="0 0 36 36" class="tc-ready-ring" aria-hidden="true"><circle cx="18" cy="18" r="15" class="bg"/>${r.done ? `<circle cx="18" cy="18" r="15" class="fg"
+        stroke-dasharray="${(94.25 * r.done / r.total).toFixed(1)} 94.25" transform="rotate(-90 18 18)"/>` : ''}</svg>
+      <span><b>${esc(r.title)}</b><small>${r.done}/${r.total}</small></span></button>`).join('')}</section>`;
+  html += day1HTML(dep0 - now <= 864e5);
+  if (cities.length) html += `<button type="button" class="tc-flline" id="tcRoute">${icon('day')}<span>${esc(cities.join(' · '))}<small>маршрут по дням</small></span>${icon('arrow')}</button>`;
+  if (dep0 - now <= 7 * 864e5) html += topRowHTML(x);               // weather and sun only from T-7
+  if (!chain.length) html += flightTileHTML(x);
+  root.innerHTML = `<div class="tc-page">${html}</div>`;
+  Ios.wireInstall(root); wireFlightCard(root);
+  root.querySelectorAll('[data-ready]').forEach(b => b.addEventListener('click', () => openPrep(b.dataset.ready === 'all' ? null : b.dataset.ready)));
+  const fd = root.querySelector('[data-first-done]');
+  if (fd) fd.addEventListener('click', () => { const l = prepLocal(); l.done[fd.dataset.firstDone] = true; prepSave(l); renderShell(); });
+  const toDay1 = () => { viewDay = T.days[0].n; go('day'); };
+  const rt = root.querySelector('#tcRoute'); if (rt) rt.addEventListener('click', toDay1);
+  const d1 = root.querySelector('button#tcDay1'); if (d1) d1.addEventListener('click', toDay1);
+}
+function renderPost(x, root) {
+  const n = T.days.length;
+  root.innerHTML = `<div class="tc-page"><section class="tc-card" id="tcNow"><span class="tc-lbl">Япония</span><h2 class="tc-h2">Поездка завершена</h2>
+    <span class="tc-sub">${n} ${daysWord(n)} в Японии</span>
+    <button type="button" class="tc-btn primary" id="tcToStats">${icon('stats')}Итоги поездки</button></section></div>`;
+  root.querySelector('#tcToStats').addEventListener('click', () => go('stats'));
+}
+function renderDeparture(x, root) {
+  const dep = x.ph.dep, list = prepItems().filter(i => !i.done && (!i.due || Date.parse(i.due.length === 10 ? i.due + 'T23:59:59+09:00' : i.due) <= dep + 864e5)
+    && (!i.opens || Date.parse(i.opens) <= Date.now()) && i.group !== 'tickets');
+  root.innerHTML = `<div class="tc-page">${flightCardHTML(x)}${list.length ? `<section class="tc-card" id="tcLeft"><span class="tc-lbl">Ещё сделать до вылета</span>
+    ${list.slice(0, 5).map(i => `<span class="tc-sub">• ${esc(i.title)}</span>`).join('')}
+    <button type="button" class="tc-link" data-ready="${esc(list[0].group)}">все дела ›</button></section>` : ''}${day1HTML(false)}</div>`;
+  wireFlightCard(root);
+  root.querySelectorAll('[data-ready]').forEach(b => b.addEventListener('click', () => openPrep(b.dataset.ready)));
+  const d1 = root.querySelector('button#tcDay1'); if (d1) d1.addEventListener('click', () => { viewDay = T.days[0].n; go('day'); });
+}
+function renderTransit(x, root) {
+  root.innerHTML = `<div class="tc-page">${day1HTML(true)}${flightCardHTML(x)}</div>`;
+  wireFlightCard(root);
+}
+
 RENDER.now = (x, root) => {
+  if (x.ph.phase === 'pre') return renderPre(x, root);
+  if (x.ph.phase === 'post') return renderPost(x, root);
+  if (x.ph.phase === 'departure') return renderDeparture(x, root);
+  if (x.ph.phase === 'transit') return renderTransit(x, root);
   const now = x.c.min, evs = liveEvs(x.cevs);
   const cur = evs.find(e => e.ns <= now && now < e.ne) || null;
   const next = evs.find(e => e.ns > now && Core.isKey(e)) || evs.find(e => e.ns > now) || null;
@@ -112,11 +227,12 @@ RENDER.now = (x, root) => {
       <span class="tc-sub">${cut.map(e => e.auto ? `убрано: ${esc(e.t)}` : `${esc(e.t)} −${e.cut} мин`).join(' · ')}</span></section>`;
   }
   html += flightTileHTML(x);                   // below now / next: a low-priority prompt
-  if (!x.c.live) {
+  if (!x.c.live && S.preview === true) {
     const d0 = dateOf(T.days[0]), days = Math.round((Date.parse(d0) - Date.parse(japanNow().date)) / 864e5);
     html += `<p class="tc-preview">${days > 0 ? `Предпросмотр · поездка через ${days} дн.` : 'Предпросмотр'} ·
       <label>день <select id="tcPvDay">${T.days.map(d => `<option value="${d.n}"${d.n === x.cday.n ? ' selected' : ''}>${Core.ddmmyyyy(dateOf(d)).slice(0, 5)}</option>`).join('')}</select></label>
-      <label>время <input id="tcPvTime" type="time" value="${hm(now)}"></label></p>`;
+      <label>время <input id="tcPvTime" type="time" value="${hm(now)}"></label></p>
+      <button type="button" class="tc-btn" id="tcPvExit">Выйти из предпросмотра</button>`;
   }
   root.innerHTML = `<div class="tc-page">${html}</div>`;
   Ios.wireInstall(root);
@@ -132,4 +248,6 @@ RENDER.now = (x, root) => {
   const pd = root.querySelector('#tcPvDay'), pt = root.querySelector('#tcPvTime');
   if (pd) pd.addEventListener('change', () => { S.prevDay = +pd.value; viewDay = S.prevDay; save(); renderShell(); });
   if (pt) pt.addEventListener('change', () => { if (pt.value) { S.prevTime = pt.value; save(); renderShell(); } });
+  const px = root.querySelector('#tcPvExit');
+  if (px) px.addEventListener('click', () => { S.preview = false; viewDay = null; save(); renderShell(); });
 };

@@ -89,6 +89,8 @@ def app(browser):
     def open_(state=None, settings=None, trip=None, size=PHONE, url_suffix="", now="2026-09-30T12:00:00+09:00",
               dark_os=False, ua=None, url=None, routes=None):
         extra = {"user_agent": ua} if ua else {}
+        if state and "prevDay" in state and "preview" not in state:   # a preview clock means preview mode
+            state = {**state, "preview": True}
         ctx = browser.new_context(viewport=size, device_scale_factor=2, has_touch=True, is_mobile=True,
                                   color_scheme="dark" if dark_os else "light", accept_downloads=True, **extra)
         pg = ctx.new_page()

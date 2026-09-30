@@ -42,7 +42,12 @@ function ctx() {
   const cevs = plan(cday, c.min);
   const evs = day === cday ? cevs : plan(day, null);
   const csun = cday.sun ? sunTimes(dateOf(cday), cday.sun[0], cday.sun[1]) : null;
-  return { c, cday, cevs, day, evs, csun, urg: Core.urgent(cevs, c.min) };
+  // where the traveller is (before the trip, departure day, in transit, in Japan, after); a preview is always «live»
+  const ph = S.preview === true && !c.live ? { phase: 'live', dep: null, arrive: null, leg: null }
+    : Flights.phase(Date.now(), myFlights(), dateOf(T.days[0]), dateOf(T.days[T.days.length - 1]));
+  // before the trip, on departure day and after it, the day-1 plan isn't "today": nothing is urgent yet
+  const quiet = ['pre', 'departure', 'post'].includes(ph.phase);
+  return { c, cday, cevs, day, evs, csun, urg: quiet ? null : Core.urgent(cevs, c.min), ph, quiet };
 }
 
 function transportIcon(e) {
@@ -56,9 +61,10 @@ function capsuleHTML(u) {
   if (!u) return '';
   const e = u.ev, go = u.state === 'go';
   const say = go ? 'пора выходить' : 'выйти через ' + Core.cd(u.leaveIn);
-  return `<button type="button" class="tc-cap ${u.state}" id="tcCap" aria-label="${esc(e.t)}, ${hm(e.ns)}: ${say}">
+  const at = hm(Core.localMin(e, e.ns));        // a Shanghai stop in Shanghai time
+  return `<button type="button" class="tc-cap ${u.state}" id="tcCap" aria-label="${esc(e.t)}, ${at}${e.sh ? ' по Шанхаю' : ''}: ${say}">
     <span class="tc-cap-ic">${icon(transportIcon(e))}</span>
-    <span class="tc-cap-t">${go ? 'Пора' : hm(e.ns)}</span><span class="tc-cap-sep" aria-hidden="true"></span>
+    <span class="tc-cap-t">${go ? 'Пора' : at}</span><span class="tc-cap-sep" aria-hidden="true"></span>
     <span class="tc-cap-n">${Core.cd(go ? u.startIn : u.leaveIn)}</span></button>`;
 }
 
@@ -106,7 +112,9 @@ function renderShell() {
   const head = document.getElementById('tcHead');
   const withHead = tab !== 'stats';
   head.hidden = !withHead;
-  head.innerHTML = withHead ? gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day) : '';
+  head.innerHTML = !withHead ? '' : x.quiet
+    ? gearHTML() + preCapsuleHTML() + (tab === 'now' ? preTitleHTML(x) : titleHTML(x.day))
+    : gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day);
   document.querySelectorAll('.tc-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   root.dataset.tab = tab;
   const main = document.getElementById('todayBody');

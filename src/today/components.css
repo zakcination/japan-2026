@@ -358,3 +358,36 @@ button.tc-mini { cursor: pointer; }
 .tc-prep-item.done .tc-prep-t b { text-decoration: line-through; color: var(--sec); }
 .tc-prep-r { display: flex; align-items: center; gap: 6px; }
 .tc-prep-r small { font: 400 13px/1.2 var(--sf); color: var(--sec); white-space: nowrap; }
+
+/* ---------- «Сейчас» before the trip: countdown, first thing, readiness, the first day ---------- */
+.tc-count-n { font: 700 56px/1 var(--rd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tc-count .tc-fl-no { color: var(--tint); }
+.tc-inl { color: var(--tint); text-decoration: none; font-weight: 600; display: inline-block; padding: 12px 0; margin: -12px 0; }
+.tc-first b { font: 600 18px/1.3 var(--sf); }
+.tc-actions.two:has(> :only-child) { grid-template-columns: 1fr; }
+.tc-link { align-self: flex-start; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--tint);
+  font: 600 16px/1 var(--sf); cursor: pointer; }
+.tc-ready { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tc-ready-chip { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 12px; border: 0; border-radius: 20px;
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.tc-ready-ring { width: 36px; height: 36px; flex: 0 0 36px; }
+.tc-ready-ring circle { fill: none; stroke-width: 4; }
+.tc-ready-ring .bg { stroke: var(--seg); }
+.tc-ready-ring .fg { stroke: var(--ok); stroke-linecap: round; }
+.tc-ready-chip > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tc-ready-chip b { font: 600 15px/1.2 var(--sf); }
+.tc-ready-chip small { font: 500 13px/1.2 var(--rd); color: var(--sec); font-variant-numeric: tabular-nums; }
+button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; min-height: 44px; }
+#today .tc-day1 .tc-row .tc-ic { width: 18px; height: 18px; color: var(--sec); }
+.tc-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tc-steps li { position: relative; display: grid; grid-template-columns: 5.6em 1fr; gap: 10px; padding: 7px 0 7px 18px; font: 400 15px/1.3 var(--sf); }
+.tc-steps li::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--seg); }
+.tc-steps b { display: flex; flex-direction: column; font: 600 15px/1.3 var(--rd); font-variant-numeric: tabular-nums; }
+.tc-steps b small { font: 500 12px/1.25 var(--sf); color: var(--sec); }
+.tc-steps li.now b small { color: inherit; }
+.tc-late { color: var(--bad); font-weight: 600; }
+.tc-steps li.now { color: var(--tint); font-weight: 700; }
+.tc-steps li.now::before { background: var(--tint); }
+.tc-steps li.done { color: var(--sec); }
+.tc-steps li.done::before { background: var(--ok); }
+.tc-itime small { font: 500 11px/1.15 var(--sf); color: var(--sec); }

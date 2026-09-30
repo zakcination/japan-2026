@@ -3,21 +3,22 @@
 function dayStrip(x) {
   return `<div class="tc-days" id="tcDays" role="tablist" aria-label="Дни поездки">` + T.days.map(d => {
     const iso = dateOf(d), w = new Date(iso + 'T12:00:00Z').getUTCDay();
-    const on = d.n === x.day.n, today = d.n === x.cday.n;
+    const on = d.n === x.day.n, today = !x.quiet && d.n === x.cday.n;
     return `<button type="button" role="tab" class="tc-daypick${on ? ' on' : ''}${today ? ' today' : ''}" data-day="${d.n}"
       aria-selected="${on}" aria-label="${Core.ddmmyyyy(iso)}"><small>${WD2[w]}</small><b>${+iso.slice(8)}</b></button>`;
   }).join('') + '</div>';
 }
 
 function itemRow(x, e) {
-  const isNow = x.day === x.cday && x.c.min != null && e.ns <= x.c.min && x.c.min < e.ne && !e.skip && !e.auto;
+  const isNow = !x.quiet && x.day === x.cday && x.c.min != null && e.ns <= x.c.min && x.c.min < e.ne && !e.skip && !e.auto;
+  const lm = m => hm(Core.localMin(e, m));       // a Shanghai stop shows Shanghai time
   const moved = !e.skip && (e.ns !== e.S || e.ne !== e.E);
-  const bits = [e.e ? `до ${hm(e.ne)}` : '', e.cost ? money(e.cost) : '', e.ride ? `дорога ${e.ride} мин` : ''].filter(Boolean).join(' · ');
+  const bits = [e.e ? `до ${lm(e.ne)}` : '', e.cost ? money(e.cost) : '', e.ride ? `дорога ${e.ride} мин` : ''].filter(Boolean).join(' · ');
   return `<div class="tc-item${e.done ? ' done' : ''}${e.skip || e.auto ? ' skip' : ''}${isNow ? ' now' : ''}" data-id="${esc(e.id)}">
     <label class="tc-check"><input type="checkbox" switch data-done="${esc(e.id)}"${e.done ? ' checked' : ''}
       aria-label="Сделано: ${esc(e.t)}"><span aria-hidden="true">${icon('check')}</span></label>
-    <button type="button" class="tc-open" aria-label="${hm(e.ns)} ${esc(e.t)} — подробнее">
-      <span class="tc-itime">${hm(e.ns)}${moved ? `<s>${hm(e.S)}</s>` : ''}</span>
+    <button type="button" class="tc-open" aria-label="${lm(e.ns)}${e.sh ? ' по Шанхаю' : ''} ${esc(e.t)} — подробнее">
+      <span class="tc-itime">${lm(e.ns)}${moved ? `<s>${lm(e.S)}</s>` : ''}${e.sh ? '<small>по Шанхаю</small>' : ''}</span>
       <span class="tc-ibody"><span class="tc-ititle">${esc(e.t)}${isNow ? ' · сейчас' : ''}</span>
         <span class="tc-imeta">${stDot(e.st)}${bits ? `<span>${bits}</span>` : ''}${e.conflict ? `<span class="tc-bad">не успеваете на ${e.conflict} мин</span>` : ''}${e.auto ? '<span>убрано ради расписания</span>' : ''}</span></span>
     </button></div>`;
@@ -29,6 +30,7 @@ RENDER.day = (x, root) => {
   const budget = x.evs.filter(e => !e.skip && !e.auto).reduce((s, e) => s + (+e.cost || 0), 0);
   root.innerHTML = `<div class="tc-page">
     ${dayStrip(x)}
+    ${x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
     <div class="tc-actions two"><button type="button" class="tc-btn" id="tcAdd">${icon('plus')}Пункт</button>
@@ -41,6 +43,8 @@ RENDER.day = (x, root) => {
     const id = inp.dataset.done; if (inp.checked) S.done[id] = true; else delete S.done[id]; save(); renderShell();
   }));
   root.querySelectorAll('.tc-open').forEach(b => b.addEventListener('click', () => openStop(x.day, b.closest('.tc-item').dataset.id)));
+  const pv = root.querySelector('#tcPreviewDay');
+  if (pv) pv.addEventListener('click', () => { S.preview = true; S.prevDay = x.day.n; S.prevTime = S.prevTime || '09:00'; save(); go('now'); });
   root.querySelector('#tcAdd').addEventListener('click', () => openEditor(x.day, null));
   root.querySelector('#tcDayEdit').addEventListener('click', () => openDayEditor(x.day));
 };
@@ -67,11 +71,11 @@ function openStop(day, id) {
   const e = evs.find(v => v.id === id);
   if (!e) return;
   const fixed = e.st === 'fixed' || Core.isAnchor(e);
-  const hasTravel = Core.travel(e) > 0;
+  const hasTravel = Core.travel(e) > 0, lm = m => hm(Core.localMin(e, m));
   const act = (ic, txt, sub, attrs) => `<button type="button" class="tc-act" ${attrs}>${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
   const link = (ic, txt, sub, href) => `<a class="tc-act" href="${href}" target="_blank" rel="noopener">${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></a>`;
     sheet(e.t, `
-    <p class="tc-sub">${hm(e.ns)} → ${hm(e.ne)} · ${dur(e.ne - e.ns)}${hasTravel ? ` · выйти в ${hm(e.leave)}` : ''}${e.cost ? ` · ${money(e.cost)}` : ''}</p>
+    <p class="tc-sub">${lm(e.ns)} → ${lm(e.ne)}${e.sh ? ' по Шанхаю' : ''} · ${dur(e.ne - e.ns)}${hasTravel ? ` · выйти в ${lm(e.leave)}` : ''}${e.cost ? ` · ${money(e.cost)}` : ''}</p>
     <div class="tc-row">${stDot(e.st)}${e.bound ? `<span class="tc-sub">📅 только ${esc(Core.ddmmyyyy(e.bound))}</span>` : ''}</div>
     ${e.note ? `<p class="tc-notepara">${esc(e.note)}</p>` : ''}
     <div class="tc-group">

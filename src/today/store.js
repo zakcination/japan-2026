@@ -50,7 +50,8 @@ const both = v => v == null || !v ? '—' : `${yen(v)}${home(v) ? ' · ' + home(
 const money = pp => pp == null || !pp ? '—' : `${yen(pp)}/чел${home(pp) ? ' · ' + home(pp) : ''}`;
 
 const liveDayN = () => { const n = japanNow(); const d = T.days.find(x => dateOf(x) === n.date); return d ? d.n : null; };
-/* the clock the screen reasons with: real Japan time during the trip, the preview clock before it */
+/* the clock the screen reasons with: real Japan time during the trip; outside it, the preview clock
+   only when the traveller asked for a preview on «День» (S.preview), else real Japan time on day 1 */
 function clock() {
   const live = liveDayN();
   if (live) {
@@ -60,7 +61,8 @@ function clock() {
       return { live: true, day: prev.n, min: now + 1440 };
     return { live: true, day: live, min: now };
   }
-  return { live: false, day: S.prevDay, min: toMin(S.prevTime || '09:00') };
+  if (S.preview === true) return { live: false, day: S.prevDay, min: toMin(S.prevTime || '09:00') };
+  return { live: false, day: T.days[0].n, min: japanNow().min };
 }
 
 

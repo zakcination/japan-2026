@@ -17,7 +17,7 @@ function atAirport(ms, code, off) {
 function flightCardHTML(x) {
   const now = Date.now(), n = Flights.next(myFlights(), now);
   if (!n) return '';
-  if (x.c.live && n.dep - now > 36 * 3600e3) return '';
+  if (x.c.live && n.dep - now > 36 * 3600e3 && !['departure', 'transit'].includes(x.ph && x.ph.phase)) return '';
   const l = n.leg, cd = Flights.countdown(n.dep - now), dep = atAirport(n.dep, l.frm, l.frmOff);
   const last = n.chain[n.chain.length - 1], lt = Flights.times(last);
   const arr = lt && lt.arr ? atAirport(lt.arr, last.to, last.toOff) : null;

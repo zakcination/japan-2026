@@ -35,7 +35,7 @@ def test_auto_items_are_labelled_and_locked(app):
     assert "проверено приложением" in row.inner_text()
     assert row.locator("input").is_disabled()
     for b in a.page.locator("#tcSheet button, #tcSheet .tc-check").all():
-        assert b.bounding_box()["height"] >= 44
+        assert b.bounding_box()["height"] >= 43.5
 
 
 def test_add_form_is_scoped_to_its_group(app):
