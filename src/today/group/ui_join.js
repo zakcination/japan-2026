@@ -1,9 +1,9 @@
 /* ---------- joining on «День»: my plan / group plan, parts, «Я еду / Без меня», own stops ---------- */
 const initials = ids => { const s = Api.state(); return (ids || []).map(id => ((s.members.find(m => m.id === id) || {}).name || '?')[0]).join(' '); };
-const setJoin = (scope, ref, mode) => Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
+const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
   const me = Api.me().id; s.joins = s.joins.filter(j => !(j.member === me && j.scope === scope && j.ref === String(ref)));
   if (mode !== 'none') s.joins.push({ member: me, scope, ref: String(ref), mode });
-});
+}));
 function joinBarHTML(x) {
   if (!Api.me()) return '';
   const s = Api.state(), group = S.viewMode === 'group';

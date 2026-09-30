@@ -104,6 +104,20 @@ def run_all(c, host_id, host_pin):
     ok(c.rpc(h4, "group_state", {"p_trip": TRIP}))
     # re-assign host to a still-valid session for any future use
     host = h4
+    # invite links for an added guest: a PIN-less guest gets a code, a guest with a PIN gets none; guests can't ask
+    g3 = ok(c.rpc(host, "add_member", {"p_name": "Гость3", "p_role": "guest"}))
+    assert ok(c.rpc(host, "invite_link", {"p_member": g3["id"]}))["code"] == g3["code"]
+    assert ok(c.rpc(host, "invite_link", {"p_member": san}))["code"] is None
+    err(c.rpc(z, "invite_link", {"p_member": g3["id"]}), "host")
+    # activation funnel: members only, known events, each counted once per member; counts only, hosts only
+    err(c.rpc(x, "track", {"p_event": "login"}), "not a member")
+    err(c.rpc(z, "track", {"p_event": "hacked"}), "bad event")
+    before = ok(c.rpc(host, "funnel_counts", {}))
+    ok(c.rpc(z, "track", {"p_event": "login"})); ok(c.rpc(z, "track", {"p_event": "login"}))
+    after = ok(c.rpc(host, "funnel_counts", {}))
+    assert after["login"] - before["login"] <= 1 and after["login"] >= 1
+    assert set(after) == {"members", "login", "installed", "joined", "bought"} and all(isinstance(v, int) for v in after.values())
+    err(c.rpc(z, "funnel_counts", {}), "host")
     return True
 
 

@@ -28,7 +28,9 @@ def test_invite_link_opens_the_pin_and_signs_in(app):
     s.wait_for(state="visible")
     assert a.page.locator("#grPin").is_visible() and "Сания" in s.inner_text()
     a.page.fill("#grPin", "4821")
-    until(a.page, "Api.me() && Api.me().name === 'Сания' && document.getElementById('tcSheet').hidden")
+    until(a.page, "Api.me() && Api.me().name === 'Сания' && !!document.getElementById('grFirstRun')")
+    a.page.click("#grFrNext"); a.page.click("#grFrNext")      # first run: Home Screen, then parts
+    until(a.page, "document.getElementById('tcSheet').hidden")
     assert fake.members[san]["invite"] is None                      # one-time code used up
     a.page.click("#tcGear")
     assert "Вы вошли как Сания" in a.page.inner_text("#tcSheet")
@@ -64,6 +66,8 @@ def test_wrong_pin_message_and_host_adds_member_and_resets_pin(app):
     until(a.page, "/Неверный PIN/.test(document.getElementById('grMsg').textContent)")
     a.page.fill("#grPin", fake.host_pin)
     until(a.page, "Api.me() && Api.me().role === 'host'")
+    a.page.click("#grFrNext")                                  # the first run: a host only gets the Home Screen step
+    until(a.page, "document.getElementById('tcSheet').hidden")
     a.page.click("#tcGear")
     a.page.fill("#grNewName", "Шахи")
     a.page.click("#grAdd")

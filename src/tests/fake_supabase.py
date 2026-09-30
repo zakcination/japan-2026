@@ -25,6 +25,7 @@ class FakeSupabase:
         self.parts, self.joins, self.recipes, self.tasks = [], [], {}, []
         self.my_stops, self.my_bookings, self.task_state, self.attachments = {}, {}, {}, {}
         self.files = {}
+        self.events = set()         # (member, event) — the activation funnel
         self.clock = time.time      # tests may replace it
         self.fail_network = False   # tests flip it to simulate no signal
 
@@ -210,6 +211,25 @@ class FakeSupabase:
         m = self.members[p_member]; m["pin_hash"], m["fails"], m["locked_until"] = None, 0, 0
         m["invite"] = uuid.uuid4().hex[:12] if m["role"] == "guest" else None
         return {"code": m["invite"]}
+
+    def rpc_invite_link(self, token, p_member):
+        me = self._me(token, need_host=True)
+        g = self.members.get(p_member)
+        if not g: raise RpcError(400, "no such member")
+        if g["role"] != "guest" or g["pin_hash"] is not None: return {"code": None}
+        if not g["invite"]: g["invite"] = uuid.uuid4().hex[:12]
+        return {"code": g["invite"]}
+
+    def rpc_track(self, token, p_event):
+        me = self._me(token)["id"]
+        if p_event not in ("login", "installed", "joined", "bought"): raise RpcError(400, "bad event")
+        self.events.add((me, p_event))
+        return True
+
+    def rpc_funnel_counts(self, token):
+        self._me(token, need_host=True)
+        n = lambda ev: sum(1 for m, e in self.events if e == ev and m in self.members)
+        return {"members": len(self.members), "login": n("login"), "installed": n("installed"), "joined": n("joined"), "bought": n("bought")}
 
     def rpc_save_task(self, token, p_task):
         self._me(token, need_host=True)

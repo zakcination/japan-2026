@@ -18,7 +18,7 @@ function openAttach(ref) {                     // ref: 'bk:<id>' | 'mb:<id>'
     ${others.length ? `<span class="tc-sech">От группы</span><div class="tc-group">${others.map(a => row(a, false)).join('')}</div>` : ''}
     <div id="atWarn" class="tc-card tc-note" hidden><b>Ссылка на бронь часто работает как ключ</b>
       <span class="tc-sub">По ней можно открыть и иногда отменить бронь. Лучше покажите PDF без QR или данные текстом.</span>
-      <button type="button" class="tc-btn" id="atWarnGo">Всё равно показать группе</button></div>
+      <button type="button" class="tc-btn" id="atWarnGo">Всё равно показать группе<span id="atWarnName"></span></button></div>
     <label class="tc-btn wide">${icon('clip')}Файл — PDF или картинка<input type="file" id="atFile" accept="image/*,application/pdf" hidden></label>
     <div class="tc-form2">${fld('atUrl', 'Или ссылка на бронь', '', 'url', 'placeholder="https://www.highwaybus.com/…"')}<button type="button" class="tc-btn primary" id="atAdd">${icon('plus')}Добавить</button></div>
     <p class="tc-warn" id="atMsg" role="status"></p>`, m => {
@@ -45,7 +45,8 @@ function openAttach(ref) {                     // ref: 'bk:<id>' | 'mb:<id>'
     let pending = null;
     m.querySelectorAll('[data-share]').forEach(sw => sw.addEventListener('change', () => {
       const a = Api.state().attachments.find(x => x.id === sw.dataset.share);
-      if (sw.checked && a.kind === 'link' && !a.shared) { sw.checked = false; pending = a; m.querySelector('#atWarn').hidden = false; return; }
+      if (sw.checked && a.kind === 'link' && !a.shared) { sw.checked = false; pending = a;      // the warning names the link it is about: a second tap elsewhere retargets it visibly
+        m.querySelector('#atWarnName').textContent = ': «' + (a.name || a.site || 'ссылка') + '»'; m.querySelector('#atWarn').hidden = false; return; }
       const next = { ...a, shared: sw.checked }; Api.call('save_attachment', { p_a: next }, st => { Object.assign(st.attachments.find(x => x.id === a.id), next); });
     }));
     m.querySelector('#atWarnGo').addEventListener('click', () => {

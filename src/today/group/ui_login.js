@@ -35,7 +35,7 @@ function openPin(id, name) {
       pin.disabled = true;
       const r = await Api.login(id, pin.value, INVITE && INVITE.who === id ? INVITE.code : null);
       pin.disabled = false;
-      if (r.ok) { closeSheet(); renderShell(); return; }
+      if (r.ok) { track('login'); if (Ios.standalone()) track('installed'); if (onboarded()) { closeSheet(); renderShell(); } else openFirstRun(); return; }
       msg.textContent = PIN_ERR[r.error] || 'Не получилось войти — попробуйте ещё раз'; pin.value = ''; pin.focus();
     });
     pin.focus();
@@ -52,7 +52,10 @@ function groupSettingsHTML() {
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
-        ${x.id !== me.id ? `<button type="button" class="tc-btn" data-reset="${esc(x.id)}">Сбросить PIN</button>` : ''}</div>`).join('')}</div>
+        ${x.role === 'guest' ? `<span class="tc-actions two"><button type="button" class="tc-btn primary" data-invite="${esc(x.id)}">Пригласить</button>
+          <button type="button" class="tc-btn" data-reset="${esc(x.id)}">Сбросить PIN</button></span>`
+          : x.id !== me.id ? `<button type="button" class="tc-btn" data-reset="${esc(x.id)}">Сбросить PIN</button>` : ''}</div>`).join('')}</div>
+      ${funnelHTML()}
       <div class="tc-form2">${fld('grNewName', 'Новый участник', '', 'text', 'maxlength="40"')}<button type="button" class="tc-btn primary" id="grAdd">${icon('plus')}Добавить</button></div>
       <p class="tc-foot">Если приложение долго не открывали, бесплатный Supabase «засыпает»: зайдите на supabase.com → проект → Restore.</p>` : ''}`;
 }
@@ -66,6 +69,8 @@ function wireGroupSettings(m) {
     Api.run('add_member', { p_name: name, p_role: 'guest' }).then(r => showInvite(name, r && r.id, r && r.code))
       .catch(e => { m.querySelector('#grNewName').value = name; alert0(m, e); });
   });
+  m.querySelectorAll('[data-invite]').forEach(b => b.addEventListener('click', () => openInvite(b.dataset.invite)));
+  wireFunnel(m);
   m.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Точно?', () => {
     const who = (Api.state().members.find(x => x.id === b.dataset.reset) || {}).name || '';
     Api.run('reset_pin', { p_member: b.dataset.reset }).then(r => showInvite(who, b.dataset.reset, r && r.code)).catch(e => alert0(m, e));
@@ -73,16 +78,3 @@ function wireGroupSettings(m) {
 }
 
 const alert0 = (m, e) => { const p = m.querySelector('#setMsg'); if (p) p.textContent = e && !e.status ? 'Нет сети — попробуйте позже' : 'Не получилось — попробуйте ещё раз'; };
-/* after adding someone or resetting a PIN: the personal link with the one-time code (the full invite kit is Task 10a) */
-function showInvite(name, id, code) {
-  if (!id || !code) { closeSheet(); openSettings(); return; }
-  const url = `${Trips.shareUrl()}${Trips.shareUrl().includes('?') ? '&' : '?'}who=${encodeURIComponent(id)}&code=${encodeURIComponent(code)}`;
-  sheet('Приглашение', `<p class="tc-sub">Отправьте ${esc(name)} эту ссылку — по ней можно войти в первый раз и придумать PIN. Ссылка одноразовая.</p>
-    <label class="tc-f" for="grInvite"><span>Ссылка</span><input id="grInvite" type="text" readonly value="${esc(url)}"></label>
-    <button type="button" class="tc-btn primary wide" id="grInviteCopy">Скопировать</button>`, s => {
-    s.querySelector('#grInviteCopy').addEventListener('click', () => {
-      const i = s.querySelector('#grInvite'); i.select();
-      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => { s.querySelector('#grInviteCopy').textContent = 'Скопировано'; }, () => {});
-    });
-  });
-}

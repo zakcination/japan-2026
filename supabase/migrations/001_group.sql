@@ -277,13 +277,51 @@ begin
   return n;
 end $$;
 
+-- Task 10a: invite links for guests already added, and a private activation funnel (counts only, never who)
+create or replace function public.invite_link(p_member uuid) returns jsonb language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._host(); g public.members;
+begin
+  select * into g from public.members where id = p_member and trip = m.trip;
+  if g.id is null then raise exception 'no such member' using errcode = 'P0001'; end if;
+  if g.role <> 'guest' or g.pin_hash is not null then return jsonb_build_object('code', null); end if;
+  if g.invite is null then
+    update public.members set invite = encode(gen_random_bytes(6), 'hex') where id = g.id returning invite into g.invite;
+  end if;
+  return jsonb_build_object('code', g.invite);
+end $$;
+
+create table if not exists public.member_events (member uuid references public.members(id) on delete cascade,
+  event text check (event in ('login','installed','joined','bought')), at timestamptz default now(), primary key (member, event));
+alter table public.member_events enable row level security;
+
+create or replace function public.track(p_event text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if p_event is null or p_event not in ('login','installed','joined','bought') then raise exception 'bad event' using errcode = 'P0001'; end if;
+  insert into public.member_events(member, event) values (m.id, p_event) on conflict do nothing;
+  return true;
+end $$;
+
+create or replace function public.funnel_counts() returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._host();
+begin
+  return (select jsonb_build_object(
+    'members', (select count(*) from public.members where trip = m.trip),
+    'login', count(*) filter (where e.event = 'login'), 'installed', count(*) filter (where e.event = 'installed'),
+    'joined', count(*) filter (where e.event = 'joined'), 'bought', count(*) filter (where e.event = 'bought'))
+    from public.member_events e join public.members x on x.id = e.member where x.trip = m.trip);
+end $$;
+
 -- Deny-by-default: revoke the implicit grants Postgres/Supabase hand out on function creation (to PUBLIC,
 -- and Supabase's own default privileges additionally grant to anon/authenticated), then grant back only
 -- the RPCs the app calls plus the two storage helpers above.
 revoke all on all functions in schema public from public, anon, authenticated;
 grant execute on function public.member_names, public.group_state, public.claim_member(uuid, text, text), public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
-  public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks,
+  public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks, public.invite_link, public.track, public.funnel_counts,
   public._device_member, public._can_read_ticket to authenticated;
 
 -- storage: private bucket; a member writes only into <member id>/...; reads own files and files of shared attachments
