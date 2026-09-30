@@ -1,5 +1,5 @@
 import json, re
-from conftest import ROOT, PHONE
+from conftest import ROOT, PHONE, IPHONE_UA
 
 OWN = json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8"))
 REAL = {"prevDay": 2, "prevTime": "13:24", "preview": False}
@@ -74,3 +74,52 @@ def test_shanghai_stops_show_local_time_on_day_tab(app):
 def test_a_left_over_preview_does_not_hide_the_transit_screen(app):
     a = app(trip=OWN, state={"prevDay": 2, "prevTime": "13:24", "preview": True}, now="2026-10-17T09:00:00+08:00")
     assert a.page.locator("#tcDay1 .now").count() == 1 and a.errors == []
+
+
+PV = {"prevDay": 2, "prevTime": "13:24", "preview": True}
+
+
+def test_a_stale_preview_never_hides_departure_or_the_end(app):
+    d = app(trip=OWN, state=PV, now="2026-10-16T12:00:00+05:00")
+    assert d.page.locator("#tcFlight").count() == 1 and d.page.locator("#tcNow").count() == 0
+    p = app(trip=OWN, state=PV, now="2026-10-29T12:00:00+09:00")
+    assert "Поездка завершена" in p.page.inner_text("#todayBody") and p.errors == []
+
+
+def test_preview_has_an_exit_at_the_top(app):
+    a = app(trip=OWN, state=PV)
+    assert a.page.locator("#tcPvExitTop").is_visible() and a.page.locator("#tcPvExit").count() == 1
+    a.page.click("#tcPvExitTop")
+    assert a.page.locator("#tcCount").count() == 1 and a.page.locator("#tcPvExitTop").count() == 0
+
+
+def test_readiness_above_the_fold_on_a_real_iphone(app):
+    a = app(trip=OWN, state=REAL, ua=IPHONE_UA)
+    assert a.page.locator("#tcInstall").count() == 1                      # the hint is there, just lower
+    bar = a.page.locator("#tcTabs").bounding_box()["y"]
+    for sel in ("#tcCount", "#tcFirst", "#tcReady"):
+        b = a.page.locator(sel).bounding_box(); assert b["y"] + b["height"] <= bar
+
+
+def test_transit_follows_the_flight(app):
+    a = home(app, now="2026-10-17T19:30:00+08:00")                       # MU575 in the air
+    cur = a.page.locator("#tcDay1 .now")
+    assert cur.count() == 1 and "MU575" in re.sub(r"\s", "", cur.inner_text())
+    assert "позади" in a.page.inner_text("#tcDay1")
+    g = home(app, now="2026-10-17T10:35:00+08:00")                       # between two Shanghai stops
+    assert g.page.locator("#tcDay1 .now").count() == 1
+    for li in g.page.locator("#tcDay1 li b").all():                       # the time column never wraps
+        assert li.bounding_box()["height"] < 30
+
+
+def test_capsule_says_what_opens_and_opens_the_tickets(app):
+    a = home(app, now="2026-10-10T01:00:00+09:00")
+    t = a.page.inner_text("#tcCap")
+    assert "продажи через" in t and "23 ч" in t
+    a.page.click("#tcCap")
+    assert a.page.locator("#tcSheet [data-group='tickets']").is_visible()
+
+
+def test_hotel_tasks_say_book_not_buy(app):
+    a = home(app)
+    assert "Забронировать: отель в Киото, 18.10 → 20.10 (2 ночи)" in a.page.inner_text("#tcFirst b")

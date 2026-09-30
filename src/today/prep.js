@@ -5,12 +5,19 @@ const Prep = (() => {
   const TITLES = { tickets: 'Билеты и отели', phone: 'Телефон', money: 'Деньги и документы', packing: 'Сборы' };
   const at = v => { const t = v ? Date.parse(v.length === 10 ? v + 'T00:00:00+09:00' : v) : NaN; return Number.isFinite(t) ? t : null; };
 
+  /* «Купить: …» for tickets; a recipe that already says «забронировать» (hotels) becomes «Забронировать: …» */
+  function taskTitle(what) {
+    const w = String(what || '');
+    if (!/забронировать/i.test(w)) return 'Купить: ' + w;
+    const t = w.replace(/\s*:?\s*(выбрать\s+и\s+)?забронировать\s*$/i, '').trim();
+    return 'Забронировать: ' + t.charAt(0).toLowerCase() + t.slice(1);
+  }
   function items(trip, local, auto) {
     const recipes = new Map((trip.recipes || []).map(r => [r.bk, r]));
     const done = (local && local.done) || {};
     const out = (trip.bookings || []).map(b => {
       const r = recipes.get(b.id) || {};
-      return { id: 'bk:' + b.id, group: 'tickets', title: 'Купить: ' + (r.what || b.t), note: r.tips || b.when || '',
+      return { id: 'bk:' + b.id, group: 'tickets', title: taskTitle(r.what || b.t), note: r.tips || b.when || '',
                url: r.url || null, due: r.buy_by || null, opens: r.opens || null, from: null, auto: 'booking:' + b.id,
                bought: b.st === 'fixed' };
     });
@@ -40,5 +47,5 @@ const Prep = (() => {
     const soon = list.filter(i => !i.done && at(i.opens) && at(i.opens) > nowMs && at(i.opens) <= nowMs + 48 * 3600e3);
     return soon.sort((a, b) => at(a.opens) - at(b.opens))[0] || null;
   }
-  return { items, groups, first, opening, TITLES };
+  return { items, groups, first, opening, taskTitle, TITLES };
 })();

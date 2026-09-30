@@ -30,7 +30,7 @@ RENDER.day = (x, root) => {
   const budget = x.evs.filter(e => !e.skip && !e.auto).reduce((s, e) => s + (+e.cost || 0), 0);
   root.innerHTML = `<div class="tc-page">
     ${dayStrip(x)}
-    ${x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
+    ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
     <div class="tc-actions two"><button type="button" class="tc-btn" id="tcAdd">${icon('plus')}Пункт</button>

@@ -90,10 +90,11 @@ function daysWord(n) { return n % 10 === 1 && n % 100 !== 11 ? 'день' : [2, 
 /* the header capsule before the trip: only for sales opening within 48 h */
 function preCapsuleHTML() {
   const o = Prep.opening(prepItems(), Date.now()); if (!o) return '';
-  const left = Math.max(0, Date.parse(o.opens) - Date.now()), name = o.title.replace(/^Купить: /, '').split(',')[0].slice(0, 18);
-  return `<button type="button" class="tc-cap soon" id="tcCap" aria-label="${esc(o.title)}: продажи через ${Core.cd(left / 60000)}">
-    <span class="tc-cap-ic">${icon('tix')}</span><span class="tc-cap-t">${esc(name)}</span>
-    <span class="tc-cap-sep" aria-hidden="true"></span><span class="tc-cap-n">${Core.cd(left / 60000)}</span></button>`;
+  const left = Math.max(0, Date.parse(o.opens) - Date.now()), m = Math.floor(left / 60000);
+  const when = m >= 1440 ? `${Math.floor(m / 1440)} д ${Math.floor(m % 1440 / 60)} ч` : m >= 60 ? `${Math.floor(m / 60)} ч` : `${m} мин`;
+  const name = o.title.replace(/^(Купить|Забронировать): /, '').split(',')[0].slice(0, 18);
+  return `<button type="button" class="tc-cap soon tc-cap-pre" id="tcCap" data-cap-prep aria-label="${esc(o.title)}: продажи через ${when}">
+    <span class="tc-cap-t tc-cap-name">${esc(name)}</span><span class="tc-cap-t tc-cap-when">· продажи через ${when}</span></button>`;
 }
 function preTitleHTML(x) {
   if (x.ph.phase === 'post') return `<div class="tc-title"><h1>Япония</h1><span>поездка завершена</span></div>`;
@@ -108,29 +109,43 @@ function countdownText(ms) {
   if (ms > 864e5) return `${d} д ${h} ч`;
   return Core.cd(m);
 }
-/* the first day, step by step: the flight out, the stops (Shanghai ones in Shanghai time), Haneda, the hotel */
-function day1HTML(expanded) {
-  const d1 = T.days[0], base = dayOne(), now = Date.now();
+/* the first day, step by step: every outbound leg, the stops (Shanghai ones in Shanghai time), Haneda, the hotel.
+   The current step is the latest one that has started (a flight in the air counts); the ones before fold into a row. */
+let day1All = false;
+const zoneWord = (code, off) => { const o = Flights.offsetAt(code, Date.now(), off);
+  return o === 480 ? 'по Шанхаю' : o === 540 ? 'по Токио' : `по времени ${Flights.airport(code)}`; };
+function day1Steps() {
+  const d1 = T.days[0], base = dayOne();
   const evs = plan(d1, null).filter(e => !e.bad && !e.skip);
-  const l0 = myFlights()[0], steps = [];
-  if (l0 && Flights.times(l0).dep < base + 864e5) {
-    const t = atAirport(Flights.times(l0).dep, l0.frm, l0.frmOff);
-    steps.push({ t: `Вылет ${Flights.pretty(l0.no)} из ${Flights.airport(l0.frm)}`, short: t.hm, zone: `${t.dm} по ${Flights.airport(l0.frm)}`, at: Flights.times(l0).dep });
-  }
-  evs.forEach(e => {
-    const w = hm(Core.localMin(e, e.ns));
-    steps.push({ t: e.t, short: w, zone: e.sh ? 'по Шанхаю' : '', at: base + e.ns * 60000, end: base + e.ne * 60000 });
+  const chain = myFlights(), end = chain.findIndex(l => Flights.isJapan(l.to));
+  const legs = end < 0 || Flights.isJapan(chain[0].frm) ? [] : chain.slice(0, end + 1);
+  const steps = legs.map(l => {
+    const tt = Flights.times(l), d = atAirport(tt.dep, l.frm, l.frmOff), a = tt.arr ? atAirport(tt.arr, l.to, l.toOff) : null;
+    return { leg: true, t: `Рейс ${Flights.pretty(l.no)} · ${Flights.airport(l.frm)} → ${Flights.airport(l.to)}`, brief: `Вылет ${Flights.pretty(l.no)}`,
+      short: d.hm, meta: `${d.dm} ${zoneWord(l.frm, l.frmOff)}${a ? ` · прилёт ${a.hm} ${zoneWord(l.to, l.toOff)}` : ''}`, at: tt.dep };
   });
-  if (!steps.length) return '';
-  const cur = steps.findIndex((s, i) => now >= s.at && now < (s.end || (steps[i + 1] || {}).at || Infinity));
-  if (!expanded) {
-    const key = [steps[0], ...steps.slice(1).filter(s => /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
-    return `<button type="button" class="tc-card tc-day1" id="tcDay1"><span class="tc-row"><span class="tc-lbl">Первые сутки</span>${icon('arrow')}</span>
-      <span class="tc-sub">${key.map(s => esc(s.short + ' ' + s.t.split(/[:,]/)[0])).join(' → ')}</span></button>`;
-  }
-  return `<section class="tc-card tc-day1" id="tcDay1"><span class="tc-lbl">Первые сутки</span><ol class="tc-steps">${steps.map((s, i) =>
-    `<li class="${i === cur ? 'now' : cur >= 0 && i < cur ? 'done' : ''}"><b>${esc(s.short)}${s.zone ? `<small>${esc(s.zone)}</small>` : ''}</b><span>${esc(s.t)}</span></li>`).join('')}</ol></section>`;
+  const mixed = legs.length > 0 || evs.some(e => e.sh);
+  evs.forEach(e => steps.push({ t: e.t, brief: e.t.split(/[:,]/)[0], short: hm(Core.localMin(e, e.ns)),
+    meta: e.sh ? 'по Шанхаю' : mixed ? 'по Токио' : '', at: base + e.ns * 60000 }));
+  return steps.map((s, i) => [s, i]).sort((p, q) => p[0].at - q[0].at || p[1] - q[1]).map(p => p[0]);
 }
+function day1HTML(expanded) {
+  const steps = day1Steps(), now = Date.now();
+  if (!steps.length) return '';
+  let cur = -1; steps.forEach((s, i) => { if (s.at <= now) cur = i; });
+  if (!expanded) {
+    const first = steps.find(s => s.leg) || steps[0];
+    const key = [first, ...steps.filter(s => !s.leg && /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
+    return `<button type="button" class="tc-card tc-day1" id="tcDay1"><span class="tc-row"><span class="tc-lbl">Первые сутки</span>${icon('arrow')}</span>
+      <span class="tc-sub">${key.map(s => esc(s.short + ' ' + s.brief)).join(' → ')}</span></button>`;
+  }
+  const fold = cur > 0 && !day1All ? cur : 0;
+  const li = (s, i) => `<li class="${i === cur ? 'now' : i < cur ? 'done' : ''}"><b>${esc(s.short)}</b><span>${esc(s.t)}${s.meta ? `<small>${esc(s.meta)}</small>` : ''}</span></li>`;
+  return `<section class="tc-card tc-day1" id="tcDay1"><span class="tc-lbl">Первые сутки</span><ol class="tc-steps">${
+    fold ? `<li class="done tc-steps-fold"><button type="button" class="tc-link" id="tcDay1More">✓ ${fold} позади</button></li>` : ''}${
+    steps.map((s, i) => i < fold ? '' : li(s, i)).join('')}</ol></section>`;
+}
+const wireDay1 = root => { const m = root.querySelector('#tcDay1More'); if (m) m.addEventListener('click', () => { day1All = true; renderShell(); }); };
 function renderPre(x, root) {
   const now = Date.now(), list = prepItems(), dep = x.ph.dep, dep0 = dep || dayOne();
   const f = Prep.first(list, now, dep0), g = Prep.groups(list);
@@ -142,8 +157,7 @@ function renderPre(x, root) {
   const cities = T.days.map(d => String(d.city || '').split(' →')[0].trim()).filter((c, i, a) => c && c !== a[i - 1]);
   const url = f.item ? Core.safeUrl(f.item.url) : '';
   const word = n => n % 10 === 1 && n % 100 !== 11 ? 'дело' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дела' : 'дел';
-  let html = Ios.installHint();
-  html += `<section class="tc-card tc-count" id="tcCount"><div class="tc-row"><span class="tc-lbl">До вылета</span>${leg ? `<span class="tc-fl-no">${esc(Flights.pretty(leg.no))}</span>` : ''}</div>
+  let html = `<section class="tc-card tc-count" id="tcCount"><div class="tc-row"><span class="tc-lbl">До вылета</span>${leg ? `<span class="tc-fl-no">${esc(Flights.pretty(leg.no))}</span>` : ''}</div>
     <b class="tc-count-n">${esc(countdownText(dep0 - now))}</b>
     ${route ? `<span class="tc-fl-route">${route}</span>` : ''}
     ${t0 ? `<span class="tc-sub">Вылет ${t0.dm} в ${t0.hm} по времени ${esc(Flights.airport(leg.frm))} · <a class="tc-inl" href="${Flights.statusUrl(leg.no)}" target="_blank" rel="noopener">статус рейса</a></span>`
@@ -160,12 +174,13 @@ function renderPre(x, root) {
       aria-label="${esc(r.title)}: ${r.done} из ${r.total}"><svg viewBox="0 0 36 36" class="tc-ready-ring" aria-hidden="true"><circle cx="18" cy="18" r="15" class="bg"/>${r.done ? `<circle cx="18" cy="18" r="15" class="fg"
         stroke-dasharray="${(94.25 * r.done / r.total).toFixed(1)} 94.25" transform="rotate(-90 18 18)"/>` : ''}</svg>
       <span><b>${esc(r.title)}</b><small>${r.done}/${r.total}</small></span></button>`).join('')}</section>`;
+  html += Ios.installHint();                   // below readiness: the phone group already lists «на экран „Домой“»
   html += day1HTML(dep0 - now <= 864e5);
   if (cities.length) html += `<button type="button" class="tc-flline" id="tcRoute">${icon('day')}<span>${esc(cities.join(' · '))}<small>маршрут по дням</small></span>${icon('arrow')}</button>`;
   if (dep0 - now <= 7 * 864e5) html += topRowHTML(x);               // weather and sun only from T-7
   if (!chain.length) html += flightTileHTML(x);
   root.innerHTML = `<div class="tc-page">${html}</div>`;
-  Ios.wireInstall(root); wireFlightCard(root);
+  Ios.wireInstall(root); wireFlightCard(root); wireDay1(root);
   root.querySelectorAll('[data-ready]').forEach(b => b.addEventListener('click', () => openPrep(b.dataset.ready === 'all' ? null : b.dataset.ready)));
   const fd = root.querySelector('[data-first-done]');
   if (fd) fd.addEventListener('click', () => { const l = prepLocal(); l.done[fd.dataset.firstDone] = true; prepSave(l); renderShell(); });
@@ -191,8 +206,10 @@ function renderDeparture(x, root) {
   const d1 = root.querySelector('button#tcDay1'); if (d1) d1.addEventListener('click', () => { viewDay = T.days[0].n; go('day'); });
 }
 function renderTransit(x, root) {
-  root.innerHTML = `<div class="tc-page">${day1HTML(true)}${flightCardHTML(x)}</div>`;
-  wireFlightCard(root);
+  // the countdown only while an outbound leg is still to fly — never the way home from mid-air
+  const n = Flights.next(myFlights(), Date.now()), card = n && x.ph.arrive && n.dep < x.ph.arrive ? flightCardHTML(x) : '';
+  root.innerHTML = `<div class="tc-page">${day1HTML(true)}${card}</div>`;
+  wireFlightCard(root); wireDay1(root);
 }
 
 RENDER.now = (x, root) => {
@@ -227,7 +244,7 @@ RENDER.now = (x, root) => {
       <span class="tc-sub">${cut.map(e => e.auto ? `убрано: ${esc(e.t)}` : `${esc(e.t)} −${e.cut} мин`).join(' · ')}</span></section>`;
   }
   html += flightTileHTML(x);                   // below now / next: a low-priority prompt
-  if (!x.c.live && S.preview === true) {
+  if (x.pv && !x.c.live) {
     const d0 = dateOf(T.days[0]), days = Math.round((Date.parse(d0) - Date.parse(japanNow().date)) / 864e5);
     html += `<p class="tc-preview">${days > 0 ? `Предпросмотр · поездка через ${days} дн.` : 'Предпросмотр'} ·
       <label>день <select id="tcPvDay">${T.days.map(d => `<option value="${d.n}"${d.n === x.cday.n ? ' selected' : ''}>${Core.ddmmyyyy(dateOf(d)).slice(0, 5)}</option>`).join('')}</select></label>

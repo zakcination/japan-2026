@@ -41,8 +41,9 @@ def test_segments_and_title(app):
     segs = a.page.locator(".tc-seg")
     assert segs.count() == 11
     assert "done" in segs.nth(0).get_attribute("class") and "cur" in segs.nth(1).get_attribute("class")
-    title = a.page.inner_text(".tc-title")
-    assert "Вс 18 · 2/11" in title
+    assert "Предпросмотр" in a.page.inner_text(".tc-title")      # in a preview «Сейчас» says so where the date was
+    a.page.click(".tc-tab[data-tab='day']")
+    assert "Вс 18 · 2/11" in a.page.inner_text(".tc-title")
 
 
 def test_theme_by_sunset_and_override(app):

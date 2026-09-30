@@ -35,6 +35,12 @@ let tab = 'now';
 
 /* everything a tab needs about "now", computed once per render */
 function ctx() {
+  // where the traveller really is (before the trip, departure day, in transit, in Japan, after). A preview
+  // (started on «День») is honoured only before the trip; left over past that, it is dropped for good.
+  const real = Flights.phase(Date.now(), myFlights(), dateOf(T.days[0]), dateOf(T.days[T.days.length - 1]));
+  const canPreview = real.phase === 'pre' || (real.phase === 'live' && !liveDayN());
+  if (S.preview === true && !canPreview) { S.preview = false; save(); }
+  const pv = S.preview === true;
   const c = clock();
   const cday = T.days.find(d => d.n === c.day) || T.days[0];
   if (viewDay == null || !T.days.some(d => d.n === viewDay)) viewDay = cday.n;
@@ -42,12 +48,10 @@ function ctx() {
   const cevs = plan(cday, c.min);
   const evs = day === cday ? cevs : plan(day, null);
   const csun = cday.sun ? sunTimes(dateOf(cday), cday.sun[0], cday.sun[1]) : null;
-  // where the traveller is (before the trip, departure day, in transit, in Japan, after); a preview is always «live»
-  const ph = S.preview === true && !c.live ? { phase: 'live', dep: null, arrive: null, leg: null }
-    : Flights.phase(Date.now(), myFlights(), dateOf(T.days[0]), dateOf(T.days[T.days.length - 1]));
+  const ph = pv ? { phase: 'live', dep: null, arrive: null, leg: null } : real;     // a preview shows a day in Japan
   // before the trip, on departure day and after it, the day-1 plan isn't "today": nothing is urgent yet
   const quiet = ['pre', 'departure', 'post'].includes(ph.phase);
-  return { c, cday, cevs, day, evs, csun, urg: quiet ? null : Core.urgent(cevs, c.min), ph, quiet };
+  return { c, cday, cevs, day, evs, csun, urg: quiet ? null : Core.urgent(cevs, c.min), ph, quiet, pv, canPreview };
 }
 
 function transportIcon(e) {
@@ -74,10 +78,12 @@ function segmentsHTML(x) {
     `<span class="tc-seg${d.n < x.cday.n ? ' done' : d.n === x.cday.n ? ' cur' : ''}"${d.n === x.cday.n ? ` style="--p:${p}%"` : ''}></span>`).join('') + '</div>';
 }
 
+/* in a preview the title's date becomes a pill that says so and leaves it (the date is in the preview line below) */
+const pvTopHTML = x => `<button type="button" class="tc-pvchip" id="tcPvExitTop" aria-label="Предпросмотр: ${Core.ddmmyyyy(dateOf(x.cday)).slice(0, 5)}, ${hm(x.c.min)}. Выйти из предпросмотра">Предпросмотр${icon('close')}</button>`;
 const gearHTML = () => `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
-function titleHTML(day) {
+function titleHTML(day, side) {
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
-  return `<div class="tc-title"><h1>${esc(day.label)}</h1><span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span></div>`;
+  return `<div class="tc-title"><h1>${esc(day.label)}</h1>${side || `<span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span>`}</div>`;
 }
 
 function mountShell() {
@@ -91,7 +97,11 @@ function mountShell() {
     `<button type="button" role="tab" class="tc-tab" data-tab="${k}" aria-selected="false">${icon(k)}<span>${l}</span></button>`).join('');
   root.appendChild(nav);
   nav.addEventListener('click', ev => { const b = ev.target.closest('.tc-tab'); if (b) go(b.dataset.tab); });
-  head.addEventListener('click', ev => { if (ev.target.closest('#tcCap')) go('now'); });
+  head.addEventListener('click', ev => {
+    if (ev.target.closest('#tcPvExitTop')) { S.preview = false; viewDay = null; save(); if (tab === 'now') renderShell(); else go('now'); return; }
+    const cap = ev.target.closest('#tcCap');
+    if (cap) { if (cap.hasAttribute('data-cap-prep')) openPrep('tickets'); else go('now'); }
+  });
 }
 
 function applyTheme(x) {
@@ -114,7 +124,7 @@ function renderShell() {
   head.hidden = !withHead;
   head.innerHTML = !withHead ? '' : x.quiet
     ? gearHTML() + preCapsuleHTML() + (tab === 'now' ? preTitleHTML(x) : titleHTML(x.day))
-    : gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day);
+    : gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day, x.pv && tab === 'now' ? pvTopHTML(x) : '');
   document.querySelectorAll('.tc-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   root.dataset.tab = tab;
   const main = document.getElementById('todayBody');

@@ -79,3 +79,11 @@ def test_own_items_and_everything_done(core):
     local["done"] = {i: True for i in all_ids}
     f = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 14), {DEP});", local=local)
     assert f == {"item": None, "rest": 0}
+
+
+def test_hotels_are_booked_tickets_are_bought(core):
+    pg = core(("core.js", "flights.js", "prep.js"))
+    t = P(pg, "return Object.fromEntries(I.filter(i => i.group === 'tickets').map(i => [i.id, i.title]));")
+    assert t["bk:h_kyoto"] == "Забронировать: отель в Киото, 18.10 → 20.10 (2 ночи)"
+    assert t["bk:sky"].startswith("Купить: Shibuya Sky")
+    assert pg.evaluate("Prep.taskTitle('Отель: забронировать')") == "Забронировать: отель"
