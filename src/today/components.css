@@ -431,6 +431,13 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-first-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tc-first-foot > * { flex: 0 1 auto; white-space: nowrap; align-self: center; }
 .tc-fr-row { justify-content: space-between; }
+.tc-actions.tc-task-acts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
+.tc-actions.tc-task-acts:has(> :nth-child(2):last-child) { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.tc-actions.tc-task-acts:has(> :only-child) { grid-template-columns: 1fr; }
+.tc-task-acts .tc-btn { min-width: 0; padding-inline: 6px; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-task-acts .tc-btn:not(.primary) { flex-direction: column; justify-content: center; gap: 2px; font-size: 12px; line-height: 1.1; padding-block: 4px; }
+.tc-task-acts .tc-btn:not(.primary) svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.tc-task-foot { display: flex; justify-content: flex-end; }
 .tc-howto { margin: 4px 0 16px; padding-left: 1.4em; font-size: 17px; line-height: 1.4; }
 .tc-howto li { margin: 6px 0; }
 .tc-fr-row input { flex: 0 0 auto; min-width: 44px; min-height: 28px; }

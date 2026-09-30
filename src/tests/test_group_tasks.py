@@ -50,3 +50,17 @@ def test_host_edits_recipe_and_imports_old_tasks(app):
     h.page.evaluate("Api.refresh()")
     until(h.page, "document.querySelectorAll('.tc-task[data-ref^=\"t:\"]').length === 2")
     assert h.page.evaluate("window.__pwned") is None
+
+
+def test_task_buttons_share_one_row_half_quarter_quarter_and_hotels_say_book(app):
+    fake = FakeSupabase.seeded()
+    h = logged(app, fake, fake.host_id, fake.host_pin)
+    h.page.click(".tc-tab[data-tab='tix']")
+    card = h.page.locator(".tc-task[data-ref='bk:h_kyoto']")
+    assert card.locator("b").first.inner_text().startswith("Забронировать: отель в Киото") and "забронировать до" in card.inner_text()
+    boxes = h.page.evaluate("""[...document.querySelectorAll(".tc-task[data-ref='bk:h_kyoto'] .tc-task-acts > *")]
+      .map(b => { const r = b.getBoundingClientRect(); return {y: r.y, w: r.width, h: r.height}; })""")
+    assert len(boxes) == 3 and len({round(b["y"]) for b in boxes}) == 1          # one row
+    assert abs(boxes[0]["w"] - 2 * boxes[1]["w"]) < 12 and abs(boxes[1]["w"] - boxes[2]["w"]) < 2
+    assert all(b["h"] >= 44 for b in boxes)
+    assert "Править" in card.inner_text() and "Рецепт" not in card.inner_text()
