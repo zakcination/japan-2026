@@ -47,6 +47,29 @@ def test_packing_waits_until_three_days_before(core):
     assert f["item"]["group"] == "packing"
 
 
+def test_closed_sale_is_not_picked_until_it_opens(core):
+    pg = core(("core.js", "flights.js", "prep.js"))
+    # Clear everything out of the way except the two gated items (bk:sky's `opens`, p-vjw's `from`) and
+    # anything whose own due is still later than Shibuya Sky's: only then does the opens-gate on bk:sky
+    # actually decide the outcome, instead of losing on due date regardless.
+    ids = P(pg, "return I.filter(i => i.due ? i.due < '2026-10-11' : (i.id !== 'bk:sky' && i.id !== 'p-vjw')).map(i => i.id);")
+    local = {"done": {i: True for i in ids}, "own": []}
+    before = P(pg, f"return Prep.first(I, Date.UTC(2026, 8, 30, 3), {DEP});", local=local)
+    assert before["item"]["id"] != "bk:sky"                       # sales aren't open yet — must not be «first»
+    after = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 10, 15), {DEP});", local=local)   # 11.10 00:00 JST
+    assert after["item"]["id"] == "bk:sky"                        # sales just opened, and its due (11.10) is now nearest
+
+
+def test_from_gate_blocks_a_prep_item_until_its_date(core):
+    pg = core(("core.js", "flights.js", "prep.js"))
+    ids = P(pg, "return I.filter(i => i.id !== 'p-vjw').map(i => i.id);")
+    local = {"done": {i: True for i in ids}, "own": []}
+    before = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 8, 15), {DEP});", local=local)   # 09.10 00:00 JST
+    assert before["item"] is None                                 # Visit Japan Web opens 10.10 — nothing doable yet
+    after = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 9, 15), {DEP});", local=local)    # 10.10 00:00 JST
+    assert after["item"]["id"] == "p-vjw"                         # `from` has arrived — now it's the first thing
+
+
 def test_own_items_and_everything_done(core):
     pg = core(("core.js", "flights.js", "prep.js"))
     local = {"done": {}, "own": [{"id": "own-1", "group": "packing", "title": "Подарки друзьям"}]}
