@@ -54,7 +54,11 @@ function openAttach(ref) {                     // ref: 'bk:<id>' | 'mb:<id>'
       Api.call('save_attachment', { p_a: next }, st => { Object.assign(st.attachments.find(x => x.id === next.id), next); }); openAttach(ref);
     });
     m.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => twoTap(b, '?', () => {
-      if (me) Api.call('delete_attachment', { p_id: b.dataset.del }, st => { st.attachments = st.attachments.filter(x => x.id !== b.dataset.del); });
+      if (me) {
+        const a = Api.state().attachments.find(x => x.id === b.dataset.del);
+        if (a && a.kind === 'file' && a.path && a.member === me.id) Api.remove(a.path).catch(() => {});   // the file goes too, not just the row
+        Api.call('delete_attachment', { p_id: b.dataset.del }, st => { st.attachments = st.attachments.filter(x => x.id !== b.dataset.del); });
+      }
       else { const all = localLinks(); all[bk] = (all[bk] || []).filter(x => x.id !== b.dataset.del); putLocalLinks(all); }
       openAttach(ref);
     })));

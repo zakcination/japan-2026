@@ -249,6 +249,11 @@ class FakeSupabase:
         self.files[path] = (body, ctype)
         return {"Key": "tickets/" + path}
 
+    def remove(self, token, paths):
+        me = self._me(token)["id"]
+        gone = [p for p in paths if p.startswith(me + "/") and self.files.pop(p, None) is not None]   # others' files: silently kept, like RLS
+        return [{"name": p} for p in gone]
+
     def download(self, token, path):
         me = self._me(token)["id"]
         ok = path.startswith(me + "/") or any(
@@ -294,6 +299,8 @@ class FakeSupabase:
             if path.startswith("/rest/v1/rpc/"): return send(200, self.rpc(tok, path.split("/rpc/")[1], json.loads(req.post_data or "{}")))
             if path.startswith("/storage/v1/object/authenticated/tickets/"):
                 body, ctype = self.download(tok, path.split("/tickets/", 1)[1]); return send(200, body=body, ctype=ctype)
+            if path.rstrip("/") == "/storage/v1/object/tickets" and req.method == "DELETE":
+                return send(200, self.remove(tok, json.loads(req.post_data or "{}").get("prefixes") or []))
             if path.startswith("/storage/v1/object/tickets/") and req.method == "POST":
                 return send(200, self.upload(tok, path.split("/tickets/", 1)[1], req.post_data_buffer, req.headers.get("content-type", "")))
             return send(404, {"message": "not found"})

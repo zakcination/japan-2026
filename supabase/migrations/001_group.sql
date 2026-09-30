@@ -329,6 +329,9 @@ insert into storage.buckets (id, name, public) values ('tickets', 'tickets', fal
 drop policy if exists "tickets write own" on storage.objects;
 create policy "tickets write own" on storage.objects for insert to authenticated
   with check (bucket_id = 'tickets' and (storage.foldername(name))[1] = public._device_member());
+drop policy if exists "tickets delete own" on storage.objects;
+create policy "tickets delete own" on storage.objects for delete to authenticated
+  using (bucket_id = 'tickets' and (storage.foldername(name))[1] = public._device_member());
 drop policy if exists "tickets read own or shared" on storage.objects;
 create policy "tickets read own or shared" on storage.objects for select to authenticated
   using (bucket_id = 'tickets' and public._can_read_ticket(name));

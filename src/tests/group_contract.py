@@ -1,7 +1,7 @@
 """RPC scenarios shared by the fake (pytest) and the real Supabase project (python3 src/tests/group_contract.py)."""
-import json, os, sys, urllib.request
+import json, os, re, sys, urllib.request
 
-TRIP = "miras-aikosh"
+TRIP = os.environ.get("CONTRACT_TRIP", "miras-aikosh")   # on the real project: a throwaway trip, never ours
 
 
 def ok(r):
@@ -145,4 +145,7 @@ class Real:
 
 if __name__ == "__main__":
     url, anon, host_id, pin = sys.argv[1:5]
+    if not re.fullmatch(r"[0-9a-f-]{36}", host_id):          # a name: look the id up
+        c = Real(url, anon); t = c.signup()
+        host_id = next(m["id"] for m in c.rpc(t, "member_names", {"p_trip": TRIP})[1] if m["name"] == host_id)
     print("contract ok:", run_all(Real(url, anon), host_id, pin))

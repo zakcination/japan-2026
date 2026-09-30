@@ -59,3 +59,17 @@ def test_not_logged_in_link_stays_on_the_phone(app):
     a.page.click("#atAdd")
     assert "Booking.com" in a.page.inner_text("#tcSheet")
     assert "booking.com" in a.page.evaluate("localStorage.getItem('japan2026.links.v1')")
+
+
+def test_deleting_a_ticket_file_deletes_the_file_too(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
+    fake.joins.append({"member": san, "scope": "part", "ref": "fuji", "mode": "in"})
+    g = logged(app, fake, san, "4821")
+    g.page.click(".tc-tab[data-tab='tix']")
+    g.page.click(".tc-task[data-ref='bk:bus18'] [data-attach-ref]")
+    g.page.set_input_files("#atFile", files=[{"name": "ticket.pdf", "mimeType": "application/pdf", "buffer": PDF}])
+    until(g.page, "Api.status().pending === 0 && Api.state().attachments.length === 1")
+    path = next(iter(fake.attachments.values()))["path"]
+    g.page.locator("#tcSheet [data-del]").click(); g.page.locator("#tcSheet [data-del]").click()   # two taps
+    until(g.page, "Api.status().pending === 0 && Api.state().attachments.length === 0")
+    assert path not in fake.files and not fake.attachments

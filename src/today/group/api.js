@@ -135,6 +135,11 @@ const Api = (() => {
     await http('/storage/v1/object/tickets/' + path.split('/').map(encodeURIComponent).join('/'), blob, session.access_token, 'POST', true, blob.type || 'application/octet-stream');
     return path;
   }
+  async function remove(path) {            // the file behind a deleted ticket; only one's own folder (the server enforces it too)
+    safePath(path);
+    await ensureSession();
+    return http('/storage/v1/object/tickets', { prefixes: [path] }, session.access_token, 'DELETE');
+  }
   async function download(path) {
     await ensureSession();
     return http('/storage/v1/object/authenticated/tickets/' + path.split('/').map(encodeURIComponent).join('/'), null, session.access_token, 'GET', true);
@@ -142,5 +147,5 @@ const Api = (() => {
 
   if (enabled() && session && session.member) { poll(); setTimeout(() => { flush(); refresh(); }, 0); }
   return { enabled, me: () => (session && session.member) || null, state: () => state, status: () => ({ ...status }),
-           login: (m, p, c) => login(m, p, c).then(r => { if (r.ok) { status.error = null; poll(); flush(); } return r; }), logout, reauth, run, memberNames, refresh, call, flush, upload, download };
+           login: (m, p, c) => login(m, p, c).then(r => { if (r.ok) { status.error = null; poll(); flush(); } return r; }), logout, reauth, run, memberNames, refresh, call, flush, upload, download, remove };
 })();
