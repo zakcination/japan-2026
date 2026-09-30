@@ -9,7 +9,7 @@ function taskHTML(t, host) {
   const by = r.buy_by || k.due ? `купить до ${Core.ddmmyyyy(r.buy_by || k.due).slice(0, 5)}` : '';
   const url = Core.safeUrl(r.url || k.url);
   const when = r.opens && Date.parse(r.opens) > Date.now() ? `продажи с ${almaty(r.opens)} по Алматы` : by;
-  return `<div class="tc-card tc-task${t.done ? ' done' : ''}" data-ref="${esc(t.ref)}">
+  return `<div class="tc-card tc-task${t.done ? ' done' : ''}${t.ref === FLASH ? ' tc-flash' : ''}" data-ref="${esc(t.ref)}">
     <div class="tc-row"><b>${t.dropped ? 'Вы отписались — сдайте или перенесите билет: ' : ''}${esc(t.title)}</b>
       <label class="tc-check"><input type="checkbox" switch data-done="${esc(t.ref)}"${t.done ? ' checked' : ''} aria-label="${t.kind === 'task' ? 'Сделано' : 'Куплено'}"><span aria-hidden="true">${icon('check')}</span></label></div>
     ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub">${s}</span>`).join('')}
@@ -33,7 +33,7 @@ function wireTasks(root) {
   if (!Api.me()) return;
   root.querySelectorAll('[data-done]').forEach(i => i.addEventListener('change', () => {
     const ref = i.dataset.done, done = i.checked;
-    if (done && ref.startsWith('bk:')) track('bought');
+    if (done && /^(bk|mb):/.test(ref)) track('bought');
     Api.call('set_task_state', { p_ref: ref, p_done: done }, s => { s.task_state = s.task_state.filter(x => x.ref !== ref).concat([{ ref, done }]); });
     renderShell();
   }));

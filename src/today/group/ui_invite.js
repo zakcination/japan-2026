@@ -20,7 +20,8 @@ function openInvite(id) {
     .catch(e => { const p = document.querySelector('#tcSheet #setMsg'); if (p) p.textContent = e && !e.status ? 'Нет сети — попробуйте позже' : 'Не получилось — попробуйте ещё раз'; });
 }
 function showInvite(name, id, code) {
-  if (!id) { closeSheet(); openSettings(); return; }
+  const who = ((Api.state() || {}).members || []).find(x => x.id === id);
+  if (!id || (who && who.role !== 'guest')) { closeSheet(); openSettings(); return; }   // a host's PIN is set by the owner: no invite
   const url = inviteUrl(id, code), text = inviteText(name, url);
   sheet('Пригласить: ' + name, `<p class="tc-sub">${code ? 'Ссылка одноразовая: по ней можно войти в первый раз и придумать PIN.' : 'PIN уже есть — по ссылке откроется вход.'}</p>
     <pre class="tc-invite-text" id="grInviteText">${esc(text)}</pre>
@@ -28,7 +29,7 @@ function showInvite(name, id, code) {
     <a class="tc-btn primary wide" id="grInviteWa" href="${esc(waUrl(text))}" target="_blank" rel="noopener">${icon('share')}Отправить в WhatsApp</a>
     <div class="tc-actions two">${navigator.share ? `<button type="button" class="tc-btn" id="grInviteShare">${icon('share')}Поделиться…</button>` : ''}
       <button type="button" class="tc-btn" id="grInviteCopy">Скопировать</button></div>
-    <div class="tc-qr" id="grInviteQr">${qrSVG(url)}</div><p class="tc-foot">Или покажите QR-код — его можно навести камерой iPhone.</p>`, s => {
+    <div class="tc-invite-qr" id="grInviteQr">${qrSVG(url)}</div><p class="tc-foot">Или покажите QR-код — его можно навести камерой iPhone.</p>`, s => {
     const cp = s.querySelector('#grInviteCopy');
     cp.addEventListener('click', () => (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
       .then(() => { cp.textContent = 'Скопировано'; }, () => { cp.textContent = 'Не получилось — выделите текст'; }));
@@ -65,7 +66,7 @@ function openFirstRun(step) {
   }
   const inPart = id => (s.joins || []).some(j => j.member === me.id && j.scope === 'part' && j.ref === id && j.mode === 'in');
   const body = step === 1
-    ? `<p class="tc-sub">Шаг 1 из 2. Так приложение открывается без интернета и не теряет билеты.</p>
+    ? `<p class="tc-sub">${me && me.role !== 'host' && (s.parts || []).length ? 'Шаг 1 из 2. ' : ''}Так приложение открывается без интернета и не теряет билеты.</p>
       <ol class="tc-steps"><li><span>Нажмите «Поделиться» внизу Safari</span></li><li><span>«На экран „Домой“» → «Добавить»</span></li></ol>`
     : `<p class="tc-sub">Шаг 2 из 2. К чему вы присоединяетесь? Билеты на эти части появятся в «Делах».</p>
       <div class="tc-group">${s.parts.map(p => `<label class="tc-act tc-fr-row"><span>${esc(p.title)}</span>
@@ -82,15 +83,18 @@ function nudgeHTML(text, url, inline) {
   return `<a class="${inline ? 'tc-link' : 'tc-btn'} tc-nudge" href="${esc(waUrl(text + ': ' + url))}" target="_blank" rel="noopener" aria-label="Напомнить в WhatsApp">${icon('share')}${inline ? 'Напомнить' : 'Напомнить в WhatsApp'}</a>`;
 }
 const deepLink = h => Trips.shareUrl() + '#' + h;
+let FLASH = null;                         // the task a #task= link points at: highlighted for a moment, across re-renders
 
 /* #tab=…, #prep=…, #task=… — handled once on load, then taken off the address */
 function handleDeepLink() {
   const m = location.hash.match(/^#(tab|prep|task)=([A-Za-z0-9:_-]{1,80})$/); if (!m) return;
   history.replaceState(null, '', location.pathname + location.search);
   const [, k, v] = m;
+  const sh = document.getElementById('tcSheet'), busy = !!(sh && !sh.hidden);   // «Кто вы?» is open: keep it, just switch the tab
   if (k === 'tab' && ['now', 'day', 'tix', 'stats'].includes(v)) go(v);
-  else if (k === 'prep' && Prep.TITLES[v]) { go('now'); openPrep(v); }
+  else if (k === 'prep' && Object.prototype.hasOwnProperty.call(Prep.TITLES, v)) { go('now'); if (!busy) openPrep(v); }
   else if (k === 'task') {
+    FLASH = v; setTimeout(() => { FLASH = null; }, 2500);
     go('tix');
     const el = [...document.querySelectorAll('[data-ref]')].find(x => x.dataset.ref === v);
     if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('tc-flash'); }

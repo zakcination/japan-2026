@@ -16,6 +16,7 @@ async function openLogin() {
     let names = [];
     try { names = await Api.memberNames(); } catch (e) { names = ((Api.state() || {}).members || []); }
     const box = m.querySelector('#grNames');
+    if (!box || !box.isConnected) return;                                // another sheet took its place meanwhile
     if (!names.length) { box.innerHTML = '<p class="tc-empty">Нет сети — войдите позже.</p>'; return; }
     const invited = INVITE && names.find(n => n.id === INVITE.who);
     if (invited) { openPin(invited.id, invited.name); return; }            // came by a personal invite link

@@ -91,3 +91,30 @@ def test_funnel_counts_only_and_for_hosts_only(app):
     assert san not in json.dumps(counts) and "Сания" not in json.dumps(counts)
     r = g.page.evaluate("Api.run('funnel_counts', {}).then(() => 'ok', e => e.message)")
     assert "host only" in r
+
+
+def test_a_deep_link_before_sign_in_keeps_who_are_you(app):
+    fake = FakeSupabase.seeded(); fake._add("Сания", "guest")
+    a = app(trip=GROUPED, state=REAL, now=PRE, supabase=fake, url_suffix="#prep=tickets")
+    until(a.page, "!!document.querySelector('#grNames [data-member]')")      # «Кто вы?» filled in, not replaced
+    assert "Кто вы?" in a.page.inner_text("#tcSheet") and a.page.evaluate("location.hash") == ""
+    assert a.errors == []
+
+
+def test_task_deep_link_scrolls_to_the_task(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
+    g = logged(app, fake, san, "4821")
+    g.page.evaluate("setJoin('part', 'fuji', 'in')")
+    until(g.page, "Api.status().pending === 0")
+    g.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1'); location.hash = '#task=bk:bus18'; location.reload()")
+    g.page.wait_for_selector(".tc-tab")
+    until(g.page, "!!document.querySelector('[data-ref=\"bk:bus18\"].tc-flash')")
+    assert g.page.evaluate("location.hash") == ""
+
+
+def test_invite_qr_box_does_not_restyle_the_ticket_qr_button(app):
+    own = dict(GROUPED); own.pop("group")
+    a = app(trip=own, state={"prevDay": 2, "prevTime": "13:24"})
+    a.page.click(".tc-tab[data-tab='tix']")
+    bg = a.page.evaluate("(() => { const b = document.querySelector('.tc-qr'); return b ? getComputedStyle(b).backgroundColor : null; })()")
+    assert bg is None or bg not in ("rgb(255, 255, 255)", "rgba(0, 0, 0, 0)")

@@ -424,8 +424,8 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-share { flex: 0 0 auto; min-height: 44px; min-width: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 /* the invite kit */
 .tc-invite-text { white-space: pre-wrap; font: inherit; font-size: 15px; margin: 0 0 12px; padding: 12px; border-radius: 12px; background: var(--inset); overflow-wrap: anywhere; }
-.tc-qr { width: min(220px, 60vw); margin: 12px auto 4px; background: #fff; border-radius: 12px; overflow: hidden; }
-.tc-qr svg { display: block; width: 100%; height: auto; }
+.tc-invite-qr { width: min(220px, 60vw); margin: 12px auto 4px; background: #fff; border-radius: 12px; overflow: hidden; }
+.tc-invite-qr svg { display: block; width: 100%; height: auto; }
 .tc-btn.tc-nudge { margin-top: 8px; width: 100%; min-height: 44px; justify-content: center; }
 .tc-link.tc-nudge { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .tc-first-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
