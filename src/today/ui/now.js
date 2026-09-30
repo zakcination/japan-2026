@@ -106,7 +106,8 @@ function preTitleHTML(x) {
   if (x.ph.phase === 'post') return `<div class="tc-title"><h1>Япония</h1><span>поездка завершена</span></div>`;
   if (x.ph.phase === 'departure') return `<div class="tc-title"><h1>Япония</h1><span>вылет сегодня</span></div>`;
   const ms = (x.ph.dep || dayOne()) - Date.now(), { d, h } = daysHoursLeft(ms);
-  const sub = ms > 2 * 864e5 ? `через ${d} ${daysWord(d)}` : ms > 864e5 ? `через ${d} д ${h} ч` : 'сегодня';
+  // «pre» ends at midnight of departure day, so under 24 h here always means tomorrow
+  const sub = ms > 2 * 864e5 ? `через ${d} ${daysWord(d)}` : ms > 864e5 ? `через ${d} д ${h} ч` : 'завтра';
   return `<div class="tc-title"><h1>Япония</h1><span>${sub}</span></div>`;
 }
 /* «17 дней», from T-2 «1 д 5 ч», on the last day «5:12» */

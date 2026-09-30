@@ -16,9 +16,19 @@ IPHONE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit
 PHONE = {"width": 390, "height": 844}
 
 
+def _build():
+    subprocess.run([sys.executable, "build_guide.py"], cwd=SRC, check=True, capture_output=True)
+
+
+def pytest_configure(config):
+    # with pytest-xdist the page is built once, by the controller, before the workers start
+    if not hasattr(config, "workerinput"):
+        _build()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def built():
-    subprocess.run([sys.executable, "build_guide.py"], cwd=SRC, check=True, capture_output=True)
+    yield
 
 
 @pytest.fixture(scope="session")

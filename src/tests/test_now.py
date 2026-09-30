@@ -7,9 +7,10 @@ def at(app, time, day=2, **kw):
 
 def fits_one_screen(page):
     """What matters is on the first screen without scrolling: now and next end above the tab bar."""
-    bar = page.locator("#tcTabs").bounding_box()["y"]
-    return all(page.locator(s).bounding_box()["y"] + page.locator(s).bounding_box()["height"] <= bar + 0.5
-               for s in ("#tcNow", "#tcNext") if page.locator(s).count())
+    # measured in one step inside the page, so a re-render (weather arriving) can't slip in between
+    return page.evaluate("""() => { const bar = document.getElementById('tcTabs').getBoundingClientRect().top;
+      return ['tcNow', 'tcNext'].map(id => document.getElementById(id)).filter(Boolean)
+        .every(el => el.getBoundingClientRect().bottom <= bar + 0.5); }""")
 
 
 def test_now_and_next_by_day(app):
