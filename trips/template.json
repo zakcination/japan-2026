@@ -1843,6 +1843,120 @@
  "parts": [],
  "recipes": [],
  "group": null,
+ "prep": [
+  {
+   "id": "p-home",
+   "group": "phone",
+   "title": "Приложение на экране «Домой»",
+   "auto": "installed",
+   "note": "Поделиться → На экран «Домой». Сделайте до того, как прикреплять билеты."
+  },
+  {
+   "id": "p-suica",
+   "group": "phone",
+   "title": "Suica в Wallet",
+   "note": "Wallet → + → Проездной → Suica. Проверьте казахстанскую карту заранее."
+  },
+  {
+   "id": "p-esim",
+   "group": "phone",
+   "title": "eSIM или роуминг",
+   "due": "2026-10-14"
+  },
+  {
+   "id": "p-maps",
+   "group": "phone",
+   "title": "Офлайн-карты Токио, Киото, Нагои",
+   "due": "2026-10-15"
+  },
+  {
+   "id": "p-translate",
+   "group": "phone",
+   "title": "Google Переводчик: японский офлайн",
+   "due": "2026-10-15"
+  },
+  {
+   "id": "p-passport",
+   "group": "money",
+   "title": "Паспорт и японская виза на руках",
+   "due": "2026-10-14"
+  },
+  {
+   "id": "p-insurance",
+   "group": "money",
+   "title": "Страховка",
+   "due": "2026-10-14"
+  },
+  {
+   "id": "p-card",
+   "group": "money",
+   "title": "Карта работает за границей",
+   "note": "Предупредите банк; проверьте оплату в иенах.",
+   "due": "2026-10-14"
+  },
+  {
+   "id": "p-cash",
+   "group": "money",
+   "title": "Наличные: план на первые дни",
+   "note": "Менять в World Currency Shop, только если ≥ ¥155 за $1; иначе — 7-Bank."
+  },
+  {
+   "id": "p-vjw",
+   "group": "money",
+   "title": "Visit Japan Web: QR иммиграции и таможни",
+   "url": "https://www.vjw.digital.go.jp/",
+   "from": "2026-10-10",
+   "due": "2026-10-15",
+   "note": "Заполнить за 1–6 дней до прилёта — проверить сроки."
+  },
+  {
+   "id": "p-offline",
+   "group": "money",
+   "title": "Брони сохранены офлайн",
+   "note": "Скриншоты или PDF — во вкладке «Брони»."
+  },
+  {
+   "id": "p-adapter",
+   "group": "packing",
+   "title": "Переходник тип A"
+  },
+  {
+   "id": "p-powerbank",
+   "group": "packing",
+   "title": "Пауэрбанк ≤ 100 Wh — в ручной клади"
+  },
+  {
+   "id": "p-shoes",
+   "group": "packing",
+   "title": "Удобная обувь"
+  },
+  {
+   "id": "p-umbrella",
+   "group": "packing",
+   "title": "Зонт или дождевик"
+  },
+  {
+   "id": "p-warm",
+   "group": "packing",
+   "title": "Тёплый слой",
+   "note": "Ночью у Фудзи около 8°."
+  },
+  {
+   "id": "p-meds",
+   "group": "packing",
+   "title": "Лекарства"
+  },
+  {
+   "id": "p-snacks",
+   "group": "packing",
+   "title": "Халяль-перекус"
+  },
+  {
+   "id": "p-space",
+   "group": "packing",
+   "title": "Место для покупок / курьер чемоданов"
+  }
+ ],
  "id": "template",
- "updated": "2026-09-30T15:20+05:00"
+ "updated": "2026-09-30T16:03+05:00"
 }

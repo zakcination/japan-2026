@@ -88,6 +88,10 @@ PL = {
     "ttower":   (35.6586, 139.7454, "Tokyo Tower 📍", "Attraction"),
     "uniqlo":   (35.6737637, 139.7651281, "UNIQLO TOKYO — Ginza 🛍", "Shopping"),
     "muji":     (35.6746, 139.7668, "MUJI Ginza 🛍", "Shopping"),
+    "pvg":      (31.1443, 121.8083, None, None),
+    "maglev":   (31.2034, 121.5578, None, None),
+    "bund":     (31.2400, 121.4900, None, None),
+    "yuyuan":   (31.2272, 121.4921, None, None),
 }
 
 # ---------------------------------------------------------------------------------------
@@ -145,6 +149,36 @@ RECIPES = [
 ]
 GROUP = None   # {"url": "https://<project>.supabase.co", "anon": "<anon public key>"} — set when the owner creates the project
 
+# Preparation checklist (spec appendix B). PREP is shared by both trips; PREP_OWN (Shanghai layover
+# items) is ours only. `due`/`from` are ISO dates; `auto` marks an item the app can detect on its own.
+PREP = [
+    dict(id="p-home", group="phone", title="Приложение на экране «Домой»", auto="installed", note="Поделиться → На экран «Домой». Сделайте до того, как прикреплять билеты."),
+    dict(id="p-suica", group="phone", title="Suica в Wallet", note="Wallet → + → Проездной → Suica. Проверьте казахстанскую карту заранее."),
+    dict(id="p-esim", group="phone", title="eSIM или роуминг", due="2026-10-14"),
+    dict(id="p-maps", group="phone", title="Офлайн-карты Токио, Киото, Нагои", due="2026-10-15"),
+    dict(id="p-translate", group="phone", title="Google Переводчик: японский офлайн", due="2026-10-15"),
+    dict(id="p-passport", group="money", title="Паспорт и японская виза на руках", due="2026-10-14"),
+    dict(id="p-insurance", group="money", title="Страховка", due="2026-10-14"),
+    dict(id="p-card", group="money", title="Карта работает за границей", note="Предупредите банк; проверьте оплату в иенах.", due="2026-10-14"),
+    dict(id="p-cash", group="money", title="Наличные: план на первые дни", note="Менять в World Currency Shop, только если ≥ ¥155 за $1; иначе — 7-Bank."),
+    dict(id="p-vjw", group="money", title="Visit Japan Web: QR иммиграции и таможни", url="https://www.vjw.digital.go.jp/", **{"from": "2026-10-10"}, due="2026-10-15",
+         note="Заполнить за 1–6 дней до прилёта — проверить сроки."),
+    dict(id="p-offline", group="money", title="Брони сохранены офлайн", note="Скриншоты или PDF — во вкладке «Брони»."),
+    dict(id="p-adapter", group="packing", title="Переходник тип A"),
+    dict(id="p-powerbank", group="packing", title="Пауэрбанк ≤ 100 Wh — в ручной клади"),
+    dict(id="p-shoes", group="packing", title="Удобная обувь"),
+    dict(id="p-umbrella", group="packing", title="Зонт или дождевик"),
+    dict(id="p-warm", group="packing", title="Тёплый слой", note="Ночью у Фудзи около 8°."),
+    dict(id="p-meds", group="packing", title="Лекарства"),
+    dict(id="p-snacks", group="packing", title="Халяль-перекус"),
+    dict(id="p-space", group="packing", title="Место для покупок / курьер чемоданов"),
+]
+PREP_OWN = [
+    dict(id="p-sh-bags", group="money", title="Шанхай: уточнить, сквозной ли багаж до Ханэды", due="2026-10-10"),
+    dict(id="p-sh-visa", group="money", title="Шанхай: безвиз для граждан РК — проверить", due="2026-10-10"),
+    dict(id="p-sh-pay", group="money", title="Шанхай: юани или Alipay/WeChat Pay с иностранной картой", due="2026-10-14"),
+]
+
 BOOKINGS = [
     dict(id="flight_in", days=[1], t=P("Рейс MU575 Шанхай → Ханэда", "Прилёт в Ханэду"), when=P("17.10.2026 · 17:15 → 21:20", "17.10 · 21:20 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
     dict(id="h_sansuiso", days=[1, 2], t=P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда, 1 ночь"), when=P("17.10 → 18.10 · заезд до 23:30", "17.10 → 18.10 · заезд поздно — предупредить"), st=P("fixed", "input"), cost=P(15039, None)),
@@ -169,8 +203,10 @@ HOTEL = {1: P("Рёкан Sansuiso, Готанда", "Отель у ст. Гот
          10: "Отель в Токио (не выбран)", 11: "— вылет 20:15"}
 
 # ---------------------------------------------------------------------------------------
-def E(s, e, t, place, cat, st, **kw):
+def E(s, e, t, place, cat, st, only=None, **kw):
     ev = dict(s=s, e=e, t=t, place=place, cat=cat, st=st)
+    if only is not None:
+        ev["only"] = only
     ev.update(kw)
     return ev
 
@@ -178,6 +214,16 @@ DAYS = [
  dict(n=1, city="Токио", label="Токио", wcity="Tokyo", sun=(35.55, 139.78), summary=P("Прилёт в Ханэду в 21:20, ночь в рёкане Sansuiso в Готанде", "Прилёт в Ханэду вечером, ночь у станции Готанда"),
       konbini="Конбини у станции Готанда: вода и завтрак на раннее утро 18-го",
       ev=[
+   E("05:30", "06:45", "Шанхай: прилёт, паспортный контроль, выход в город", "pvg", "transport", "fixed", off=480, only="own",
+     mode="Самолёт MU6042", note="Безвиз для граждан РК до 30 дней — проверить. Уточнить, сквозной ли багаж до Ханэды."),
+   E("07:00", "07:30", "Маглев до Longyang Rd", "maglev", "transport", "planned", off=480, only="own", mode="Maglev",
+     note="Ходит с 06:45, ~50 юаней — проверить."),
+   E("07:30", "08:15", "Метро до Бунда", "bund", "transport", "planned", off=480, only="own", mode="Метро, линия 2", walk=10),
+   E("08:15", "10:30", "Набережная Бунд, Nanjing Road", "bund", "activity", "planned", off=480, only="own", km=3.0),
+   E("10:45", "12:15", "Сад Юйюань, старый город, обед", "yuyuan", "activity", "planned", off=480, only="own", walk=20, km=1.5),
+   E("12:30", "13:45", "Обратно в Пудун: метро + маглев", "pvg", "transport", "planned", off=480, only="own", mode="Метро + Maglev"),
+   E("14:15", "17:15", "В аэропорту: регистрация MU575, досмотр, посадка", "pvg", "transport", "fixed", off=480, only="own",
+     note="Не позже 14:15 — вылет в 17:15, международный рейс."),
    E("21:20", "22:00", P("Прилёт MU575, паспортный контроль и багаж", "Прилёт в Ханэду, паспортный контроль и багаж"), "hnd", "transport", P("fixed", "input"), mode="Самолёт", num=P("MU575", ""), frm=P("Шанхай", "—"), to="Ханэда T3", bk="flight_in",
      note="Сразу: наличные в банкомате 7-Bank, настроить Suica в Wallet."),
    E("22:00", "22:35", "Ханэда → Готанда", "gotanda", "transport", "planned", mode="Keikyu + Toei Asakusa", frm="Ханэда T3", to="Готанда", walk=5, cost=1000,
@@ -419,9 +465,12 @@ def trip(personal):
     for d in DAYS:
         d = resolve(d, personal)
         evs = []
-        for i, ev in enumerate(d["ev"]):
+        for ev in d["ev"]:
+            if ev.get("only") == "own" and not personal:
+                continue
+            ev = {k: v for k, v in ev.items() if k != "only"}
             lat, lng, stop, mcat = PL[ev["place"]]
-            x = dict(id=f'd{d["n"]}e{i}', lat=lat, lng=lng, **ev)
+            x = dict(id=f'd{d["n"]}e{len(evs)}', lat=lat, lng=lng, **ev)
             x.setdefault("walk", 0); x.setdefault("ride", 0); x.setdefault("buf", 0)
             if x.get("cost"):
                 x["cost"] = round(x["cost"] / 2)          # the schedule is written for two; stored per person
@@ -439,7 +488,7 @@ def trip(personal):
                 template="japan-11d-2026", travelers=2, start=DATES[1], currency="KZT", rate=FX,
                 bookings=bks, flights=FLIGHTS if personal else [], days=days,
                 parts=build_parts(days) if personal else [], recipes=RECIPES if personal else [],
-                group=GROUP if personal else None)
+                group=GROUP if personal else None, prep=PREP + (PREP_OWN if personal else []))
 
 
 TRIPS = pathlib.Path(__file__).resolve().parent.parent / "trips"      # served next to index.html
@@ -478,7 +527,8 @@ def build():
     stops, seen = [], set()
     for d in tpl["days"]:
         src = next(x for x in DAYS if x["n"] == d["n"])
-        for ev, raw in zip(d["ev"], src["ev"]):
+        raw_ev = [e for e in src["ev"] if e.get("only") != "own"]         # template drops own-only (Shanghai) events too
+        for ev, raw in zip(d["ev"], raw_ev):
             lat, lng, stop, mcat = PL[raw["place"]]
             if not stop or (d["n"], stop) in seen and ev["cat"] != "hotel":
                 continue
