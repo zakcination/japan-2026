@@ -102,6 +102,37 @@ FLIGHTS = [
     dict(no="MU6041", date="2026-10-28", frm="PVG", dep="15:45", to="ALA", arr="19:35"),
 ]
 
+# Buying recipes (spec appendix A). Hosts' own booking details (seats, numbers) are NOT here — only in Supabase.
+RECIPES = [
+    dict(bk="bus18", what="Автобус Keio, Busta Shinjuku → Kawaguchiko Sta., 18.10, 06:45", site="Highway Bus",
+         url="https://www.highwaybus.com/", opens=None, opens_note="за месяц — уже открыты", buy_by="2026-10-10", price_pp=2200,
+         tips="Выходить на Kawaguchiko Sta. — это не конечная. Утренние места уходят первыми."),
+    dict(bk="bus_mishima", what="Автобус Fujikyu, Kawaguchiko Sta. → Mishima Sta., 18.10, 17:00 → 18:40", site="Fujikyu",
+         url="https://bus.fujikyu.co.jp/en/highway/mishima/", opens=None, opens_note="проверить, нужна ли бронь", buy_by="2026-10-15", price_pp=2700,
+         tips="От Oishi Park до станции — ретро-автобус ~25 мин."),
+    dict(bk="shin18", what="Синкансэн Мисима → Киото, 18.10, после 19:00 (план 19:46)", site="Smart EX",
+         url="https://smart-ex.jp/en/", opens=None, opens_note="обычно за месяц — проверить", buy_by="2026-10-15", price_pp=10500,
+         tips="Место E — справа. Возьмите тот же поезд, что у хозяев."),
+    dict(bk="shin20", what="Синкансэн Киото → Нагоя, 20.10, ~14:10", site="Smart EX",
+         url="https://smart-ex.jp/en/", opens=None, opens_note="проверить", buy_by="2026-10-18", price_pp=5900,
+         tips="Чемодан больше 160 см по сумме сторон — место с багажной зоной."),
+    dict(bk="judo", what="Финалы пара-дзюдо PJU06, 21.10, 16:00, Aichi Budokan", site="Aichi-Nagoya 2026",
+         url="https://lp-apg.tickets-aichi-nagoya2026.org/pdf/guide_ja-6.pdf", opens=None, opens_note="проверить", buy_by="2026-10-19", price_pp=2000,
+         tips="Болеем за Казахстан."),
+    dict(bk="shin22", what="Синкансэн Нагоя → Токио, 22.10, 18:00–19:00", site="Smart EX",
+         url="https://smart-ex.jp/en/", opens=None, opens_note="проверить", buy_by="2026-10-20", price_pp=11300, tips=""),
+    dict(bk="disney", what="Tokyo Disneyland, 24.10, билет на дату", site="Tokyo Disney Resort",
+         url="https://www.tokyodisneyresort.jp/en/tdl/daily/calendar/20261024/", opens=None, opens_note="проверить", buy_by="2026-10-17", price_pp=12400,
+         tips="Свою еду проносить нельзя; халяля почти нет."),
+    dict(bk="sky", what="Shibuya Sky, 25.10, ~16:30 (закат ~16:50)", site="Shibuya Sky",
+         url="https://www.shibuya-scramble-square.com/sky/ticket/", opens="2026-10-11T00:00+09:00",
+         opens_note="11.10 00:00 по Японии = 10.10 20:00 по Алматы", buy_by="2026-10-11", price_pp=3400,
+         tips="Слоты на закат уходят быстро."),
+    dict(bk="teamlab", what="teamLab Borderless, 26.10, билет на время", site="teamLab",
+         url="https://www.teamlab.art/e/tokyo/", opens=None, opens_note="проверить", buy_by="2026-10-20", price_pp=3600, tips=""),
+]
+GROUP = None   # {"url": "https://<project>.supabase.co", "anon": "<anon public key>"} — set when the owner creates the project
+
 BOOKINGS = [
     dict(id="flight_in", days=[1], t=P("Рейс MU575 Шанхай → Ханэда", "Прилёт в Ханэду"), when=P("17.10.2026 · 17:15 → 21:20", "17.10 · 21:20 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
     dict(id="h_sansuiso", days=[1, 2], t=P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда, 1 ночь"), when=P("17.10 → 18.10 · заезд до 23:30", "17.10 → 18.10 · заезд поздно — предупредить"), st=P("fixed", "input"), cost=P(15039, None)),
@@ -320,6 +351,57 @@ DAYS = [
 ]
 
 # ---------------------------------------------------------------------------------------
+def _find_idx(ev, bk=None, title=None):
+    """Index of the first event matching bk or title, in a built day's ev list."""
+    for i, e in enumerate(ev):
+        if (bk is not None and e.get("bk") == bk) or (title is not None and e.get("t") == title):
+            return i
+    raise ValueError(f"event not found in day: bk={bk!r} title={title!r}")
+
+
+def build_parts(days):
+    """Parts of the trip people join as a whole (spec §5), built from the real stop ids of the
+    already-built `days` — never hardcoded id ranges, so a day's events can be reordered safely.
+    Every stop of days 1-11 ends up in exactly one part (owners' ruling, 2026-09-30):
+      arrive = day 1. fuji = day 2 up to & incl. the Kawaguchiko→Mishima bus (bk=bus_mishima).
+      kyoto = day 2 from the Mishima→Kyoto Shinkansen (bk=shin18) onward, all of day 3, day 4 up
+      to & incl. "Забрать вещи из отеля". nagoya = day 4 from the Kyoto→Nagoya train (bk=shin20)
+      onward, all of day 5, day 6 up to & incl. "Забрать вещи". tokyo = day 6 from the
+      Nagoya→Tokyo train (bk=shin22) onward, all of days 7-11.
+    """
+    by_n = {d["n"]: d for d in days}
+
+    def ids(n, lo=0, hi=None):
+        ev = by_n[n]["ev"]
+        return [e["id"] for e in ev[lo:None if hi is None else hi]]
+
+    d2, d4, d6 = by_n[2]["ev"], by_n[4]["ev"], by_n[6]["ev"]
+    i_mishima = _find_idx(d2, bk="bus_mishima")
+    i_shin18 = _find_idx(d2, bk="shin18")
+    i_kyoto_checkout = _find_idx(d4, title="Забрать вещи из отеля")
+    i_shin20 = _find_idx(d4, bk="shin20")
+    i_nagoya_checkout = _find_idx(d6, title="Забрать вещи")
+    i_shin22 = _find_idx(d6, bk="shin22")
+
+    def stop_days(stops):
+        """The days a part's stops are on, e.g. d4e7 -> 4 (a stop id is d{n}e{i})."""
+        return sorted({int(s[1:s.index("e")]) for s in stops})
+
+    parts = [
+        dict(id="arrive", title="Прилёт, Токио", stops=ids(1)),
+        dict(id="fuji", title="Фудзи / Кавагутико", stops=ids(2, 0, i_mishima + 1)),
+        dict(id="kyoto", title="Киото",
+             stops=ids(2, i_shin18) + ids(3) + ids(4, 0, i_kyoto_checkout + 1)),
+        dict(id="nagoya", title="Нагоя и дзюдо",
+             stops=ids(4, i_shin20) + ids(5) + ids(6, 0, i_nagoya_checkout + 1)),
+        dict(id="tokyo", title="Токио",
+             stops=ids(6, i_shin22) + [i for n in range(7, 12) for i in ids(n)]),
+    ]
+    for p in parts:
+        p["days"] = stop_days(p["stops"])
+    return parts
+
+
 def trip(personal):
     days = []
     for d in DAYS:
@@ -343,7 +425,9 @@ def trip(personal):
         bks.append(b)
     return dict(schema=1, name="Мирас и Айкош · Япония 2026" if personal else "Япония за 11 дней · шаблон",
                 template="japan-11d-2026", travelers=2, start=DATES[1], currency="KZT", rate=FX,
-                bookings=bks, flights=FLIGHTS if personal else [], days=days)
+                bookings=bks, flights=FLIGHTS if personal else [], days=days,
+                parts=build_parts(days) if personal else [], recipes=RECIPES if personal else [],
+                group=GROUP if personal else None)
 
 
 TRIPS = pathlib.Path(__file__).resolve().parent.parent / "trips"      # served next to index.html

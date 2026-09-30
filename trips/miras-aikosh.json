@@ -1873,6 +1873,251 @@
    ]
   }
  ],
+ "parts": [
+  {
+   "id": "arrive",
+   "title": "Прилёт, Токио",
+   "stops": [
+    "d1e0",
+    "d1e1",
+    "d1e2",
+    "d1e3"
+   ],
+   "days": [
+    1
+   ]
+  },
+  {
+   "id": "fuji",
+   "title": "Фудзи / Кавагутико",
+   "stops": [
+    "d2e0",
+    "d2e1",
+    "d2e2",
+    "d2e3",
+    "d2e4",
+    "d2e5",
+    "d2e6",
+    "d2e7",
+    "d2e8",
+    "d2e9"
+   ],
+   "days": [
+    2
+   ]
+  },
+  {
+   "id": "kyoto",
+   "title": "Киото",
+   "stops": [
+    "d2e10",
+    "d2e11",
+    "d2e12",
+    "d3e0",
+    "d3e1",
+    "d3e2",
+    "d3e3",
+    "d3e4",
+    "d3e5",
+    "d3e6",
+    "d3e7",
+    "d3e8",
+    "d3e9",
+    "d3e10",
+    "d3e11",
+    "d4e0",
+    "d4e1",
+    "d4e2",
+    "d4e3",
+    "d4e4",
+    "d4e5",
+    "d4e6"
+   ],
+   "days": [
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "nagoya",
+   "title": "Нагоя и дзюдо",
+   "stops": [
+    "d4e7",
+    "d4e8",
+    "d4e9",
+    "d4e10",
+    "d4e11",
+    "d5e0",
+    "d5e1",
+    "d5e2",
+    "d5e3",
+    "d5e4",
+    "d5e5",
+    "d5e6",
+    "d6e0",
+    "d6e1",
+    "d6e2",
+    "d6e3",
+    "d6e4"
+   ],
+   "days": [
+    4,
+    5,
+    6
+   ]
+  },
+  {
+   "id": "tokyo",
+   "title": "Токио",
+   "stops": [
+    "d6e5",
+    "d6e6",
+    "d6e7",
+    "d7e0",
+    "d7e1",
+    "d7e2",
+    "d7e3",
+    "d7e4",
+    "d7e5",
+    "d7e6",
+    "d8e0",
+    "d8e1",
+    "d8e2",
+    "d8e3",
+    "d9e0",
+    "d9e1",
+    "d9e2",
+    "d9e3",
+    "d9e4",
+    "d9e5",
+    "d10e0",
+    "d10e1",
+    "d10e2",
+    "d10e3",
+    "d10e4",
+    "d10e5",
+    "d11e0",
+    "d11e1",
+    "d11e2",
+    "d11e3",
+    "d11e4",
+    "d11e5",
+    "d11e6",
+    "d11e7"
+   ],
+   "days": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ]
+  }
+ ],
+ "recipes": [
+  {
+   "bk": "bus18",
+   "what": "Автобус Keio, Busta Shinjuku → Kawaguchiko Sta., 18.10, 06:45",
+   "site": "Highway Bus",
+   "url": "https://www.highwaybus.com/",
+   "opens": null,
+   "opens_note": "за месяц — уже открыты",
+   "buy_by": "2026-10-10",
+   "price_pp": 2200,
+   "tips": "Выходить на Kawaguchiko Sta. — это не конечная. Утренние места уходят первыми."
+  },
+  {
+   "bk": "bus_mishima",
+   "what": "Автобус Fujikyu, Kawaguchiko Sta. → Mishima Sta., 18.10, 17:00 → 18:40",
+   "site": "Fujikyu",
+   "url": "https://bus.fujikyu.co.jp/en/highway/mishima/",
+   "opens": null,
+   "opens_note": "проверить, нужна ли бронь",
+   "buy_by": "2026-10-15",
+   "price_pp": 2700,
+   "tips": "От Oishi Park до станции — ретро-автобус ~25 мин."
+  },
+  {
+   "bk": "shin18",
+   "what": "Синкансэн Мисима → Киото, 18.10, после 19:00 (план 19:46)",
+   "site": "Smart EX",
+   "url": "https://smart-ex.jp/en/",
+   "opens": null,
+   "opens_note": "обычно за месяц — проверить",
+   "buy_by": "2026-10-15",
+   "price_pp": 10500,
+   "tips": "Место E — справа. Возьмите тот же поезд, что у хозяев."
+  },
+  {
+   "bk": "shin20",
+   "what": "Синкансэн Киото → Нагоя, 20.10, ~14:10",
+   "site": "Smart EX",
+   "url": "https://smart-ex.jp/en/",
+   "opens": null,
+   "opens_note": "проверить",
+   "buy_by": "2026-10-18",
+   "price_pp": 5900,
+   "tips": "Чемодан больше 160 см по сумме сторон — место с багажной зоной."
+  },
+  {
+   "bk": "judo",
+   "what": "Финалы пара-дзюдо PJU06, 21.10, 16:00, Aichi Budokan",
+   "site": "Aichi-Nagoya 2026",
+   "url": "https://lp-apg.tickets-aichi-nagoya2026.org/pdf/guide_ja-6.pdf",
+   "opens": null,
+   "opens_note": "проверить",
+   "buy_by": "2026-10-19",
+   "price_pp": 2000,
+   "tips": "Болеем за Казахстан."
+  },
+  {
+   "bk": "shin22",
+   "what": "Синкансэн Нагоя → Токио, 22.10, 18:00–19:00",
+   "site": "Smart EX",
+   "url": "https://smart-ex.jp/en/",
+   "opens": null,
+   "opens_note": "проверить",
+   "buy_by": "2026-10-20",
+   "price_pp": 11300,
+   "tips": ""
+  },
+  {
+   "bk": "disney",
+   "what": "Tokyo Disneyland, 24.10, билет на дату",
+   "site": "Tokyo Disney Resort",
+   "url": "https://www.tokyodisneyresort.jp/en/tdl/daily/calendar/20261024/",
+   "opens": null,
+   "opens_note": "проверить",
+   "buy_by": "2026-10-17",
+   "price_pp": 12400,
+   "tips": "Свою еду проносить нельзя; халяля почти нет."
+  },
+  {
+   "bk": "sky",
+   "what": "Shibuya Sky, 25.10, ~16:30 (закат ~16:50)",
+   "site": "Shibuya Sky",
+   "url": "https://www.shibuya-scramble-square.com/sky/ticket/",
+   "opens": "2026-10-11T00:00+09:00",
+   "opens_note": "11.10 00:00 по Японии = 10.10 20:00 по Алматы",
+   "buy_by": "2026-10-11",
+   "price_pp": 3400,
+   "tips": "Слоты на закат уходят быстро."
+  },
+  {
+   "bk": "teamlab",
+   "what": "teamLab Borderless, 26.10, билет на время",
+   "site": "teamLab",
+   "url": "https://www.teamlab.art/e/tokyo/",
+   "opens": null,
+   "opens_note": "проверить",
+   "buy_by": "2026-10-20",
+   "price_pp": 3600,
+   "tips": ""
+  }
+ ],
+ "group": null,
  "id": "miras-aikosh",
- "updated": "2026-09-29T19:23+05:00"
+ "updated": "2026-09-30T12:28+05:00"
 }
