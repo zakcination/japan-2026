@@ -10,7 +10,7 @@ def test_five_tabs_and_switching(app):
     a = at(app, "13:24")
     tabs = a.page.locator(".tc-tab")
     assert tabs.count() == 5
-    assert [t.inner_text().strip() for t in tabs.all()] == ["Сейчас", "День", "Брони", "Итоги", "Карта"]
+    assert [t.inner_text().strip() for t in tabs.all()] == ["Сейчас", "День", "Дела", "Итоги", "Карта"]
     assert tabs.nth(0).get_attribute("aria-selected") == "true"
     tabs.nth(1).click()
     assert tabs.nth(1).get_attribute("aria-selected") == "true"

@@ -29,7 +29,7 @@ const ICONS = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
-const TABS = [['now', 'Сейчас'], ['day', 'День'], ['tix', 'Брони'], ['stats', 'Итоги'], ['map', 'Карта']];
+const TABS = [['now', 'Сейчас'], ['day', 'День'], ['tix', 'Дела'], ['stats', 'Итоги'], ['map', 'Карта']];
 const RENDER = {};
 let tab = 'now';
 
