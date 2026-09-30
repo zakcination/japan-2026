@@ -126,21 +126,32 @@ const Flights = (() => {
   const statusUrl = no => `https://www.flightradar24.com/data/flights/${normNo(no).toLowerCase()}`;
   const codes = () => Object.keys(AIRPORTS);
 
-  /* where the traveller is: before the trip, departure day, in transit, in Japan, after */
+  /* where the traveller is: before the trip, departure day, in transit, in Japan, after.
+     The outbound chain is the legs up to and including the first one landing in Japan; a leg beyond
+     it (the way home) never counts. Without such a leg — no flights entered, only a return chain, or
+     the earliest leg already starts from Japan — the phase follows the trip's own dates instead. */
   const JST = 540;
   const dayStart = (iso, off) => Date.parse(iso + 'T00:00:00Z') - off * 60000;
+  const byDates = (nowMs, firstISO) => ({ phase: nowMs < dayStart(firstISO, JST) ? 'pre' : 'live', dep: null, arrive: null, leg: null });
   function phase(nowMs, list, firstISO, lastISO) {
     const legs = cleanList(list);
     const end = dayStart(lastISO, JST) + 864e5;
     if (nowMs >= end) return { phase: 'post', dep: null, arrive: null, leg: null };
-    if (!legs.length) return { phase: nowMs < dayStart(firstISO, JST) ? 'pre' : 'live', dep: null, arrive: null, leg: null };
-    const first = legs[0], t0 = times(first);
+    if (!legs.length) return byDates(nowMs, firstISO);
+    const outboundEnd = legs.findIndex(l => JAPAN.has(l.to));
+    if (outboundEnd < 0 || JAPAN.has(legs[0].frm)) return byDates(nowMs, firstISO);
+    const chain = legs.slice(0, outboundEnd + 1);
+    const first = chain[0], t0 = times(first);
     const o = offsetAt(first.frm, t0.dep, first.frmOff) || 0;
-    const toJapan = legs.find(l => JAPAN.has(l.to) && times(l).dep >= t0.dep);
-    const arrive = toJapan ? times(toJapan).arr : null;
+    const arrive = times(chain[chain.length - 1]).arr;
     if (nowMs < dayStart(first.date, o)) return { phase: 'pre', dep: t0.dep, arrive, leg: first };
     if (nowMs < t0.dep) return { phase: 'departure', dep: t0.dep, arrive, leg: first };
-    if (arrive && nowMs < arrive) return { phase: 'transit', dep: t0.dep, arrive, leg: legs.find(l => times(l).dep > nowMs) || null };
+    const landed = arrive != null ? nowMs >= arrive : nowMs >= dayStart(firstISO, JST);
+    if (!landed) {
+      const inFlight = chain.find(l => { const tt = times(l); return tt.dep <= nowMs && (tt.arr == null || nowMs < tt.arr); });
+      const leg = inFlight || chain.find(l => times(l).dep > nowMs) || chain[chain.length - 1];
+      return { phase: 'transit', dep: t0.dep, arrive, leg };
+    }
     return { phase: 'live', dep: t0.dep, arrive, leg: null };
   }
 
