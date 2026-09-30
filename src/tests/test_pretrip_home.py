@@ -11,9 +11,9 @@ def home(app, now="2026-09-30T12:00:00+09:00", **kw):
 
 def test_before_the_trip_countdown_first_thing_and_readiness_above_the_fold(app):
     a = home(app)
-    assert "Япония" in a.page.inner_text(".tc-title h1") and "через 17 дней" in a.page.inner_text(".tc-title")   # 16.5 days, rounded up
+    assert "Япония" in a.page.inner_text(".tc-title h1") and "через 16 дней" in a.page.inner_text(".tc-title")   # 16.53 days, floored
     assert a.page.locator(".tc-segs").count() == 0 and a.page.locator("#tcCap").count() == 0
-    assert "16 дней" in a.page.inner_text("#tcCount") and "MU 6042" in a.page.inner_text("#tcCount")   # 16.53 days, floored
+    assert "16 дней" in a.page.inner_text("#tcCount") and "MU 6042" in a.page.inner_text("#tcCount")   # same floor as the title, never disagree
     first = a.page.inner_text("#tcFirst")
     assert a.page.inner_text("#tcFirst b").strip() and "ещё" in first
     ready = a.page.locator("#tcReady [data-ready]")
@@ -47,10 +47,23 @@ def test_departure_transit_live_post(app):
     assert "Поездка завершена" in p.page.inner_text("#todayBody")
 
 
+def test_title_and_hero_countdown_never_disagree(app):
+    def n_of(a):
+        title_n = int(re.search(r"через (\d+)", a.page.inner_text(".tc-title")).group(1))
+        hero_n = int(re.match(r"(\d+)", a.page.inner_text("#tcCount .tc-count-n")).group(1))
+        return title_n, hero_n
+    a = home(app, now="2026-09-30T12:00:00+09:00")               # 16.53 days to MU6042 — both floor to 16
+    t, h = n_of(a)
+    assert t == h == 16
+    b = home(app, now="2026-10-14T12:00:00+09:00")                # ~2.53 days to MU6042 — both floor to 2
+    t, h = n_of(b)
+    assert t == h == 2
+
+
 def test_no_flights_falls_back_to_dates(app):
     a = app(trip=dict(OWN, flights=[]), state=REAL, now="2026-09-30T12:00:00+09:00")
     a.page.evaluate("localStorage.setItem('japan2026.flights.v1', '[]'); renderShell()")
-    assert "через 17 дней" in a.page.inner_text(".tc-title") and a.errors == []
+    assert "через 16 дней" in a.page.inner_text(".tc-title") and a.errors == []
 
 
 def test_preview_lives_on_day_tab(app):

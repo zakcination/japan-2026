@@ -96,16 +96,23 @@ function preCapsuleHTML() {
   return `<button type="button" class="tc-cap soon tc-cap-pre" id="tcCap" data-cap-prep aria-label="${esc(o.title)}: продажи через ${when}">
     <span class="tc-cap-t tc-cap-name">${esc(name)}</span><span class="tc-cap-t tc-cap-when">· продажи через ${when}</span></button>`;
 }
+/* floor-based minutes/days/hours left, shared by the title («через …») and the hero countdown
+   (#tcCount) so the two numbers never disagree — both read the same floored day count. */
+function daysHoursLeft(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  return { m, d: Math.floor(m / 1440), h: Math.floor(m % 1440 / 60) };
+}
 function preTitleHTML(x) {
   if (x.ph.phase === 'post') return `<div class="tc-title"><h1>Япония</h1><span>поездка завершена</span></div>`;
   if (x.ph.phase === 'departure') return `<div class="tc-title"><h1>Япония</h1><span>вылет сегодня</span></div>`;
-  const n = Math.max(0, Math.ceil(((x.ph.dep || dayOne()) - Date.now()) / 864e5));
-  return `<div class="tc-title"><h1>Япония</h1><span>через ${n} ${daysWord(n)}</span></div>`;
+  const ms = (x.ph.dep || dayOne()) - Date.now(), { d, h } = daysHoursLeft(ms);
+  const sub = ms > 2 * 864e5 ? `через ${d} ${daysWord(d)}` : ms > 864e5 ? `через ${d} д ${h} ч` : 'сегодня';
+  return `<div class="tc-title"><h1>Япония</h1><span>${sub}</span></div>`;
 }
 /* «17 дней», from T-2 «1 д 5 ч», on the last day «5:12» */
 function countdownText(ms) {
-  const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
-  if (ms > 2 * 864e5) { const n = Math.floor(ms / 864e5); return `${n} ${daysWord(n)}`; }
+  const { m, d, h } = daysHoursLeft(ms);
+  if (ms > 2 * 864e5) return `${d} ${daysWord(d)}`;
   if (ms > 864e5) return `${d} д ${h} ч`;
   return Core.cd(m);
 }
