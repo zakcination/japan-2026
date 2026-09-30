@@ -2012,6 +2012,39 @@ def test_csp_allows_supabase_only(app, site):
 - [ ] **Step 3: Update CSP and README; run the full suite and the map scripts** (`cd src && for t in test_v3 test_cluster test_kz test_overlap test_offline; do ../.venv/bin/python tests/$t.py; done`), remove screenshots they write into `src/`.
 - [ ] **Step 4: Commit** `git commit -m "Group: allow Supabase in the CSP; setup guide"`.
 
+### Task 10a: Activation — invite kit, first run, WhatsApp nudges, private funnel
+
+Added 30.09 at the owner's request (GTM: get all five active before ticket deadlines). Success = every member has
+logged in, installed the app on the Home Screen and joined at least one part.
+
+**Files:**
+- Create: `src/today/group/ui_invite.js`, `src/today/vendor/qrcode.js` (qrcode-generator by Kazuhiko Arase, MIT, pinned copy with its licence header), `src/tests/test_group_invite.py`
+- Modify: `src/today/group/ui_login.js` (pre-select `?who=`; first-run sheet after the first login), `src/today/group/ui_tasks.js` + `src/today/ui/now.js` («Напомнить в WhatsApp» on deadline cards), `src/today/boot.js` (hash router `#tab=<key>`, `#prep=<group>`), `src/tests/fake_supabase.py`, `supabase/migrations/001_group.sql`, `src/tests/group_contract.py`, `src/build_guide.py` (module list: `vendor/qrcode.js` before `group/ui_invite.js`)
+
+**Interfaces:**
+- Consumes: `Api.*`, `openLogin/openPin`, `Group.effective`, `Prep.*`, `openPrep`, `Ios.standalone()`, `Trips.shareUrl()`.
+- Produces:
+  - `inviteUrl(member) -> string` = `Trips.shareUrl()` + `&who=<member id>` (the id is not a secret: the PIN still guards the account).
+  - ⚙ (hosts): each guest row gets «Пригласить» `[data-invite=<id>]` → sheet with the ready WhatsApp text, «Отправить в WhatsApp» (`https://wa.me/?text=<encoded>`), «Поделиться…» (`navigator.share`), «Скопировать», and a QR code of `inviteUrl` (SVG from `qrcode.js`, no network).
+  - Invite text (Russian, one message): greeting with the name, what the app is (one line), 3 steps «1. Откройте ссылку в Safari 2. Выберите себя и придумайте PIN 3. Поделиться → На экран «Домой»», the link.
+  - `?who=<id>` on first open: the login sheet opens straight on that person's PIN step (still requires the PIN).
+  - First-run sheet `#grFirstRun` (once per device, `japan2026.onboarded.v1`), right after the first successful login: step 1 «На экран «Домой»» (skipped when `Ios.standalone()`), step 2 «К чему вы присоединяетесь?» — the trip parts as switches (`set_join` part in/none), step 3 → closes and opens «Дела» («Мне купить»).
+  - `nudgeHTML(text, url) -> html` — a secondary button «Напомнить в WhatsApp» (`https://wa.me/?text=`) that shares «<title> — <deadline in words>: <deep link>»; on the pre-trip «Сначала это» card and on each «Мне купить» task with a `buy_by`/`opens`.
+  - Deep links: `#tab=now|day|tix|stats`, `#prep=tickets|phone|money|packing`, `#task=<ref>` (scrolls to the task in «Дела»); handled once on load, then the hash is cleared (`history.replaceState`).
+  - Private funnel: table `member_events(member, event, at)` unique on (member, event); RPC `track(p_event)` (member only; events: `login`, `installed`, `joined`, `bought`) and host-only RPC `funnel_counts()` → `{login: n, installed: n, joined: n, bought: n, members: n}` — counts only, never who. The app calls `track` on first login, when `Ios.standalone()` is first true, on the first `set_join … in`, on the first «Куплено». ⚙ (hosts) shows «Приглашены 5 · вошли 3 · на экране Домой 2 · присоединились 2 · купили 1».
+
+- [ ] **Step 1: Tests** (`src/tests/test_group_invite.py`, multi-phone with `FakeSupabase` as in Task 7):
+  - host opens ⚙ → «Пригласить» for Сания → the sheet shows her name, the 3 steps and a link ending `&who=<id>`; the WhatsApp button href starts `https://wa.me/?text=` and decodes to the same text; the QR `<svg>` exists; buttons ≥ 44 px.
+  - a fresh phone opens `…?trip=miras-aikosh&who=<id>` → the PIN step for «Сания» is showing without choosing a name; after the PIN the first-run sheet appears; switching «Фудзи / Кавагутико» on and finishing lands on «Дела» with bus18 in «Мне купить»; reopening the app doesn't show the first run again.
+  - `#prep=tickets` on load opens «Подготовка» at tickets and the hash is gone afterwards; `#tab=tix` opens «Дела».
+  - nudge on the «Сначала это» card: href `https://wa.me/?text=` whose decoded text contains the item title and a deep link with `#prep=`.
+  - funnel: after Сания logs in and joins, the host's ⚙ shows «вошли 2 … присоединились 1» (host counts too); `funnel_counts` by a guest → error «host only»; the payload has no member ids or names.
+  - contract (`group_contract.py`): `track` by a stranger → «not a member»; repeated `track('login')` counts once; `funnel_counts` returns counts only.
+- [ ] **Step 2: Run — fails.**
+- [ ] **Step 3: Implement** (SQL mirrors the fake; `track` validates the event name against the four allowed values; `funnel_counts` is `security definer`, `_host()`-guarded, returns aggregates for the caller's trip). Vendor `qrcode.js` as a file with its MIT header (no network at runtime; CSP unchanged).
+- [ ] **Step 4: Run** tests → PASS; full suite green; screenshots of the invite sheet and first run at 390×844.
+- [ ] **Step 5: Commit** `git commit -m "Group: invite kit with WhatsApp and QR, first-run onboarding, deadline nudges, private activation funnel"`
+
 ### Task 11: Go live — project setup with the owner, contract run, reviews, publish
 
 **Files:**
