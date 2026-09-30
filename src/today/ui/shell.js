@@ -86,6 +86,20 @@ function titleHTML(day, side) {
   return `<div class="tc-title"><h1>${esc(day.label)}</h1>${side || `<span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span>`}</div>`;
 }
 
+/* while in transit there is no «today» to show day segments for: the title names the current step —
+   still on the ground at a stop (the leg about to depart names where we're waiting), or airborne */
+const SHANGHAI_AIRPORTS = new Set(['PVG', 'SHA']);
+function transitTitleHTML(x) {
+  const leg = x.ph.leg;
+  let sub = '';
+  if (leg) {
+    const tt = Flights.times(leg), now = Date.now();
+    const flying = tt && tt.dep <= now && (tt.arr == null || now < tt.arr);
+    sub = flying ? 'в полёте' : SHANGHAI_AIRPORTS.has(leg.frm) ? 'пересадка в Шанхае' : `пересадка · ${Flights.airport(leg.frm)}`;
+  }
+  return `<div class="tc-title"><h1>В пути</h1><span>${esc(sub)}</span></div>`;
+}
+
 function mountShell() {
   const root = document.getElementById('today');
   if (document.getElementById('tcHead')) return;
@@ -124,6 +138,8 @@ function renderShell() {
   head.hidden = !withHead;
   head.innerHTML = !withHead ? '' : x.quiet
     ? gearHTML() + preCapsuleHTML() + (tab === 'now' ? preTitleHTML(x) : titleHTML(x.day))
+    : x.ph.phase === 'transit'
+    ? gearHTML() + capsuleHTML(x.urg) + (tab === 'now' ? transitTitleHTML(x) : titleHTML(x.day))
     : gearHTML() + capsuleHTML(x.urg) + segmentsHTML(x) + titleHTML(tab === 'now' ? x.cday : x.day, x.pv && tab === 'now' ? pvTopHTML(x) : '');
   document.querySelectorAll('.tc-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   root.dataset.tab = tab;

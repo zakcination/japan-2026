@@ -24,5 +24,5 @@ def test_prep_list_is_complete_and_public_safe():
     assert "Шанхай" in own_titles and "Шанхай" not in " ".join(p["title"] for p in TPL["prep"])
     assert any(p.get("auto") == "installed" for p in OWN["prep"])
     vjw = next(p for p in OWN["prep"] if "Visit Japan Web" in p["title"])
-    assert vjw["from"] == "2026-10-10"                                           # T-6
+    assert vjw["from"] == "2026-10-11"                                           # T-6
     assert "09A" not in json.dumps(OWN, ensure_ascii=False)

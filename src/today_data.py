@@ -161,7 +161,7 @@ PREP = [
     dict(id="p-insurance", group="money", title="Страховка", due="2026-10-14"),
     dict(id="p-card", group="money", title="Карта работает за границей", note="Предупредите банк; проверьте оплату в иенах.", due="2026-10-14"),
     dict(id="p-cash", group="money", title="Наличные: план на первые дни", note="Менять в World Currency Shop, только если ≥ ¥155 за $1; иначе — 7-Bank."),
-    dict(id="p-vjw", group="money", title="Visit Japan Web: QR иммиграции и таможни", url="https://www.vjw.digital.go.jp/", **{"from": "2026-10-10"}, due="2026-10-15",
+    dict(id="p-vjw", group="money", title="Visit Japan Web: QR иммиграции и таможни", url="https://www.vjw.digital.go.jp/", **{"from": "2026-10-11"}, due="2026-10-15",
          note="Заполнить за 1–6 дней до прилёта — проверить сроки."),
     dict(id="p-offline", group="money", title="Брони сохранены офлайн", note="Скриншоты или PDF — во вкладке «Брони»."),
     dict(id="p-adapter", group="packing", title="Переходник тип A"),

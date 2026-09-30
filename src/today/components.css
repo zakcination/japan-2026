@@ -395,7 +395,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
   border: 0; border-radius: 999px; background: var(--note); color: var(--text); font: 600 13px/1 var(--sf); cursor: pointer; }
 .tc-title:has(.tc-pvchip) h1 { font-size: 28px; }
 #today .tc-pvchip .tc-ic { width: 14px; height: 14px; color: var(--sec); }
-.tc-late { color: var(--bad); font-weight: 600; }
+.tc-late { color: var(--late); font-weight: 600; }
 .tc-steps li.now { color: var(--tint); font-weight: 700; }
 .tc-steps li.now::before { background: var(--tint); }
 .tc-steps li.done { color: var(--sec); }

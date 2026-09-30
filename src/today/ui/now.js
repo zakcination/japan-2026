@@ -105,7 +105,7 @@ function preTitleHTML(x) {
 /* «17 дней», from T-2 «1 д 5 ч», on the last day «5:12» */
 function countdownText(ms) {
   const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
-  if (ms > 2 * 864e5) { const n = Math.ceil(ms / 864e5); return `${n} ${daysWord(n)}`; }
+  if (ms > 2 * 864e5) { const n = Math.floor(ms / 864e5); return `${n} ${daysWord(n)}`; }
   if (ms > 864e5) return `${d} д ${h} ч`;
   return Core.cd(m);
 }

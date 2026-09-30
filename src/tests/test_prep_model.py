@@ -64,9 +64,9 @@ def test_from_gate_blocks_a_prep_item_until_its_date(core):
     pg = core(("core.js", "flights.js", "prep.js"))
     ids = P(pg, "return I.filter(i => i.id !== 'p-vjw').map(i => i.id);")
     local = {"done": {i: True for i in ids}, "own": []}
-    before = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 8, 15), {DEP});", local=local)   # 09.10 00:00 JST
-    assert before["item"] is None                                 # Visit Japan Web opens 10.10 — nothing doable yet
-    after = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 9, 15), {DEP});", local=local)    # 10.10 00:00 JST
+    before = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 9, 15), {DEP});", local=local)   # 10.10 00:00 JST
+    assert before["item"] is None                                 # Visit Japan Web opens 11.10 — nothing doable yet
+    after = P(pg, f"return Prep.first(I, Date.UTC(2026, 9, 10, 15), {DEP});", local=local)   # 11.10 00:00 JST
     assert after["item"]["id"] == "p-vjw"                         # `from` has arrived — now it's the first thing
 
 

@@ -13,7 +13,7 @@ def test_before_the_trip_countdown_first_thing_and_readiness_above_the_fold(app)
     a = home(app)
     assert "Япония" in a.page.inner_text(".tc-title h1") and "через 17 дней" in a.page.inner_text(".tc-title")   # 16.5 days, rounded up
     assert a.page.locator(".tc-segs").count() == 0 and a.page.locator("#tcCap").count() == 0
-    assert "17 дней" in a.page.inner_text("#tcCount") and "MU 6042" in a.page.inner_text("#tcCount")
+    assert "16 дней" in a.page.inner_text("#tcCount") and "MU 6042" in a.page.inner_text("#tcCount")   # 16.53 days, floored
     first = a.page.inner_text("#tcFirst")
     assert a.page.inner_text("#tcFirst b").strip() and "ещё" in first
     ready = a.page.locator("#tcReady [data-ready]")
@@ -123,3 +123,31 @@ def test_capsule_says_what_opens_and_opens_the_tickets(app):
 def test_hotel_tasks_say_book_not_buy(app):
     a = home(app)
     assert "Забронировать: отель в Киото, 18.10 → 20.10 (2 ночи)" in a.page.inner_text("#tcFirst b")
+
+
+def test_overdue_task_color_is_readable(app):
+    a = home(app, now="2026-10-05T12:00:00+09:00")                       # Kyoto hotel due 03.10 — already overdue
+    assert "срок был 03.10" in a.page.inner_text("#tcFirst")
+    color = a.page.eval_on_selector(".tc-late", "el => getComputedStyle(el).color")
+    assert color == "rgb(215, 0, 21)"
+
+
+def test_transit_header_has_no_day_segments_and_names_the_step(app):
+    g = home(app, now="2026-10-17T10:35:00+08:00")                       # between two Shanghai stops
+    assert g.page.locator(".tc-segs").count() == 0
+    assert g.page.inner_text(".tc-title h1").strip() == "В пути"
+    assert "Шанхае" in g.page.inner_text(".tc-title")
+    a = home(app, now="2026-10-17T19:30:00+08:00")                       # MU575 in the air
+    assert a.page.locator(".tc-segs").count() == 0
+    assert a.page.inner_text(".tc-title h1").strip() == "В пути"
+    assert "в полёте" in a.page.inner_text(".tc-title")
+
+
+def test_countdown_skips_no_whole_day(app):
+    def no_flights(now):
+        a = app(trip=dict(OWN, flights=[]), state=REAL, now=now)
+        a.page.evaluate("localStorage.setItem('japan2026.flights.v1', '[]'); renderShell()")
+        return a
+    assert "2 дня" in no_flights("2026-10-14T12:00:00+09:00").page.inner_text("#tcCount")     # 60 h before day 1
+    assert "1 д 6 ч" in no_flights("2026-10-15T18:00:00+09:00").page.inner_text("#tcCount")   # 30 h before day 1
+    assert "5:12" in no_flights("2026-10-16T18:48:00+09:00").page.inner_text("#tcCount")      # 5 h 12 min before day 1
