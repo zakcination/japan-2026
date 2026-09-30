@@ -88,6 +88,7 @@ PL = {
     "ttower":   (35.6586, 139.7454, "Tokyo Tower 📍", "Attraction"),
     "uniqlo":   (35.6737637, 139.7651281, "UNIQLO TOKYO — Ginza 🛍", "Shopping"),
     "muji":     (35.6746, 139.7668, "MUJI Ginza 🛍", "Shopping"),
+    "ap":       (35.6717, 139.7650, "Audemars Piguet — Гиндза ⌚ (адрес уточнить)", "Event"),
     "pvg":      (31.1443, 121.8083, None, None),
     "maglev":   (31.2034, 121.5578, None, None),
     "bund":     (31.2400, 121.4900, None, None),
@@ -146,6 +147,9 @@ RECIPES = [
          tips="Слоты на закат уходят быстро."),
     dict(bk="teamlab", what="teamLab Borderless, 26.10, билет на время", site="teamLab",
          url="https://www.teamlab.art/e/tokyo/", opens=None, opens_note="проверить", buy_by="2026-10-20", price_pp=3600, tips=""),
+    dict(bk="ap", what="Мастер-класс Audemars Piguet, Токио, 27.10: записаться", site="Audemars Piguet",
+         url="https://www.audemarspiguet.com/", opens=None, opens_note="запись через бутик — уточнить", buy_by="2026-10-15", price_pp=None,
+         tips="Место, время и цену уточнить при записи. Нужен ~2 ч до 16:30: потом забираем вещи и едем в Ханэду."),
 ]
 GROUP = None   # {"url": "https://<project>.supabase.co", "anon": "<anon public key>"} — set when the owner creates the project
 
@@ -194,6 +198,7 @@ BOOKINGS = [
     dict(id="disney", days=[8], t="Tokyo Disneyland", when="24.10 · 09:00–21:00", st="input", cost=24800),
     dict(id="sky", days=[9], t="Shibuya Sky", when="25.10 · ~16:30", st="input", cost=6800),
     dict(id="teamlab", days=[10], t="teamLab Borderless", when="26.10", st="input", cost=7200),
+    dict(id="ap", days=[11], t="Мастер-класс Audemars Piguet", when="27.10 · 13:30–15:30 · Гиндза", st="input", cost=None, only="own"),
     dict(id="flight_out", days=[11], t=P("Рейс MU540 Ханэда → Шанхай", "Вылет из Ханэды"), when=P("27.10.2026 · 20:15", "27.10 · 20:15 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
 ]
 
@@ -391,7 +396,7 @@ DAYS = [
    E("18:30", "20:00", "Ужин", "tokyo_h", "food", "planned", ride=20, cost=4000),
  ]),
  dict(n=11, city="Токио → Ханэда", label="Токио → Ханэда", wcity="Tokyo", sun=(35.55, 139.78),
-      summary="Последнее утро, покупки, в 17:15 выезд в Ханэду, вылет 20:15",
+      summary=P("Последнее утро, покупки, мастер-класс Audemars Piguet, в 17:15 выезд в Ханэду, вылет 20:15", "Последнее утро, покупки, в 17:15 выезд в Ханэду, вылет 20:15"),
       konbini="Последний 7-Eleven: снеки домой, остаток Suica",
       transfer=dict(frm="Токио", to="Ханэда", s="17:15", e="18:00", how="Keikyu / метро", dur="~45 мин",
                     after=[P("Регистрация на MU540", "Регистрация на рейс"), "Tax-free покупки — под рукой", "Вылет 20:15"]),
@@ -399,7 +404,9 @@ DAYS = [
    E("08:00", "10:00", "Завтрак, сборы, выселение, вещи на хранение", "tokyo_h", "hotel", "planned"),
    E("10:00", "12:00", "Асакуса / Каппабаси — последние покупки", "sensoji", "activity", "flex", walk=10, km=2.0),
    E("12:00", "13:00", "Обед", "sensoji", "food", "planned", cost=3000),
-   E("13:30", "16:00", "Акихабара или отдых", "akiba", "activity", "flex", ride=10, km=1.5),
+   E("13:30", "15:30", "Мастер-класс Audemars Piguet (часовое дело)", "ap", "event", "input", ride=15, walk=5, mode="Метро", bk="ap", km=0.5,
+     note="Место, время и цену уточнить при записи; записываться заранее через бутик AP.", only="own"),
+   E("13:30", "16:00", "Акихабара или отдых", "akiba", "activity", "flex", ride=10, km=1.5, only="tpl"),
    E("16:30", "17:00", "Забрать вещи из отеля", "tokyo_h", "hotel", "planned", ride=10),
    E("17:15", "18:00", "Отель → Ханэда", "hnd", "transport", "planned", mode="Keikyu / Toei Asakusa", frm="Отель", to="Ханэда T3", walk=5, buf=15, cost=1200),
    E("18:00", "18:15", "В аэропорту за 2 часа: регистрация", "hnd", "routine", "planned"),
@@ -466,6 +473,8 @@ def trip(personal):
         d = resolve(d, personal)
         evs = []
         for ev in d["ev"]:
+            if ev.get("only") == "tpl" and personal:
+                continue
             if ev.get("only") == "own" and not personal:
                 continue
             ev = {k: v for k, v in ev.items() if k != "only"}
@@ -481,6 +490,8 @@ def trip(personal):
     bks = []
     for b in resolve(BOOKINGS, personal):
         b = dict(b)
+        if b.pop("only", None) == "own" and not personal:
+            continue
         if b.get("cost"):
             b["cost"] = round(b["cost"] / 2)
         bks.append(b)

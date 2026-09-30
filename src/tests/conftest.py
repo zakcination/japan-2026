@@ -113,6 +113,11 @@ def app(browser):
             "(s => { if (sessionStorage.getItem('seeded')) return; sessionStorage.setItem('seeded', '1');"
             " for (const [k, v] of Object.entries(s)) if (v) localStorage.setItem(k, JSON.stringify(v)); })("
             + json.dumps(seed) + ")")
+        # no real weather in tests: a live forecast landing mid-test re-renders the page. A fetch shim, not a route —
+        # any route makes Playwright intercept every request and triples the suite's time.
+        if not any("open-meteo" in p for p in (routes or {})):
+            pg.add_init_script("(f => { window.fetch = (u, ...a) => /open-meteo\\.com/.test(String(u && u.url || u))"
+                               " ? Promise.reject(new TypeError('offline in tests')) : f(u, ...a); })(window.fetch.bind(window))")
         for pattern, handler in (routes or {}).items():
             pg.route(pattern, handler)
         pg.goto((url or PAGE) + url_suffix)

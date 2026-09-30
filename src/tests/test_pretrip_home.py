@@ -121,8 +121,8 @@ def test_transit_follows_the_flight(app):
     assert "позади" in a.page.inner_text("#tcDay1")
     g = home(app, now="2026-10-17T10:35:00+08:00")                       # between two Shanghai stops
     assert g.page.locator("#tcDay1 .now").count() == 1
-    for li in g.page.locator("#tcDay1 li b").all():                       # the time column never wraps
-        assert li.bounding_box()["height"] < 30
+    hs = g.page.evaluate("[...document.querySelectorAll('#tcDay1 li b')].map(b => b.getBoundingClientRect().height)")
+    assert hs and max(hs) < 30                                            # the time column never wraps (measured in one step)
 
 
 def test_capsule_says_what_opens_and_opens_the_tickets(app):

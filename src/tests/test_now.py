@@ -57,8 +57,8 @@ def test_sun_widget_shows_the_next_sunrise_or_sunset(app):
     a = at(app, "13:24")                       # day 2 at Kawaguchiko: sunset ~17:07
     sun = a.page.inner_text("#tcSun")
     assert "ЗАКАТ" in sun.upper() and "17:0" in sun and "Восход:" in sun
-    dot = a.page.locator("#tcSun .tc-sun-arc circle").bounding_box()
-    arc = a.page.locator("#tcSun .tc-sun-arc").bounding_box()
+    dot, arc = a.page.evaluate("""() => { const r = s => { const b = document.querySelector(s).getBoundingClientRect(); return {y: b.y, height: b.height}; };
+      return [r('#tcSun .tc-sun-arc circle'), r('#tcSun .tc-sun-arc')]; }""")   # one step: a re-render can't detach them mid-check
     assert dot["y"] < arc["y"] + arc["height"] / 2          # early afternoon: the sun is high on the arc
     night = at(app, "21:00")
     assert "ВОСХОД" in night.page.inner_text("#tcSun").upper() and "Закат:" in night.page.inner_text("#tcSun")
