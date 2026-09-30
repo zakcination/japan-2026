@@ -57,7 +57,7 @@ function wireFunnel(m) {
 /* right after the first sign-in on this phone: Home Screen → parts → «Дела» */
 function onboarded() { try { return !!localStorage.getItem(ONBOARDED); } catch (e) { return true; } }
 function openFirstRun(step) {
-  step = step || (Ios.standalone() ? 2 : 1);
+  step = step || (Ios.isIOS() && !Ios.standalone() ? 1 : 2);        // the Home Screen step only means something in iPhone Safari
   const me = Api.me(), s = Api.state() || {};
   if (step === 2 && (!me || me.role === 'host' || !(s.parts || []).length)) step = 3;
   if (step === 3) {
@@ -67,7 +67,7 @@ function openFirstRun(step) {
   const inPart = id => (s.joins || []).some(j => j.member === me.id && j.scope === 'part' && j.ref === id && j.mode === 'in');
   const body = step === 1
     ? `<p class="tc-sub">${me && me.role !== 'host' && (s.parts || []).length ? 'Шаг 1 из 2. ' : ''}Так приложение открывается без интернета и не теряет билеты.</p>
-      <ol class="tc-steps"><li><span>Нажмите «Поделиться» внизу Safari</span></li><li><span>«На экран „Домой“» → «Добавить»</span></li></ol>`
+      <ol class="tc-howto"><li>Нажмите «Поделиться» внизу Safari</li><li>«На экран „Домой“» → «Добавить»</li></ol>`
     : `<p class="tc-sub">Шаг 2 из 2. К чему вы присоединяетесь? Билеты на эти части появятся в «Делах».</p>
       <div class="tc-group">${s.parts.map(p => `<label class="tc-act tc-fr-row"><span>${esc(p.title)}</span>
         <input type="checkbox" switch data-fr-part="${esc(p.id)}"${inPart(p.id) ? ' checked' : ''}></label>`).join('')}</div>`;

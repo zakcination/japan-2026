@@ -1,7 +1,7 @@
 """Task 10a: the invite kit, the first run, deep links, WhatsApp nudges and the private activation funnel."""
 import json, re
 from urllib.parse import unquote
-from conftest import until
+from conftest import until, IPHONE_UA
 from fake_supabase import FakeSupabase
 from test_group_api import GROUPED
 from test_group_join import logged
@@ -37,11 +37,13 @@ def test_host_invites_a_guest_with_whatsapp_text_link_and_qr(app):
 def test_invite_link_first_run_joins_fuji_and_lands_on_tasks_once(app):
     fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
     g = app(trip=GROUPED, state={"prevDay": 2, "prevTime": "13:24"}, supabase=fake,
-            url_suffix=f"?trip=miras-aikosh&who={san}&code={fake.invite(san)}")
+            url_suffix=f"?trip=miras-aikosh&who={san}&code={fake.invite(san)}", ua=IPHONE_UA)
     g.page.locator("#grPin").wait_for(state="visible")
     assert "Сания" in g.page.inner_text("#tcSheet")                 # straight to her PIN, no name to pick
     g.page.fill("#grPin", "4821")
     until(g.page, "!!document.getElementById('grFirstRun')")
+    assert "Нажмите «Поделиться»" in g.page.inner_text("#grFirstRun")
+    assert g.page.locator("#grFirstRun .tc-howto li").first.bounding_box()["width"] > 250   # full width, not a squeezed column
     g.page.click("#grFrNext")                                       # step 1: Home Screen
     g.page.locator("[data-fr-part='fuji']").check()                 # step 2: «Фудзи / Кавагутико»
     g.page.click("#grFrNext")
