@@ -72,6 +72,20 @@ def test_shin20_recipe_reflects_the_moved_departure_time():
     assert r["buy_by"] == "2026-10-18"
 
 
+def test_hotel_recipes_have_booking_deadlines_by_trip_order():
+    by_bk = {r["bk"]: r for r in T["recipes"]}
+    expected = {
+        "h_kyoto": "2026-10-03",
+        "h_nagoya": "2026-10-06",
+        "h_tokyo": "2026-10-09",
+    }
+    for bk, buy_by in expected.items():
+        assert bk in by_bk, f"missing hotel recipe {bk}"
+        r = by_bk[bk]
+        assert r["buy_by"] == buy_by
+        assert r["url"].startswith("https://")
+
+
 def test_group_is_none_until_the_owner_sets_it_up():
     assert T["group"] is None
 

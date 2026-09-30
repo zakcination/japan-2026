@@ -76,7 +76,7 @@
     4
    ],
    "t": "Синкансэн Киото → Нагоя",
-   "when": "20.10 · ~18:30",
+   "when": "20.10 · ~14:10",
    "st": "input",
    "cost": 5900
   },
@@ -2051,6 +2051,17 @@
    "tips": "Место E — справа. Возьмите тот же поезд, что у хозяев."
   },
   {
+   "bk": "h_kyoto",
+   "what": "Отель в Киото, 18.10 → 20.10 (2 ночи): выбрать и забронировать",
+   "site": "Booking.com",
+   "url": "https://www.booking.com/searchresults.ru.html?ss=Kyoto&checkin=2026-10-18&checkout=2026-10-20",
+   "opens": null,
+   "opens_note": "",
+   "buy_by": "2026-10-03",
+   "price_pp": null,
+   "tips": "Ближе к станции Киото — удобно с чемоданами и на Инари."
+  },
+  {
    "bk": "shin20",
    "what": "Синкансэн Киото → Нагоя, 20.10, ~14:10",
    "site": "Smart EX",
@@ -2060,6 +2071,17 @@
    "buy_by": "2026-10-18",
    "price_pp": 5900,
    "tips": "Чемодан больше 160 см по сумме сторон — место с багажной зоной."
+  },
+  {
+   "bk": "h_nagoya",
+   "what": "Отель в Нагое, 20.10 → 22.10 (2 ночи): выбрать и забронировать",
+   "site": "Booking.com",
+   "url": "https://www.booking.com/searchresults.ru.html?ss=Nagoya&checkin=2026-10-20&checkout=2026-10-22",
+   "opens": null,
+   "opens_note": "",
+   "buy_by": "2026-10-06",
+   "price_pp": null,
+   "tips": "У вокзала Нагоя: синкансэн и заезд с 15:00."
   },
   {
    "bk": "judo",
@@ -2082,6 +2104,17 @@
    "buy_by": "2026-10-20",
    "price_pp": 11300,
    "tips": ""
+  },
+  {
+   "bk": "h_tokyo",
+   "what": "Отель в Токио, 22.10 → 27.10 (5 ночей): выбрать и забронировать",
+   "site": "Booking.com",
+   "url": "https://www.booking.com/searchresults.ru.html?ss=Tokyo&checkin=2026-10-22&checkout=2026-10-27",
+   "opens": null,
+   "opens_note": "",
+   "buy_by": "2026-10-09",
+   "price_pp": null,
+   "tips": "Уэно / Окатимати или Асакуса — удобно до Ханэды в день вылета."
   },
   {
    "bk": "disney",
@@ -2119,5 +2152,5 @@
  ],
  "group": null,
  "id": "miras-aikosh",
- "updated": "2026-09-30T12:28+05:00"
+ "updated": "2026-09-30T15:20+05:00"
 }
