@@ -36,11 +36,13 @@ function bkRow(b, withDate) {
     ? `<button type="button" class="tc-qr" data-ticket="${esc(b.id)}" aria-label="Показать билет: ${esc(b.t)}">QR</button>`
     : `<label class="tc-file">${icon('clip')}Файл<input type="file" accept="image/*,application/pdf" data-attach="${esc(b.id)}"
         aria-label="Прикрепить билет: ${esc(b.t)}" hidden></label>`;
+  const links = typeof attachLinksFor === 'function' ? attachLinksFor(b.id) : [];
+  const linkBtns = links.map(l => Core.safeUrl(l.url) ? `<a class="tc-qr" href="${Core.safeUrl(l.url)}" target="_blank" rel="noopener">${esc(l.site || 'Бронь')}</a>` : '').join('');
   return `<div class="tc-bk"><div class="tc-bkbody"><span class="tc-bkt">${esc(b.t)}</span>
       ${when ? `<span class="tc-sub">${when}</span>` : ''}
       <button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
         aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button></div>
-    ${right}</div>`;
+    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('share')}Ссылка</button></div></div>`;
 }
 
 RENDER.tix = (x, root) => {
@@ -54,6 +56,7 @@ RENDER.tix = (x, root) => {
     ${rest.length ? `<section id="tcBkAll"><h2 class="tc-sech">Вся поездка</h2><div class="tc-group">${rest.map(b => bkRow(b, true)).join('')}</div></section>` : ''}
     <p class="tc-foot">Скриншот QR или PDF хранится только в этом браузере на этом телефоне и открывается без интернета.</p>
   </div>`;
+  if (typeof wireAttach === 'function') wireAttach(root);
   if (typeof wireTasks === 'function') wireTasks(root);
   root.querySelectorAll('[data-bkst]').forEach(b => b.addEventListener('click', () => {
     const bk = bookingById(b.dataset.bkst); if (!bk) return;
@@ -72,7 +75,10 @@ function attach(id, inp) {
 /* the full-screen ticket: black, the QR on white, the screen kept on */
 let ticketURL = null;
 function showTicket(id) {
-  const b = bookingById(id);
+  // a group attachment (att:<id>) shows the title of the booking it belongs to
+  const att = String(id).startsWith('att:') && typeof Api !== 'undefined' && Api.state()
+    ? (Api.state().attachments || []).find(x => 'att:' + x.id === id) : null;
+  const b = bookingById(att ? String(att.ref).slice(3) : id);
   let m = document.getElementById('tcTicket');
   if (!m) {
     m = document.createElement('div'); m.id = 'tcTicket'; m.className = 'tc-ticket';

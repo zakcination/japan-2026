@@ -418,3 +418,4 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-task.done .tc-row b { color: var(--sec); text-decoration: line-through; }
 .tc-task.done { opacity: .75; }
 .tc-hostref { margin: 0; padding: 10px 12px; border-radius: 12px; font: 400 14px/1.4 var(--sf); }
+.tc-bkr { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 55%; }
