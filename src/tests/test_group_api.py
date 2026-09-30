@@ -51,3 +51,26 @@ def test_disabled_without_group_config(app):
     a = app(state={"prevDay": 2, "prevTime": "13:24"})
     assert a.page.evaluate("Api.enabled()") is False
     assert a.errors == []
+
+
+def test_login_recovers_after_both_tokens_die(app):
+    fake = FakeSupabase.seeded()
+    a = phone(app, fake)
+    assert a.page.evaluate(f"Api.login('{fake.host_id}', '{fake.host_pin}')")["ok"]
+    fake.tokens.clear(); fake.refresh.clear()               # a long offline stretch: both tokens expired
+    a.page.evaluate("Api.refresh()")
+    until(a.page, "Api.status().error === 'login'")
+    assert a.page.evaluate(f"Api.login('{fake.host_id}', '{fake.host_pin}')")["ok"]
+
+
+def test_losing_the_device_binding_keeps_the_outbox_and_asks_for_the_pin(app):
+    fake = FakeSupabase.seeded()
+    a = phone(app, fake)
+    a.page.evaluate(f"Api.login('{fake.host_id}', '{fake.host_pin}')")
+    fake.devices.clear()                                    # e.g. evicted by a 4th device → server says «not a member»
+    a.page.evaluate("Api.call('set_task_state', {p_ref: 'bk:bus18', p_done: true}, () => {})")
+    until(a.page, "Api.status().error === 'login'")
+    assert a.page.evaluate("Api.status().pending") == 1
+    assert a.page.evaluate(f"Api.login('{fake.host_id}', '{fake.host_pin}')")["ok"]
+    until(a.page, "Api.status().pending === 0")
+    assert (fake.host_id, "bk:bus18") in fake.task_state

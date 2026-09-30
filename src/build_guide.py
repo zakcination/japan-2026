@@ -261,6 +261,12 @@ KNOWN_FLIGHTS = [f for t in TRIPS_INDEX
                  for f in json.loads(pathlib.Path(f"../trips/{t['id']}.json").read_text(encoding="utf-8")).get("flights", [])]
 DAY_NOTES = {d["n"]: d["summary"] for d in TODAY["days"]}
 KONBINI = {d["n"]: d["konbini"] for d in TODAY["days"]}
+# each trip's Supabase project, baked into the page: the app never takes it from an imported trip or a link
+GROUPS = {}
+for _t in TRIPS_INDEX:
+    _g = json.loads(pathlib.Path(f"../trips/{_t['id']}.json").read_text(encoding="utf-8")).get("group")
+    if _g and _g.get("url") and _g.get("anon"):
+        GROUPS[_t["id"]] = {"url": _g["url"], "anon": _g["anon"]}
 
 KZ_EMOJI = ("📍", "🏟", "💴", "🏪", "🚌", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
 
@@ -360,6 +366,7 @@ payload = {
     "today": TODAY,
     "trips": TRIPS_INDEX,
     "knownFlights": KNOWN_FLIGHTS,
+    "groups": GROUPS,
     "labels": [{"n": n, "lat": la, "lng": ln, "z": z, "trip": t} for n, la, ln, z, t in PLACE_LABELS],
     "wxBaked": WX_BAKED,
     "kzSpots": KZ_SPOTS,

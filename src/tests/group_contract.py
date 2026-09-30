@@ -27,8 +27,11 @@ def run_all(c, host_id, host_pin):
     # nulls must fail closed, not open: a null trip is not the caller's trip
     err(c.rpc(host, "group_state", {"p_trip": None}), "not a member")
     # host adds Saniya; she sets her PIN on first claim
-    san = ok(c.rpc(host, "add_member", {"p_name": "Сания", "p_role": "guest"}))["id"]
-    g = c.signup(); ok(c.rpc(g, "claim_member", {"p_member": san, "p_pin": "4821"}))
+    added = ok(c.rpc(host, "add_member", {"p_name": "Сания", "p_role": "guest"}))
+    san, code = added["id"], added["code"]
+    # the id alone is not enough for a first sign-in: the invite code from the host's link is needed
+    q = c.signup(); err(c.rpc(q, "claim_member", {"p_member": san, "p_pin": "9999"}), "invite")
+    g = c.signup(); ok(c.rpc(g, "claim_member", {"p_member": san, "p_pin": "4821", "p_code": code}))
     # a stranger (signed in, not claimed) sees nothing and can write nothing
     x = c.signup()
     err(c.rpc(x, "group_state", {"p_trip": TRIP}), "not a member")
@@ -82,8 +85,8 @@ def run_all(c, host_id, host_pin):
     err(c.rpc(g, "save_my_stop", {"p_stop": {"id": None, "day": 1, "ev": {"s": "09:00", "e": "10:00", "t": "x"}}}), "bad id")
     err(c.rpc(g, "save_my_booking", {"p_b": {"id": None}}), "bad id")
     # host resets the PIN; the old device keeps working, a new claim needs the new PIN
-    ok(c.rpc(host, "reset_pin", {"p_member": san}))
-    z = c.signup(); ok(c.rpc(z, "claim_member", {"p_member": san, "p_pin": "1111"}))
+    code2 = ok(c.rpc(host, "reset_pin", {"p_member": san}))["code"]
+    z = c.signup(); ok(c.rpc(z, "claim_member", {"p_member": san, "p_pin": "1111", "p_code": code2}))
     # first-claim takeover: a claimed guest's device cannot also claim a fresh guest slot
     guest2 = ok(c.rpc(host, "add_member", {"p_name": "Гость2", "p_role": "guest"}))["id"]
     err(c.rpc(g, "claim_member", {"p_member": guest2, "p_pin": "1234"}), "ask a host")

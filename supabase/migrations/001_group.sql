@@ -6,6 +6,8 @@ create table if not exists public.members (
   id uuid primary key default gen_random_uuid(), trip text not null references public.trips(id),
   name text not null check (length(name) between 1 and 40), role text not null check (role in ('host','guest')),
   pin_hash text, fails int not null default 0, locked_until timestamptz);
+-- one-time invite code for a guest's first sign-in (the ids are visible to «Кто вы?», so an id alone must not be enough)
+alter table public.members add column if not exists invite text;
 create table if not exists public.member_devices (
   uid uuid primary key, member uuid not null references public.members(id) on delete cascade, at timestamptz default now());
 create table if not exists public.plan (trip text primary key references public.trips(id), doc jsonb not null, version int not null default 1);
@@ -73,7 +75,8 @@ set search_path = public, extensions as $$
                  select mm.trip from public.member_devices d join public.members mm on mm.id = d.member where d.uid = auth.uid())));
 $$;
 
-create or replace function public.claim_member(p_member uuid, p_pin text) returns jsonb language plpgsql security definer
+drop function if exists public.claim_member(uuid, text);
+create or replace function public.claim_member(p_member uuid, p_pin text, p_code text default null) returns jsonb language plpgsql security definer
 set search_path = public, extensions as $$
 declare m public.members; already uuid;
 begin
@@ -89,7 +92,12 @@ begin
     select d.member into already from public.member_devices d join public.members mm on mm.id = d.member
       where d.uid = auth.uid() and mm.trip = m.trip and d.member <> m.id;
     if already is not null then raise exception 'ask a host' using errcode = 'P0001'; end if;
-    update public.members set pin_hash = crypt(p_pin, gen_salt('bf')), fails = 0 where id = m.id;
+    if m.invite is null or p_code is distinct from m.invite then
+      update public.members set fails = case when fails + 1 >= 5 then 0 else fails + 1 end,
+        locked_until = case when fails + 1 >= 5 then now() + interval '15 minutes' else locked_until end where id = m.id;
+      return jsonb_build_object('error', 'invite needed');   -- committed, like a wrong PIN
+    end if;
+    update public.members set pin_hash = crypt(p_pin, gen_salt('bf')), fails = 0, invite = null where id = m.id;
   elsif m.pin_hash is distinct from crypt(p_pin, m.pin_hash) then
     update public.members set fails = case when fails + 1 >= 5 then 0 else fails + 1 end,
       locked_until = case when fails + 1 >= 5 then now() + interval '15 minutes' else locked_until end where id = m.id;
@@ -235,18 +243,20 @@ end $$;
 
 create or replace function public.add_member(p_name text, p_role text) returns jsonb language plpgsql security definer
 set search_path = public, extensions as $$
-declare m public.members := public._host(); i uuid;
+declare m public.members := public._host(); i uuid; c text := encode(gen_random_bytes(6), 'hex');
 begin
-  insert into public.members(trip, name, role) values (m.trip, trim(p_name), p_role) returning id into i;
-  return jsonb_build_object('id', i);
+  insert into public.members(trip, name, role, invite) values (m.trip, trim(p_name), p_role, case when p_role = 'guest' then c end) returning id into i;
+  return jsonb_build_object('id', i, 'code', case when p_role = 'guest' then c end);
 end $$;
 
-create or replace function public.reset_pin(p_member uuid) returns boolean language plpgsql security definer
+drop function if exists public.reset_pin(uuid);
+create or replace function public.reset_pin(p_member uuid) returns jsonb language plpgsql security definer
 set search_path = public, extensions as $$
-declare m public.members := public._host();
+declare m public.members := public._host(); c text := encode(gen_random_bytes(6), 'hex');
 begin
-  update public.members set pin_hash = null, fails = 0, locked_until = null where id = p_member and trip = m.trip;
-  return true;
+  update public.members set pin_hash = null, fails = 0, locked_until = null,
+    invite = case when role = 'guest' then c end where id = p_member and trip = m.trip;
+  return jsonb_build_object('code', c);
 end $$;
 
 create or replace function public.save_task(p_task jsonb) returns text language plpgsql security definer
@@ -271,7 +281,7 @@ end $$;
 -- and Supabase's own default privileges additionally grant to anon/authenticated), then grant back only
 -- the RPCs the app calls plus the two storage helpers above.
 revoke all on all functions in schema public from public, anon, authenticated;
-grant execute on function public.member_names, public.group_state, public.claim_member, public.set_join, public.save_my_stop, public.delete_my_stop,
+grant execute on function public.member_names, public.group_state, public.claim_member(uuid, text, text), public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
   public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks,
   public._device_member, public._can_read_ticket to authenticated;

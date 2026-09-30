@@ -15,9 +15,36 @@ def test_first_open_asks_who_you_are_then_pin(app):
         assert b.bounding_box()["height"] >= 44
     s.locator(f"[data-member='{san}']").click()
     a.page.fill("#grPin", "4821")                          # 4 digits submit by themselves
+    # without the personal invite link a first sign-in is refused
+    until(a.page, "/ссылка-приглашение/.test(document.getElementById('grMsg').textContent)")
+
+
+def test_invite_link_opens_the_pin_and_signs_in(app):
+    fake = FakeSupabase.seeded()
+    san = fake._add("Сания", "guest")
+    a = app(trip=GROUPED, state={"prevDay": 2, "prevTime": "13:24"}, supabase=fake,
+            url_suffix=f"?who={san}&code={fake.invite(san)}")
+    s = a.page.locator("#tcSheet")
+    s.wait_for(state="visible")
+    assert a.page.locator("#grPin").is_visible() and "Сания" in s.inner_text()
+    a.page.fill("#grPin", "4821")
     until(a.page, "Api.me() && Api.me().name === 'Сания' && document.getElementById('tcSheet').hidden")
+    assert fake.members[san]["invite"] is None                      # one-time code used up
     a.page.click("#tcGear")
     assert "Вы вошли как Сания" in a.page.inner_text("#tcSheet")
+
+
+def test_pin_fires_once_even_if_input_repeats(app):
+    fake = FakeSupabase.seeded()
+    calls = []
+    orig = fake.rpc_claim_member
+    fake.rpc_claim_member = lambda *a, **k: (calls.append(1), orig(*a, **k))[1]
+    a = app(trip=GROUPED, state={"prevDay": 2, "prevTime": "13:24"}, supabase=fake)
+    a.page.locator(f"[data-member='{fake.host_id}']").click()
+    a.page.evaluate("""() => { const p = document.getElementById('grPin'); p.value = '0000';
+      p.dispatchEvent(new Event('input')); p.dispatchEvent(new Event('input')); }""")
+    until(a.page, "/Неверный PIN/.test(document.getElementById('grMsg').textContent)")
+    assert len(calls) == 1
 
 
 def test_just_look_skips_and_is_not_asked_again(app):
@@ -40,5 +67,6 @@ def test_wrong_pin_message_and_host_adds_member_and_resets_pin(app):
     a.page.click("#tcGear")
     a.page.fill("#grNewName", "Шахи")
     a.page.click("#grAdd")
+    until(a.page, "document.getElementById('grInvite') && /[?&]who=.+&code=[0-9a-f]+/.test(document.getElementById('grInvite').value)")
     until(a.page, "Api.state().members.some(m => m.name === 'Шахи')")
     assert any(m["name"] == "Шахи" for m in fake.members.values())

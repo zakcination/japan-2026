@@ -44,8 +44,13 @@ class FakeSupabase:
 
     def _add(self, name, role):
         i = str(uuid.uuid4())
-        self.members[i] = {"id": i, "name": name, "role": role, "pin_hash": None, "fails": 0, "locked_until": 0}
+        self.members[i] = {"id": i, "name": name, "role": role, "pin_hash": None, "fails": 0, "locked_until": 0,
+                           "invite": uuid.uuid4().hex[:12] if role == "guest" else None}
         return i
+
+    def invite(self, member_id):
+        """The one-time code a guest's invite link carries (tests use it as a host would share it)."""
+        return self.members[member_id]["invite"]
 
     # ---------- auth ----------
     def signup(self):
@@ -78,7 +83,7 @@ class FakeSupabase:
         if not fn: raise RpcError(404, "no such function")
         return fn(token, **a)
 
-    def rpc_claim_member(self, token, p_member, p_pin):
+    def rpc_claim_member(self, token, p_member, p_pin, p_code=None):
         uid = self.tokens.get(token)
         if not uid: raise RpcError(401, "JWT expired or invalid")
         m = self.members.get(p_member)
@@ -91,7 +96,11 @@ class FakeSupabase:
             if m["role"] != "guest": raise RpcError(400, "PIN is set by the owner")
             existing = self.devices.get(uid)
             if existing is not None and existing != p_member: raise RpcError(400, "ask a host")
-            m["pin_hash"] = _h(p_pin)
+            if not m["invite"] or p_code != m["invite"]:
+                m["fails"] += 1
+                if m["fails"] >= 5: m["locked_until"], m["fails"] = self.clock() + 900, 0
+                raise RpcError(400, "invite needed")
+            m["pin_hash"], m["invite"] = _h(p_pin), None
         elif m["pin_hash"] != _h(p_pin):
             m["fails"] += 1
             if m["fails"] >= 5: m["locked_until"], m["fails"] = self.clock() + 900, 0
@@ -193,12 +202,14 @@ class FakeSupabase:
     def rpc_add_member(self, token, p_name, p_role):
         self._me(token, need_host=True)
         if p_role not in ("host", "guest") or not str(p_name).strip(): raise RpcError(400, "bad member")
-        return {"id": self._add(str(p_name).strip()[:40], p_role)}
+        i = self._add(str(p_name).strip()[:40], p_role)
+        return {"id": i, "code": self.members[i]["invite"]}
 
     def rpc_reset_pin(self, token, p_member):
         self._me(token, need_host=True)
         m = self.members[p_member]; m["pin_hash"], m["fails"], m["locked_until"] = None, 0, 0
-        return True
+        m["invite"] = uuid.uuid4().hex[:12] if m["role"] == "guest" else None
+        return {"code": m["invite"]}
 
     def rpc_save_task(self, token, p_task):
         self._me(token, need_host=True)

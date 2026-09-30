@@ -1,3 +1,4 @@
+import json
 from conftest import until
 from fake_supabase import FakeSupabase
 from test_group_api import GROUPED
@@ -9,7 +10,8 @@ def logged(app, fake, member, pin, **kw):
     look = a.page.locator("#grJustLook")
     if look.count() and look.is_visible():
         look.click()
-    assert a.page.evaluate(f"Api.login('{member}', '{pin}')")["ok"]
+    code = fake.members[member].get("invite") if member in fake.members else None
+    assert a.page.evaluate(f"Api.login('{member}', '{pin}', {json.dumps(code)})")["ok"]
     a.page.evaluate("renderShell()")
     return a
 

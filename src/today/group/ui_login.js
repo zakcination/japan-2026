@@ -1,6 +1,11 @@
 /* ---------- «Кто вы?» + PIN; the group part of ⚙ ---------- */
 const LOGIN_ASKED = 'japan2026.loginasked.v1';
-const PIN_ERR = { 'wrong PIN': 'Неверный PIN', 'locked, try later': 'Слишком много попыток — подождите 15 минут', 'Нет сети': 'Нет сети — попробуйте позже' };
+const PIN_ERR = { 'wrong PIN': 'Неверный PIN', 'locked, try later': 'Слишком много попыток — подождите 15 минут', 'Нет сети': 'Нет сети — попробуйте позже',
+  'invite needed': 'Для первого входа нужна ваша ссылка-приглашение от хозяев', 'ask a host': 'Этот телефон уже вошёл как другой участник — спросите хозяев',
+  'PIN is set by the owner': 'PIN хозяина задаётся при настройке', 'PIN must be 4 digits': 'PIN — 4 цифры' };
+/* the invite link: ?who=<member id>&code=<one-time code> opens straight on that person's PIN */
+const INVITE = (() => { const q = new URLSearchParams(location.search); const who = q.get('who'), code = q.get('code');
+  return /^[0-9a-f-]{36}$/.test(who || '') ? { who, code: /^[0-9a-f]{6,32}$/.test(code || '') ? code : null } : null; })();
 
 async function openLogin() {
   try { localStorage.setItem(LOGIN_ASKED, '1'); } catch (e) {}
@@ -12,6 +17,8 @@ async function openLogin() {
     try { names = await Api.memberNames(); } catch (e) { names = ((Api.state() || {}).members || []); }
     const box = m.querySelector('#grNames');
     if (!names.length) { box.innerHTML = '<p class="tc-empty">Нет сети — войдите позже.</p>'; return; }
+    const invited = INVITE && names.find(n => n.id === INVITE.who);
+    if (invited) { openPin(invited.id, invited.name); return; }            // came by a personal invite link
     box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${icon('now')}<span>${esc(n.name)}</span></button>`).join('');
     box.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => openPin(b.dataset.member, b.textContent.trim())));
   });
@@ -22,13 +29,14 @@ function openPin(id, name) {
     <p class="tc-warn" id="grMsg" role="status"></p>`, m => {
     const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg');
     pin.addEventListener('input', async () => {
+      if (pin.disabled) return;                                   // one attempt at a time (paste / autofill fire twice)
       pin.value = pin.value.replace(/\D/g, '').slice(0, 4);
       if (pin.value.length < 4) return;
       pin.disabled = true;
-      const r = await Api.login(id, pin.value);
+      const r = await Api.login(id, pin.value, INVITE && INVITE.who === id ? INVITE.code : null);
       pin.disabled = false;
       if (r.ok) { closeSheet(); renderShell(); return; }
-      msg.textContent = PIN_ERR[r.error] || r.error; pin.value = ''; pin.focus();
+      msg.textContent = PIN_ERR[r.error] || 'Не получилось войти — попробуйте ещё раз'; pin.value = ''; pin.focus();
     });
     pin.focus();
   });
@@ -51,14 +59,30 @@ function groupSettingsHTML() {
 function wireGroupSettings(m) {
   const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
   on('#grLogin', () => { closeSheet(); openLogin(); });
-  on('#grRelogin', () => { const me = Api.me(); Api.logout(); openPin(me.id, me.name); });
+  on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
   on('#grAdd', () => {
     const name = m.querySelector('#grNewName').value.trim(); if (!name) return;
-    Api.call('add_member', { p_name: name, p_role: 'guest' }, s => s.members.push({ id: 'pending-' + name, name, role: 'guest' }));
-    closeSheet(); openSettings();
+    Api.run('add_member', { p_name: name, p_role: 'guest' }).then(r => showInvite(name, r && r.id, r && r.code))
+      .catch(e => { m.querySelector('#grNewName').value = name; alert0(m, e); });
   });
   m.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Точно?', () => {
-    Api.call('reset_pin', { p_member: b.dataset.reset }); b.textContent = 'PIN сброшен';
+    const who = (Api.state().members.find(x => x.id === b.dataset.reset) || {}).name || '';
+    Api.run('reset_pin', { p_member: b.dataset.reset }).then(r => showInvite(who, b.dataset.reset, r && r.code)).catch(e => alert0(m, e));
   })));
+}
+
+const alert0 = (m, e) => { const p = m.querySelector('#setMsg'); if (p) p.textContent = e && !e.status ? 'Нет сети — попробуйте позже' : 'Не получилось — попробуйте ещё раз'; };
+/* after adding someone or resetting a PIN: the personal link with the one-time code (the full invite kit is Task 10a) */
+function showInvite(name, id, code) {
+  if (!id || !code) { closeSheet(); openSettings(); return; }
+  const url = `${Trips.shareUrl()}${Trips.shareUrl().includes('?') ? '&' : '?'}who=${encodeURIComponent(id)}&code=${encodeURIComponent(code)}`;
+  sheet('Приглашение', `<p class="tc-sub">Отправьте ${esc(name)} эту ссылку — по ней можно войти в первый раз и придумать PIN. Ссылка одноразовая.</p>
+    <label class="tc-f" for="grInvite"><span>Ссылка</span><input id="grInvite" type="text" readonly value="${esc(url)}"></label>
+    <button type="button" class="tc-btn primary wide" id="grInviteCopy">Скопировать</button>`, s => {
+    s.querySelector('#grInviteCopy').addEventListener('click', () => {
+      const i = s.querySelector('#grInvite'); i.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => { s.querySelector('#grInviteCopy').textContent = 'Скопировано'; }, () => {});
+    });
+  });
 }
