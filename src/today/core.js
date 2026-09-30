@@ -38,6 +38,12 @@ const Core = (() => {
   const isKey = e => e.st !== 'flex' && e.cat !== 'routine' && e.cat !== 'konbini';
   const travel = e => (+e.walk || 0) + (+e.ride || 0) + (+e.buf || 0);
 
+  /* a stop may keep its times in another zone (Shanghai: off = 480); the planner works in Japan time.
+     `off` on a plan() result is already the date-bound boolean (see below), so once a stop has gone
+     through plan(), its zone shift lives in `.sh` instead — shiftOf/localMin fall back to it there. */
+  const shiftOf = e => (e && typeof e.off !== 'boolean' && e.off != null && e.off !== '' && Number.isFinite(+e.off)) ? 540 - +e.off : 0;
+  const localMin = (e, min) => min - (e && Number.isFinite(e.sh) ? e.sh : shiftOf(e));
+
   /* The replanner. A delay pushes what follows; before an anchor the overrun is paid back from
      flexible blocks first (latest first, down to nothing), then planned ones (down to half, never
      under 15 min) — and only from what hasn't happened yet. What can't be paid back is shown as a
@@ -46,11 +52,11 @@ const Core = (() => {
     const own = (o, k) => !!o && Object.prototype.hasOwnProperty.call(o, k);
     const skip = (marks && marks.skip) || {}, done = (marks && marks.done) || {}, delay = (marks && marks.delay) || {};
     const all = (day.ev || []).map(e => {
-      const s = toMin(e.s), en0 = e.e ? toMin(e.e) : NaN;
+      const sh = shiftOf(e), s = toMin(e.s) + sh, en0 = e.e ? toMin(e.e) + sh : NaN;
       const bad = !Number.isFinite(s);
       const en = Number.isFinite(en0) ? en0 : s + 15;
       const off = !!(e.bound && dateISO && dateISO !== e.bound);
-      return { ...e, st: off ? 'input' : e.st, off, bad, S: s, E: en < s ? en + 1440 : en, ns: s, ne: 0, cut: 0, auto: false,
+      return { ...e, st: off ? 'input' : e.st, off, bad, sh, S: s, E: en < s ? en + 1440 : en, ns: s, ne: 0, cut: 0, auto: false,
                conflict: 0, skip: own(skip, e.id) && !!skip[e.id], done: own(done, e.id) && !!done[e.id], delay: own(delay, e.id) ? +delay[e.id] || 0 : 0 };
     });
     // stable sort by start: trips edited by hand or imported may list stops out of order
@@ -146,5 +152,5 @@ const Core = (() => {
   const safeUrl = u => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u)) ? u : '';
 
   return { pad, toMin, hm, dur, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
-           plan, urgent, themeFor, dayProgress, validTrip, cleanTrip, safeUrl };
+           shiftOf, localMin, plan, urgent, themeFor, dayProgress, validTrip, cleanTrip, safeUrl };
 })();

@@ -126,6 +126,24 @@ const Flights = (() => {
   const statusUrl = no => `https://www.flightradar24.com/data/flights/${normNo(no).toLowerCase()}`;
   const codes = () => Object.keys(AIRPORTS);
 
+  /* where the traveller is: before the trip, departure day, in transit, in Japan, after */
+  const JST = 540;
+  const dayStart = (iso, off) => Date.parse(iso + 'T00:00:00Z') - off * 60000;
+  function phase(nowMs, list, firstISO, lastISO) {
+    const legs = cleanList(list);
+    const end = dayStart(lastISO, JST) + 864e5;
+    if (nowMs >= end) return { phase: 'post', dep: null, arrive: null, leg: null };
+    if (!legs.length) return { phase: nowMs < dayStart(firstISO, JST) ? 'pre' : 'live', dep: null, arrive: null, leg: null };
+    const first = legs[0], t0 = times(first);
+    const o = offsetAt(first.frm, t0.dep, first.frmOff) || 0;
+    const toJapan = legs.find(l => JAPAN.has(l.to) && times(l).dep >= t0.dep);
+    const arrive = toJapan ? times(toJapan).arr : null;
+    if (nowMs < dayStart(first.date, o)) return { phase: 'pre', dep: t0.dep, arrive, leg: first };
+    if (nowMs < t0.dep) return { phase: 'departure', dep: t0.dep, arrive, leg: first };
+    if (arrive && nowMs < arrive) return { phase: 'transit', dep: t0.dep, arrive, leg: legs.find(l => times(l).dep > nowMs) || null };
+    return { phase: 'live', dep: t0.dep, arrive, leg: null };
+  }
+
   return { AIRLINES, AIRPORTS, normNo, pretty, airline, airport, offsetAt, epochOf, times, lookup, clean, cleanList,
-           next, countdown, statusUrl, codes, isJapan: c => JAPAN.has(c) };
+           next, countdown, statusUrl, codes, isJapan: c => JAPAN.has(c), phase };
 })();
