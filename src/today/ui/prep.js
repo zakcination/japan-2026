@@ -1,7 +1,15 @@
 /* ---------- «Подготовка»: the readiness list, ticks and own items kept on this phone ---------- */
 const PREP_KEY = 'japan2026.prep.v1';
 function prepLocal() {
-  try { const j = JSON.parse(localStorage.getItem(PREP_KEY) || 'null'); if (j && typeof j === 'object') return { done: j.done || {}, own: Array.isArray(j.own) ? j.own : [] }; } catch (e) {}
+  try {
+    const j = JSON.parse(localStorage.getItem(PREP_KEY) || 'null');
+    if (j && typeof j === 'object') {
+      const done = (j.done && typeof j.done === 'object' && !Array.isArray(j.done)) ? j.done : {};
+      const own = (Array.isArray(j.own) ? j.own : [])
+        .filter(o => o && typeof o === 'object' && typeof o.id === 'string' && typeof o.title === 'string');
+      return { done, own };
+    }
+  } catch (e) {}
   return { done: {}, own: [] };
 }
 const prepSave = l => { try { localStorage.setItem(PREP_KEY, JSON.stringify(l)); } catch (e) {} };
@@ -28,15 +36,17 @@ function openPrep(focus) {
       prepSave(l); renderShell();
     }));
     m.querySelectorAll('[data-prep-add]').forEach(b => b.addEventListener('click', () => {
-      b.outerHTML = `<div class="tc-form2">${fld('prAddTitle', 'Свой пункт', '', 'text', 'maxlength="80"')}
-        <button type="button" class="tc-btn primary" id="prAddGo" data-g="${b.dataset.prepAdd}">Добавить</button></div>`;
-      const go = m.querySelector('#prAddGo');
+      const g = b.dataset.prepAdd, sec = b.closest('.tc-prep-sec');
+      b.outerHTML = `<div class="tc-form2" data-prep-form="${g}">${fld('prAddTitle-' + g, 'Свой пункт', '', 'text', 'maxlength="80"')}
+        <button type="button" class="tc-btn primary" data-prep-go="${g}">Добавить</button></div>`;
+      const form = sec.querySelector(`[data-prep-form="${g}"]`);
+      const go = form.querySelector('[data-prep-go]');
       go.addEventListener('click', () => {
-        const t = m.querySelector('#prAddTitle').value.trim(); if (!t) return;
-        const l = prepLocal(); l.own.push({ id: 'own-' + Date.now().toString(36), group: go.dataset.g, title: t.slice(0, 80) });
-        prepSave(l); openPrep(go.dataset.g); renderShell();
+        const t = form.querySelector('input').value.trim(); if (!t) return;
+        const l = prepLocal(); l.own.push({ id: 'own-' + Date.now().toString(36), group: g, title: t.slice(0, 80) });
+        prepSave(l); openPrep(g); renderShell();
       });
-      m.querySelector('#prAddTitle').focus();
+      form.querySelector('input').focus();
     }));
     m.querySelectorAll('[data-prep-del]').forEach(b => b.addEventListener('click', () => twoTap(b, '?', () => {
       const l = prepLocal(); l.own = l.own.filter(o => o.id !== b.dataset.prepDel); delete l.done[b.dataset.prepDel];
