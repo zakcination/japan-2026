@@ -23,7 +23,7 @@ function openSettings() {
   const theme = SET.theme || 'auto';
   const custom = isCustom(), asked = Trips.asked();
   const install = Ios.isIOS() && !Ios.standalone();
-  sheet('Моя поездка', `
+  sheet('Моя поездка', `${groupSettingsHTML()}
     <div class="tc-form">
       ${sel('setTrip', 'Поездка', Trips.id(), Trips.list.map(t => [t.id, t.name]))}
       <p class="tc-foot" id="setVersion">${esc(Trips.version())}</p>
@@ -53,6 +53,7 @@ function openSettings() {
     <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Загрузить</button>
       <button type="button" class="tc-btn" id="setCopy">Скопировать</button></div>
     <p class="tc-foot" id="setMsg" role="status"></p>`, m => {
+    wireGroupSettings(m);
     const msg = t => { m.querySelector('#setMsg').textContent = t; };
     m.querySelectorAll('input[name="tcTheme"]').forEach(r => r.addEventListener('change', () => {
       SET.theme = r.value; saveSettings(); renderShell();

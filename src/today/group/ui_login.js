@@ -1,0 +1,64 @@
+/* ---------- «Кто вы?» + PIN; the group part of ⚙ ---------- */
+const LOGIN_ASKED = 'japan2026.loginasked.v1';
+const PIN_ERR = { 'wrong PIN': 'Неверный PIN', 'locked, try later': 'Слишком много попыток — подождите 15 минут', 'Нет сети': 'Нет сети — попробуйте позже' };
+
+async function openLogin() {
+  try { localStorage.setItem(LOGIN_ASKED, '1'); } catch (e) {}
+  sheet('Кто вы?', `<p class="tc-sub">Выберите себя — дальше PIN из 4 цифр. В первый раз вы его придумываете.</p>
+    <div class="tc-group" id="grNames"><p class="tc-empty">Загружаю…</p></div>
+    <button type="button" class="tc-btn wide" id="grJustLook">Просто посмотреть</button>`, async m => {
+    m.querySelector('#grJustLook').addEventListener('click', closeSheet);
+    let names = [];
+    try { names = await Api.memberNames(); } catch (e) { names = ((Api.state() || {}).members || []); }
+    const box = m.querySelector('#grNames');
+    if (!names.length) { box.innerHTML = '<p class="tc-empty">Нет сети — войдите позже.</p>'; return; }
+    box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${icon('now')}<span>${esc(n.name)}</span></button>`).join('');
+    box.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => openPin(b.dataset.member, b.textContent.trim())));
+  });
+}
+function openPin(id, name) {
+  sheet(name, `<label class="tc-f" for="grPin"><span>PIN — 4 цифры</span>
+      <input id="grPin" type="password" inputmode="numeric" pattern="\\d*" maxlength="4" autocomplete="one-time-code" autofocus></label>
+    <p class="tc-warn" id="grMsg" role="status"></p>`, m => {
+    const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg');
+    pin.addEventListener('input', async () => {
+      pin.value = pin.value.replace(/\D/g, '').slice(0, 4);
+      if (pin.value.length < 4) return;
+      pin.disabled = true;
+      const r = await Api.login(id, pin.value);
+      pin.disabled = false;
+      if (r.ok) { closeSheet(); renderShell(); return; }
+      msg.textContent = PIN_ERR[r.error] || r.error; pin.value = ''; pin.focus();
+    });
+    pin.focus();
+  });
+}
+function groupSettingsHTML() {
+  if (!Api.enabled()) return '';
+  const me = Api.me(), st = Api.status();
+  if (!me) return `<div class="tc-group"><button type="button" class="tc-act" id="grLogin">${icon('now')}<span>Войти в группу<small>выбрать себя и PIN</small></span></button></div>`;
+  const s = Api.state() || { members: [] };
+  const sync = st.pending ? `ждёт отправки: ${st.pending}` : st.at ? `синхронизировано ${new Date(st.at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'ещё не синхронизировано';
+  return `<div class="tc-card"><b>Вы вошли как ${esc(me.name)}</b><span class="tc-sub">${esc(sync)}${st.online ? '' : ' · нет сети'}${st.error && st.error !== 'login' ? ' · ' + esc(st.error) : ''}</span>
+      ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
+      <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
+    ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
+      `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
+        ${x.id !== me.id ? `<button type="button" class="tc-btn" data-reset="${esc(x.id)}">Сбросить PIN</button>` : ''}</div>`).join('')}</div>
+      <div class="tc-form2">${fld('grNewName', 'Новый участник', '', 'text', 'maxlength="40"')}<button type="button" class="tc-btn primary" id="grAdd">${icon('plus')}Добавить</button></div>
+      <p class="tc-foot">Если приложение долго не открывали, бесплатный Supabase «засыпает»: зайдите на supabase.com → проект → Restore.</p>` : ''}`;
+}
+function wireGroupSettings(m) {
+  const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
+  on('#grLogin', () => { closeSheet(); openLogin(); });
+  on('#grRelogin', () => { const me = Api.me(); Api.logout(); openPin(me.id, me.name); });
+  on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
+  on('#grAdd', () => {
+    const name = m.querySelector('#grNewName').value.trim(); if (!name) return;
+    Api.call('add_member', { p_name: name, p_role: 'guest' }, s => s.members.push({ id: 'pending-' + name, name, role: 'guest' }));
+    closeSheet(); openSettings();
+  });
+  m.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Точно?', () => {
+    Api.call('reset_pin', { p_member: b.dataset.reset }); b.textContent = 'PIN сброшен';
+  })));
+}
