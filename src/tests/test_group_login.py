@@ -74,3 +74,10 @@ def test_wrong_pin_message_and_host_adds_member_and_resets_pin(app):
     until(a.page, "document.getElementById('grInvite') && /[?&]who=.+&code=[0-9a-f]+/.test(document.getElementById('grInvite').value)")
     until(a.page, "Api.state().members.some(m => m.name === 'Шахи')")
     assert any(m["name"] == "Шахи" for m in fake.members.values())
+
+
+def test_a_brand_new_phone_asks_who_you_are_once_the_trip_arrives(app, site):
+    fake = FakeSupabase.seeded()
+    a = app(url=site, url_suffix="?trip=miras-aikosh", supabase=fake)       # nothing on the phone yet: the trip comes from the site
+    a.page.wait_for_selector("#grNames [data-member]", timeout=10000)
+    assert "Мирас" in a.page.inner_text("#tcSheet") and "Айкош" in a.page.inner_text("#tcSheet")
