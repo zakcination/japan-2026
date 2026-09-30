@@ -3,7 +3,7 @@ from conftest import ROOT, until
 from fake_supabase import FakeSupabase
 
 OURS = json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8"))
-GROUPED = dict(OURS, group={"url": "https://fake.supabase.co", "anon": "anon-key"})
+GROUPED = OURS                                   # our trip carries the real project; tests answer it with FakeSupabase
 
 
 def phone(app, fake, **kw):

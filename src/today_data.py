@@ -151,7 +151,7 @@ RECIPES = [
          url="https://www.audemarspiguet.com/", opens=None, opens_note="запись через бутик — уточнить", buy_by="2026-10-15", price_pp=None,
          tips="Место, время и цену уточнить при записи. Нужен ~2 ч до 16:30: потом забираем вещи и едем в Ханэду."),
 ]
-GROUP = None   # {"url": "https://<project>.supabase.co", "anon": "<anon public key>"} — set when the owner creates the project
+GROUP = {"url": "https://ajpiptdkybhtkaoozqet.supabase.co", "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi"}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
 
 # Preparation checklist (spec appendix B). PREP is shared by both trips; PREP_OWN (Shanghai layover
 # items) is ours only. `due`/`from` are ISO dates; `auto` marks an item the app can detect on its own.

@@ -1,5 +1,5 @@
 """Parts, buying recipes and group config in the trip data (spec §5, appendix A)."""
-import json
+import json, re
 
 from conftest import ROOT
 
@@ -86,8 +86,10 @@ def test_hotel_recipes_have_booking_deadlines_by_trip_order():
         assert r["url"].startswith("https://")
 
 
-def test_group_is_none_until_the_owner_sets_it_up():
-    assert T["group"] is None
+def test_group_is_our_project_with_a_publishable_key_only():
+    g = T["group"]
+    assert re.fullmatch(r"https://[a-z0-9]+\.supabase\.co", g["url"]) and g["anon"].startswith("sb_publishable_")
+    assert "secret" not in json.dumps(T) and "service_role" not in json.dumps(T)
 
 
 def test_template_has_no_group_things():

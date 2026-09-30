@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 SRC = pathlib.Path(__file__).resolve().parents[1]
 ROOT = SRC.parent
 PAGE = (SRC / "Japan_Guide_2026.html").resolve().as_uri()
+OUR_PROJECT = (json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8")).get("group") or {}).get("url") or "https://none.invalid"
 IPHONE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
              "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")
 PHONE = {"width": 390, "height": 844}
@@ -109,7 +110,8 @@ def app(browser):
         pg.on("pageerror", lambda e: errors.append(str(e)))
         if now:
             pg.clock.set_fixed_time(datetime.fromisoformat(now))
-        seed = {"japan2026.today.v1": state, "japan2026.settings.v1": settings, "japan2026.trip.v1": trip}
+        seed = {"japan2026.today.v1": state, "japan2026.settings.v1": settings, "japan2026.trip.v1": trip,
+                "japan2026.loginasked.v1": None if supabase else 1}      # without a fake, never ask «Кто вы?»
         pg.add_init_script(
             "(s => { if (sessionStorage.getItem('seeded')) return; sessionStorage.setItem('seeded', '1');"
             " for (const [k, v] of Object.entries(s)) if (v) localStorage.setItem(k, JSON.stringify(v)); })("
@@ -121,6 +123,9 @@ def app(browser):
                                " ? Promise.reject(new TypeError('offline in tests')) : f(u, ...a); })(window.fetch.bind(window))")
         if supabase:
             pg.route("https://*.supabase.co/**", supabase.route)
+        else:   # our trip has a real project: without a fake, never reach it
+            pg.add_init_script("(f => { window.fetch = (u, ...a) => String(u && u.url || u).startsWith(" + json.dumps(OUR_PROJECT) + ")"
+                               " ? Promise.reject(new TypeError('offline in tests')) : f(u, ...a); })(window.fetch.bind(window))")
         for pattern, handler in (routes or {}).items():
             pg.route(pattern, handler)
         pg.goto((url or PAGE) + url_suffix)

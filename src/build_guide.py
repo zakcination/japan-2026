@@ -378,7 +378,7 @@ HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://*.open-meteo.com https://*.supabase.co; frame-src blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://*.open-meteo.com __SUPABASE_HOSTS__; frame-src blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1730,6 +1730,7 @@ out = (HTML
        .replace("__LEAFLET_CSS__", LEAFLET_CSS + "\n" + CLUSTER_CSS)
        .replace("__LEAFLET_JS__", LEAFLET_JS + "\n" + CLUSTER_JS)
        .replace("__DATA__", json.dumps(payload, ensure_ascii=False))
+       .replace("__SUPABASE_HOSTS__", " ".join(sorted({g["url"] for g in GROUPS.values()})) or "https://*.supabase.co")
        .replace("__BASEMAP__", BASEMAP)
        .replace("__TODAY_CSS__", today_css())
        .replace("__TODAY_JS__", today_js()))

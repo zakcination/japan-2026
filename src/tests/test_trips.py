@@ -189,8 +189,10 @@ def test_home_screen_app_opens_the_chosen_trip(app, site):
 def test_csp_allows_supabase_only(app, site):
     a = app(state=NIGHT, url=site)
     a.page.evaluate("window.__csp = []; document.addEventListener('securitypolicyviolation', e => __csp.push(e.blockedURI))")
-    a.page.route("https://x.supabase.co/**", lambda r: r.fulfill(status=200, body="{}", headers={"access-control-allow-origin": "*"}))
-    a.page.evaluate("fetch('https://x.supabase.co/rest/v1/').catch(() => {}); fetch('https://example.com/').catch(() => {})")
+    ours = json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8"))["group"]["url"]
+    a.page.route(ours + "/**", lambda r: r.fulfill(status=200, body="{}", headers={"access-control-allow-origin": "*"}))
+    a.page.evaluate(f"fetch('{ours}/rest/v1/').catch(() => {{}}); fetch('https://someone-else.supabase.co/').catch(() => {{}}); fetch('https://example.com/').catch(() => {{}})")
     a.page.wait_for_timeout(300)
     blocked = a.page.evaluate("__csp")
-    assert any("example.com" in b for b in blocked) and not any("supabase.co" in b for b in blocked)
+    assert any("example.com" in b for b in blocked) and any("someone-else" in b for b in blocked)   # only our own project
+    assert not any(ours in b for b in blocked)

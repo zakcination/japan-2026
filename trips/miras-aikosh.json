@@ -2295,7 +2295,10 @@
    "tips": "Место, время и цену уточнить при записи. Нужен ~2 ч до 16:30: потом забираем вещи и едем в Ханэду."
   }
  ],
- "group": null,
+ "group": {
+  "url": "https://ajpiptdkybhtkaoozqet.supabase.co",
+  "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi"
+ },
  "prep": [
   {
    "id": "p-home",
@@ -2429,5 +2432,5 @@
   }
  ],
  "id": "miras-aikosh",
- "updated": "2026-09-30T23:55+05:00"
+ "updated": "2026-10-01T00:38+05:00"
 }
