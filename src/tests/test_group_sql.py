@@ -2,7 +2,7 @@ import re
 from conftest import ROOT
 
 SQL = (ROOT / "supabase" / "migrations" / "001_group.sql").read_text(encoding="utf-8")
-RPCS = ["group_state", "claim_member", "set_join", "save_my_stop", "delete_my_stop", "save_my_booking", "set_task_state",
+RPCS = ["member_names", "group_state", "claim_member", "set_join", "save_my_stop", "delete_my_stop", "save_my_booking", "set_task_state",
         "save_attachment", "delete_attachment", "save_plan", "save_part", "save_recipe", "add_member", "reset_pin",
         "save_task", "import_tasks"]
 TABLES = ["trips", "members", "member_devices", "plan", "parts", "joins", "recipes", "tasks", "task_state",
@@ -15,7 +15,7 @@ def test_every_rpc_is_a_guarded_security_definer():
         assert m, name
         body = m.group(0)
         assert "security definer" in body and "set search_path = public, extensions" in body, name
-        if name not in ("claim_member",):
+        if name not in ("claim_member", "member_names"):
             assert "_me(" in body or "_host(" in body, name
 
 

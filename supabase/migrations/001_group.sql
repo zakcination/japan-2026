@@ -106,6 +106,14 @@ end $$;
 -- NOTE: a raised exception would roll back the fail counter, so a wrong PIN returns {"error": "wrong PIN"}.
 -- The fake raises instead; group_contract treats both as an error (see Step 4).
 
+-- names for the «Кто вы?» sheet: any signed-in session (anonymous included) may read ids and names only
+create or replace function public.member_names(p_trip text) returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+begin
+  if auth.uid() is null then raise exception 'sign in first' using errcode = 'P0001'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name) order by name) from public.members where trip = p_trip), '[]');
+end $$;
+
 create or replace function public.group_state(p_trip text) returns jsonb language plpgsql stable security definer
 set search_path = public, extensions as $$
 declare m public.members := public._me();
@@ -263,7 +271,7 @@ end $$;
 -- and Supabase's own default privileges additionally grant to anon/authenticated), then grant back only
 -- the RPCs the app calls plus the two storage helpers above.
 revoke all on all functions in schema public from public, anon, authenticated;
-grant execute on function public.group_state, public.claim_member, public.set_join, public.save_my_stop, public.delete_my_stop,
+grant execute on function public.member_names, public.group_state, public.claim_member, public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
   public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks,
   public._device_member, public._can_read_ticket to authenticated;

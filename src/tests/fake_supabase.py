@@ -102,6 +102,11 @@ class FakeSupabase:
         self.devices[uid] = p_member
         return self._pub(m)
 
+    def rpc_member_names(self, token, p_trip):
+        if not self.tokens.get(token): raise RpcError(401, "JWT expired or invalid")
+        if p_trip != TRIP: return []
+        return [{"id": m["id"], "name": m["name"]} for m in self.members.values()]
+
     def rpc_group_state(self, token, p_trip):
         m = self._me(token); me = m["id"]
         if p_trip != TRIP: raise RpcError(400, "not a member")   # nulls must fail closed, not open

@@ -371,7 +371,7 @@ HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://*.open-meteo.com; frame-src blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://*.open-meteo.com https://*.supabase.co; frame-src blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1704,7 +1704,7 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 """
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
-TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "group/model.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
+TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "group/model.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
                  "ui/bookings.js", "ui/stats.js", "ui/settings.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 

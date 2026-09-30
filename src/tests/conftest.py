@@ -98,7 +98,7 @@ def app(browser):
     made = []
 
     def open_(state=None, settings=None, trip=None, size=PHONE, url_suffix="", now="2026-09-30T12:00:00+09:00",
-              dark_os=False, ua=None, url=None, routes=None):
+              dark_os=False, ua=None, url=None, routes=None, supabase=None):
         extra = {"user_agent": ua} if ua else {}
         if state and "prevDay" in state and "preview" not in state:   # a preview clock means preview mode
             state = {**state, "preview": True}
@@ -119,6 +119,8 @@ def app(browser):
         if not any("open-meteo" in p for p in (routes or {})):
             pg.add_init_script("(f => { window.fetch = (u, ...a) => /open-meteo\\.com/.test(String(u && u.url || u))"
                                " ? Promise.reject(new TypeError('offline in tests')) : f(u, ...a); })(window.fetch.bind(window))")
+        if supabase:
+            pg.route("https://*.supabase.co/**", supabase.route)
         for pattern, handler in (routes or {}).items():
             pg.route(pattern, handler)
         pg.goto((url or PAGE) + url_suffix)

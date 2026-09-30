@@ -38,4 +38,4 @@ if (/^https?:$/.test(location.protocol) && /github\.io$|^localhost$|^127\.0\.0\.
 window.addEventListener('japan2026:wx', renderShell);
 window.addEventListener('japan2026:tick', renderShell);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) renderShell(); });
-if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep });
+if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api });
