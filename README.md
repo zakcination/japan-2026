@@ -132,6 +132,41 @@ SIZE=1024 Q=80 ./make_images.sh
 с ошибкой, если в фактах есть ключ, которому не соответствует ни одна точка.
 Ручной правки разметки не требуется ни в одном случае.
 
+## Групповое планирование — настройка Supabase
+
+Группа (кто едет, участия, «Дела», билеты) живёт в бесплатном проекте Supabase. В странице есть только
+**Project URL** и **anon public key** — они не секретные. Ключ `service_role`, PIN-коды, места и ссылки на брони
+в репозиторий не попадают никогда.
+
+Один раз, ~10 минут:
+
+1. supabase.com → Sign up (GitHub или почта). **Карта не должна запрашиваться** — если запросит, остановиться.
+2. New project: имя `japan-2026`, регион **Northeast Asia (Tokyo)**, пароль БД сохранить у себя.
+3. Authentication → Sign In / Providers → включить **Anonymous sign-ins**.
+4. SQL Editor → вставить `supabase/migrations/001_group.sql` → Run, затем `supabase/seed.sql` → Run
+   (сид собирается командой `python3 tools/seed_group.py`, в нём нет PIN и личных данных).
+5. PIN хозяев задаётся в SQL Editor (в сиде его нет):
+
+   ```sql
+   update public.members set pin_hash = extensions.crypt('1234', extensions.gen_salt('bf'))
+   where trip = 'miras-aikosh' and name = 'Мирас';
+   ```
+
+6. Project Settings → API → скопировать **Project URL** и **anon public key** в `GROUP` в `src/today_data.py`,
+   пересобрать (`python3 src/today_data.py && python3 src/build_guide.py`).
+7. Проверить настоящую базу теми же сценариями, что и подделку в тестах:
+
+   ```bash
+   python3 src/tests/group_contract.py <url> <anon> <host-id> <pin>
+   ```
+
+   `<host-id>` — `id` хозяина из таблицы `members`.
+
+Гостей добавляют хозяева в ⚙ → «Группа»: приложение выдаёт одноразовую ссылку-приглашение. По ней гость
+выбирает себя и придумывает PIN; без кода из ссылки занять чужое имя нельзя. «Сбросить PIN» выдаёт новую ссылку.
+
+Бесплатный проект засыпает после недели без запросов — разбудить кнопкой Restore в панели Supabase.
+
 ## Тесты
 
 Playwright, headless Chromium:
