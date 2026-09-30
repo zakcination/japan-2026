@@ -133,8 +133,15 @@ function openSettings() {
 }
 
 function openEditor(day, id) {
-  const d = T.days.find(x => x.n === day.n);
-  const e = id ? d.ev.find(x => x.id === id) : { s: '12:00', e: '13:00', t: '', st: 'planned', cat: 'activity' };
+  // signed in to the group: my own stops go to my_stops; a host editing the group plan saves it with a version check
+  const G = typeof Api !== 'undefined' && Api.me() && Api.state();
+  const mine = !!G && (id ? String(id).startsWith('m-') : (S.viewMode !== 'group' || G.me.role !== 'host'));
+  if (G && !mine && G.me.role !== 'host') return;                     // guests don't edit the group plan
+  const doc = G && !mine ? clone(G.plan.doc) : null;
+  const own = mine && id ? (G.my_stops || []).find(s => s.id === id) || null : null;
+  const d = mine ? null : (doc || T).days.find(x => x.n === day.n);
+  const blank = { s: '12:00', e: '13:00', t: '', st: 'planned', cat: 'activity' };
+  const e = !id ? blank : mine ? (own ? { ...own.ev } : null) : d.ev.find(x => x.id === id);
   if (!e) return;
   sheet(id ? 'Изменить пункт' : 'Новый пункт', `
     <div class="tc-form">
@@ -165,19 +172,32 @@ function openEditor(day, id) {
     const num = k => { const x = v(k); return x === '' || !Number.isFinite(+x) ? null : +x; };
     m.querySelector('#edSave').addEventListener('click', () => {
       if (!v('edT') || !Number.isFinite(toMin(v('edS')))) { m.querySelector('#edMsg').textContent = 'Нужны название и время начала.'; return; }
-      const x = id ? e : { id: 'u' + Date.now().toString(36) };
+      const x = mine ? {} : id ? e : { id: 'u' + Date.now().toString(36) };
       Object.assign(x, { t: v('edT'), s: v('edS'), e: v('edE') || null, st: v('edSt') in STL ? v('edSt') : 'planned',
         cat: v('edCat') in CAT ? v('edCat') : 'activity', pname: v('edPlace'),
         lat: num('edLat'), lng: num('edLng'), walk: num('edWalk') || 0, ride: num('edRide') || 0, buf: num('edBuf') || 0,
         cost: num('edCost'), mode: v('edMode'), num: v('edNum'), frm: v('edFrm'), to: v('edTo'), plat: v('edPlat'),
         link: Core.safeUrl(v('edLink')), note: v('edNote') });
+      if (mine) {
+        const stop = { id: id || 'm-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)), day: day.n, ev: x, shared: own ? !!own.shared : false };
+        Api.call('save_my_stop', { p_stop: stop }, s => { s.my_stops = (s.my_stops || []).filter(q => q.id !== stop.id).concat([{ ...stop, member: Api.me().id }]); });
+        closeSheet(); renderShell(); return;
+      }
       if (!id) d.ev.push(x);
       d.ev.sort((a, b) => (toMin(a.s) || 0) - (toMin(b.s) || 0));
-      saveTrip(); closeSheet(); renderShell();
+      if (doc) Api.call('save_plan', { p_doc: doc, p_version: G.plan.version }, s => { s.plan = { doc, version: s.plan.version + 1 }; });
+      else saveTrip();
+      closeSheet(); renderShell();
     });
     const del = m.querySelector('#edDel');
     if (del) del.addEventListener('click', () => twoTap(del, 'Точно удалить?', () => {
-      d.ev = d.ev.filter(x => x.id !== id); saveTrip(); closeSheet(); renderShell();
+      if (mine) Api.call('delete_my_stop', { p_id: id }, s => { s.my_stops = (s.my_stops || []).filter(q => q.id !== id); });
+      else {
+        d.ev = d.ev.filter(x => x.id !== id);
+        if (doc) Api.call('save_plan', { p_doc: doc, p_version: G.plan.version }, s => { s.plan = { doc, version: s.plan.version + 1 }; });
+        else saveTrip();
+      }
+      closeSheet(); renderShell();
     }));
     m.querySelector('#edT').focus();
   });

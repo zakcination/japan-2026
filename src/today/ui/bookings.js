@@ -44,8 +44,8 @@ function bkRow(b, withDate) {
 }
 
 RENDER.tix = (x, root) => {
-  const today = T.bookings.filter(b => (b.days || []).includes(x.day.n));
-  const rest = T.bookings.filter(b => !(b.days || []).includes(x.day.n))
+  const today = planDoc().bookings.filter(b => (b.days || []).includes(x.day.n));
+  const rest = planDoc().bookings.filter(b => !(b.days || []).includes(x.day.n))
     .sort((a, b) => ((a.days || [])[0] || 0) - ((b.days || [])[0] || 0));
   const bought = today.filter(b => b.st === 'fixed').length;
   root.innerHTML = `<div class="tc-page">

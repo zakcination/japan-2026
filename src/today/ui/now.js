@@ -123,7 +123,7 @@ let day1All = false;
 const zoneWord = (code, off) => { const o = Flights.offsetAt(code, Date.now(), off);
   return o === 480 ? 'по Шанхаю' : o === 540 ? 'по Токио' : `по времени ${Flights.airport(code)}`; };
 function day1Steps() {
-  const d1 = T.days[0], base = dayOne();
+  const d1 = TV().days[0], base = dayOne();
   const evs = plan(d1, null).filter(e => !e.bad && !e.skip);
   const chain = myFlights(), end = chain.findIndex(l => Flights.isJapan(l.to));
   const legs = end < 0 || Flights.isJapan(chain[0].frm) ? [] : chain.slice(0, end + 1);
@@ -240,7 +240,7 @@ RENDER.now = (x, root) => {
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">Нет пунктов</h2>
       <span class="tc-sub">Добавьте пункт во вкладке «День».</span></section>`;
   } else if (!cur && !next) {
-    const tomorrow = T.days.find(d => d.n === x.cday.n + 1);
+    const tomorrow = TV().days.find(d => d.n === x.cday.n + 1);
     const first = tomorrow ? liveEvs(plan(tomorrow, null)).find(Core.isKey) : null;
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">День завершён</h2>
       <span class="tc-sub">${first ? `Завтра: ${hm(first.ns)} · ${esc(first.t)}` : 'Поездка завершена'}</span></section>`;

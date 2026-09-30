@@ -42,9 +42,10 @@ function ctx() {
   if (S.preview === true && !canPreview) { S.preview = false; save(); }
   const pv = S.preview === true;
   const c = clock();
-  const cday = T.days.find(d => d.n === c.day) || T.days[0];
-  if (viewDay == null || !T.days.some(d => d.n === viewDay)) viewDay = cday.n;
-  const day = T.days.find(d => d.n === viewDay) || cday;
+  const V = TV();                              // my schedule when logged in, else the trip
+  const cday = V.days.find(d => d.n === c.day) || V.days[0];
+  if (viewDay == null || !V.days.some(d => d.n === viewDay)) viewDay = cday.n;
+  const day = V.days.find(d => d.n === viewDay) || cday;
   const cevs = plan(cday, c.min);
   const evs = day === cday ? cevs : plan(day, null);
   const csun = cday.sun ? sunTimes(dateOf(cday), cday.sun[0], cday.sun[1]) : null;

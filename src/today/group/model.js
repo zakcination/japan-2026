@@ -37,6 +37,15 @@ const Group = (() => {
     return { ...plan, days };
   }
 
+  /* the group plan as hosts plan it, plus the own stops people shared (and mine), so others can join them */
+  function groupTrip(plan, st, mid) {
+    const names = new Map((st.members || []).map(m => [m.id, m.name]));
+    const vis = (st.my_stops || []).filter(s => s.shared || s.member === mid);
+    return { ...plan, days: plan.days.map(d => ({ ...d, ev: [...d.ev, ...vis.filter(s => s.day === d.n).map(s => ({ st: 'planned', cat: 'activity', ...s.ev,
+      id: s.id, from: 'mine', sharedBy: s.member !== mid ? names.get(s.member) || '' : null, shared: !!s.shared }))]
+      .sort((a, b) => (toMin(a.s) || 0) - (toMin(b.s) || 0)) })) };
+  }
+
   function overlaps(evs) {
     const iv = evs.map(e => { const s = toMin(e.s); let en = e.e ? toMin(e.e) : s + 15; if (en < s) en += 1440; return [e.id, s, en]; })
       .filter(x => Number.isFinite(x[1])).sort((a, b) => a[1] - b[1]);
@@ -82,5 +91,5 @@ const Group = (() => {
     return { site: hit ? hit[1] : host.replace(/^www\./, ''), host };
   }
 
-  return { effective: effectiveIn, personalTrip, overlaps, tasks, siteOf };
+  return { effective: effectiveIn, personalTrip, groupTrip, overlaps, tasks, siteOf };
 })();

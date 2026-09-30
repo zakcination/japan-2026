@@ -25,7 +25,7 @@ RENDER.stats = (x, root) => {
   const tripP = Math.min(1, (x.cday.n - 1 + Core.dayProgress(x.cevs, x.c.min)) / N);
   const budP = budget ? (spent || 0) / budget : 0;
 
-  const budgets = T.days.map(d => ({ d, v: dayBudget(d === day ? evs : plan(d, null)) }));
+  const budgets = TV().days.map(d => ({ d, v: dayBudget(d === day ? evs : plan(d, null)) }));
   const max = Math.max(1, ...budgets.map(b => b.v));
   const total = budgets.reduce((s, b) => s + b.v, 0);
 

@@ -401,3 +401,13 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-steps li.done { color: var(--sec); }
 .tc-steps li.done::before { background: var(--ok); }
 .tc-itime small { font: 500 11px/1.15 var(--sf); color: var(--sec); }
+
+/* ---------- group: my plan / group plan, parts, own stops ---------- */
+.tc-seg3s.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tc-seg3s.two button { min-height: 44px; border: 0; border-radius: 10px; background: none; font: 600 15px/1 var(--sf); color: var(--sec); cursor: pointer; }
+.tc-seg3s.two button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+.tc-part { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.tc-part-chip { flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; text-align: left; display: flex; flex-direction: column; gap: 2px; cursor: pointer; color: var(--text); }
+.tc-part-chip b { font: 600 16px/1.2 var(--sf); }
+.tc-part-chip small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-mine { color: var(--tint); font-weight: 600; }

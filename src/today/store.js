@@ -56,7 +56,7 @@ function clock() {
   const live = liveDayN();
   if (live) {
     // after midnight, yesterday's stop that is still going (an onsen till 00:30) keeps the screen
-    const now = japanNow().min, prev = T.days.find(d => d.n === live - 1);
+    const now = japanNow().min, prev = TV().days.find(d => d.n === live - 1);
     if (prev && now < 360 && plan(prev, now + 1440).some(e => !e.skip && !e.auto && !e.bad && e.ne > now + 1440))
       return { live: true, day: prev.n, min: now + 1440 };
     return { live: true, day: live, min: now };
@@ -94,7 +94,15 @@ function refreshTickets() {
 }
 
 
-const bookingById = id => T.bookings.find(b => b.id === id);
+/* the trip on screen: the group plan, or my own schedule (joined group stops + my stops) when logged in */
+const planDoc = () => { const s = typeof Api !== 'undefined' && Api.me() && Api.state(); const d = s && s.plan && Core.cleanTrip(s.plan.doc); return d || T; };
+function TV() {
+  const s = typeof Api !== 'undefined' && Api.me() && Api.state();
+  if (!s) return planDoc();
+  if (S.viewMode === 'group') return Group.groupTrip(planDoc(), s, Api.me().id);
+  return Group.personalTrip(planDoc(), s, Api.me().id);
+}
+const bookingById = id => planDoc().bookings.find(b => b.id === id);
 
 /* A personal link carries the whole trip after '#trip=' (deflate + base64url). The part after '#'
    never reaches the server, so a private trip travels in the link, not in the public repo. */
