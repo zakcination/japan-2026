@@ -133,7 +133,7 @@
 .tc-item { display: flex; align-items: stretch; border-top: 1px solid var(--sep); }
 .tc-item:first-child { border-top: 0; }
 .tc-item.now { background: var(--hl); }
-.tc-check { flex: 0 0 52px; display: grid; place-items: center; position: relative; cursor: pointer; }
+.tc-check { flex: 0 0 52px; min-height: 44px; display: grid; place-items: center; position: relative; cursor: pointer; }
 .tc-check input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .tc-check span { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--seg); display: grid; place-items: center; color: transparent; }
 .tc-check .tc-ic { width: 16px; height: 16px; stroke-width: 3; }
@@ -345,3 +345,16 @@ button.tc-mini { cursor: pointer; }
 .tc-flline small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
 #today .tc-flline .tc-ic { width: 20px; height: 20px; color: var(--sec); }
 #today .tc-flline .tc-ic:first-child { color: var(--tint); }
+
+/* ---------- «Подготовка» sheet: readiness rows, ticks and own items ---------- */
+.tc-prep-sec { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.tc-prep-sec:first-child { margin-top: 0; }
+.tc-prep-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 56px;
+  padding: 6px 8px 6px 16px; border-top: 1px solid var(--sep); }
+.tc-prep-item:first-child { border-top: 0; }
+.tc-prep-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tc-prep-t b { font: 600 16px/1.25 var(--sf); }
+.tc-prep-t small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-prep-item.done .tc-prep-t b { text-decoration: line-through; color: var(--sec); }
+.tc-prep-r { display: flex; align-items: center; gap: 6px; }
+.tc-prep-r small { font: 400 13px/1.2 var(--sf); color: var(--sec); white-space: nowrap; }
