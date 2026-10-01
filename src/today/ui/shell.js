@@ -27,6 +27,8 @@ const ICONS = {
   sunrise: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 5.5 12 3l2.5 2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
   sunset: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 4.5 12 7l2.5-2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  walk: '<circle cx="13" cy="4" r="1.8"/><path d="M10 21l2-6-3-3 1.5-5 3 2.5 3 1M9 12l-3 2M12 15l3 6"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
 const TABS = [['now', 'Сейчас'], ['day', 'День'], ['tix', 'Дела'], ['stats', 'Итоги'], ['map', 'Карта']];

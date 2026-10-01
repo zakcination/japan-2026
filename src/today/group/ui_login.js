@@ -55,6 +55,9 @@ function groupSettingsHTML() {
   return `<div class="tc-card"><b>Вы вошли как ${esc(me.name)}</b><span class="tc-sub">${esc(sync)}${st.online ? '' : ' · нет сети'}${st.error && st.error !== 'login' ? ' · ' + esc(st.error) : ''}</span>
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
+    ${me.role === 'host' && planBehind() ? `<div class="tc-card tc-note" id="grPlanSync"><b>Опубликован новый план поездки</b>
+      <span class="tc-sub">У группы — прежняя версия. Обновить её для всех? Ваши правки плана в приложении заменятся.</span>
+      <button type="button" class="tc-btn primary" id="grPlanSyncGo">Обновить план группы</button></div>` : ''}
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
         ${x.role === 'guest' ? `<span class="tc-actions two"><button type="button" class="tc-btn primary" data-invite="${esc(x.id)}">Пригласить</button>
@@ -69,6 +72,11 @@ function wireGroupSettings(m) {
   on('#grLogin', () => { closeSheet(); openLogin(); });
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
+  on('#grPlanSyncGo', () => twoTap(m.querySelector('#grPlanSyncGo'), 'Точно обновить?', () => {
+    const doc = filePlan(), v = Api.state().plan.version;
+    Api.call('save_plan', { p_doc: doc, p_version: v }, s => { s.plan = { doc, version: v + 1 }; });
+    closeSheet(); renderShell();
+  }));
   on('#grAdd', () => {
     const name = m.querySelector('#grNewName').value.trim(); if (!name) return;
     Api.run('add_member', { p_name: name, p_role: 'guest' }).then(r => showInvite(name, r && r.id, r && r.code))
@@ -83,3 +91,11 @@ function wireGroupSettings(m) {
 }
 
 const alert0 = (m, e) => { const p = m.querySelector('#setMsg'); if (p) p.textContent = e && !e.status ? 'Нет сети — попробуйте позже' : 'Не получилось — попробуйте ещё раз'; };
+
+/* the plan published in the trip file vs the group's copy in Supabase (signed-in people see the copy) */
+const filePlan = () => { const d = JSON.parse(JSON.stringify(T)); delete d.group; return d; };
+const planKey = d => JSON.stringify({ days: (d && d.days) || [], bookings: (d && d.bookings) || [] });
+function planBehind() {
+  const s = Api.state(); if (!s || !s.plan || !s.plan.doc || !s.trip || T.id !== s.trip.id) return false;
+  return planKey(Core.cleanTrip(JSON.parse(JSON.stringify(s.plan.doc)))) !== planKey(Core.cleanTrip(filePlan()));
+}

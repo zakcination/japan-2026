@@ -58,7 +58,8 @@ def test_iphone_gets_apple_maps_and_calendar_sheet(app):
     a.page.click(".tc-item.now .tc-open")
     s = a.page.locator("#tcSheet")
     assert "Apple Картах" in s.inner_text()
-    assert s.locator("a[href^='https://maps.apple.com/?daddr=']").count() == 1
+    assert s.locator("a[href^='https://maps.apple.com/?daddr='][href$='dirflg=r']").count() == 1          # transit
+    assert s.locator("a[href^='https://maps.apple.com/?daddr='][href$='dirflg=w']").count() == 1          # «Пешком»
     s.locator("[data-cal]").click()
     assert "В Календарь" in s.inner_text()
     rows = s.locator("#tcCal .tc-calrow")

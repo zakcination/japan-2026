@@ -203,6 +203,23 @@ HOTEL = {1: P("Рёкан Sansuiso, Готанда", "Отель у ст. Гот
          7: "Отель в Токио (не выбран)", 8: "Отель в Токио (не выбран)", 9: "Отель в Токио (не выбран)",
          10: "Отель в Токио (не выбран)", 11: "— вылет 20:15"}
 
+# the place in the local script, for «Показать по-японски» (taxi drivers, passers-by, Maps search).
+# Names only — no street addresses: a famous place's name is what a driver needs, and a wrong address is worse than none.
+# Hotels are left out until chosen (their address lives in the booking, never here). Shanghai stops are in Chinese.
+LOC = {
+    "hnd": "羽田空港", "gotanda": "五反田駅", "busta": "バスタ新宿", "kwgk": "河口湖駅",
+    "ropeway": "河口湖〜富士山パノラマロープウェイ", "cruise": "河口湖遊覧船", "oishi": "大石公園", "mishima": "三島駅",
+    "kyoto_st": "京都駅", "fushimi": "伏見稲荷大社", "kiyomizu": "清水寺", "sannen": "産寧坂（三年坂）・二寧坂",
+    "nishiki": "錦市場", "gion": "祇園・花見小路", "bamboo": "嵐山 竹林の小径", "tenryuji": "天龍寺", "togetsu": "渡月橋",
+    "kinkaku": "金閣寺（鹿苑寺）", "nagoya_st": "名古屋駅", "noritake": "ノリタケの森", "oasis21": "オアシス21",
+    "ncastle": "名古屋城", "osu": "大須商店街", "atsuta": "熱田神宮", "toyota": "トヨタ産業技術記念館",
+    "tokyo_st": "東京駅", "sensoji": "浅草寺", "ameyoko": "アメ横", "akiba": "秋葉原", "origami": "おりがみ会館",
+    "tdl": "東京ディズニーランド", "meiji": "明治神宮", "harajuku": "原宿・キャットストリート", "shimokita": "下北沢",
+    "camii": "東京ジャーミイ", "sky": "渋谷スカイ（渋谷スクランブルスクエア）", "teamlab": "チームラボボーダレス（麻布台ヒルズ）",
+    "ttower": "東京タワー", "uniqlo": "ユニクロ 銀座", "muji": "無印良品 銀座",
+    "pvg": ("浦东国际机场", "zh"), "maglev": ("龙阳路站", "zh"), "bund": ("外滩", "zh"), "yuyuan": ("豫园", "zh"),
+}
+
 # ---------------------------------------------------------------------------------------
 def E(s, e, t, place, cat, st, only=None, **kw):
     ev = dict(s=s, e=e, t=t, place=place, cat=cat, st=st)
@@ -474,6 +491,8 @@ def trip(personal):
             ev = {k: v for k, v in ev.items() if k != "only"}
             lat, lng, stop, mcat = PL[ev["place"]]
             x = dict(id=f'd{d["n"]}e{len(evs)}', lat=lat, lng=lng, **ev)
+            if ev["place"] in LOC and ev.get("cat") != "hotel":   # hotels: the address is in the booking
+                v = LOC[ev["place"]]; x["loc"], x["locLang"] = (v, "ja") if isinstance(v, str) else v
             x.setdefault("walk", 0); x.setdefault("ride", 0); x.setdefault("buf", 0)
             if x.get("cost"):
                 x["cost"] = round(x["cost"] / 2)          # the schedule is written for two; stored per person

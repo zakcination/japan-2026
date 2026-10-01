@@ -90,6 +90,8 @@ function openStop(day, id) {
     ${e.note ? `<p class="tc-notepara">${esc(e.note)}</p>` : ''}
     <div class="tc-group">
       ${link('pin', Ios.isIOS() ? 'Маршрут в Apple Картах' : 'Маршрут', 'общественный транспорт', routeUrl(e))}
+      ${link('walk', 'Пешком', '', Ios.walkUrl(e))}
+      ${e.loc ? act('globe', e.locLang === 'zh' ? 'Показать по-китайски' : 'Показать по-японски', 'для такси и прохожих', 'data-local') : ''}
       ${link('map', 'Открыть в Google Maps', '', gmap(e))}
       ${e.bk ? act('tix', 'Билет', '', `data-ticket="${esc(e.bk)}"`) : ''}
       ${Core.safeUrl(e.link) ? link('share', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
@@ -113,7 +115,31 @@ function openStop(day, id) {
     if (sk) sk.addEventListener('click', () => { if (S.skip[id]) delete S.skip[id]; else S.skip[id] = true; save(); closeSheet(); renderShell(); });
     const ed = m.querySelector('[data-edit]'); if (ed) ed.addEventListener('click', () => { closeSheet(); openEditor(day, id); });
     if (typeof wireStopJoin === 'function') wireStopJoin(m, day, e);
+    const lc = m.querySelector('[data-local]'); if (lc) lc.addEventListener('click', () => { closeSheet(); showLocal(e); });
     const tk = m.querySelector('[data-ticket]'); if (tk) tk.addEventListener('click', () => { closeSheet(); showTicket(tk.dataset.ticket); });
     m.querySelector('[data-cal]').addEventListener('click', () => Ios.calendarForDay(day));
   });
+}
+
+/* «Показать по-японски»: the place full screen, big, for a taxi driver or a passer-by; one tap anywhere closes it */
+const LOCAL_ASK = { ja: 'ここまでお願いします。', zh: '请带我去这里。' };
+function showLocal(e) {
+  const lang = e.locLang === 'zh' ? 'zh' : 'ja';
+  let m = document.getElementById('tcLocal');
+  if (!m) { m = document.createElement('div'); m.id = 'tcLocal'; m.className = 'tc-local'; document.body.appendChild(m); }
+  m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', e.t);
+  m.innerHTML = `<p class="tc-local-ask" lang="${lang}">${esc(LOCAL_ASK[lang])}</p>
+    <p class="tc-local-name" lang="${lang}">${esc(e.loc)}</p>
+    <p class="tc-local-ru">${esc(e.t)}</p>
+    <div class="tc-local-acts"><button type="button" class="tc-btn" id="tcLocalCopy">${icon('share')}Скопировать</button>
+      <button type="button" class="tc-btn primary" id="tcLocalClose">Закрыть</button></div>`;
+  m.hidden = false; Ios.keepAwake(true);
+  const close = () => { m.hidden = true; Ios.keepAwake(false); };
+  m.querySelector('#tcLocalClose').addEventListener('click', close);
+  m.querySelector('#tcLocalCopy').addEventListener('click', ev => {
+    ev.stopPropagation(); const b = ev.currentTarget;
+    (navigator.clipboard ? navigator.clipboard.writeText(e.loc) : Promise.reject()).then(() => { b.textContent = 'Скопировано'; }, () => { b.textContent = 'Не получилось'; });
+  });
+  m.onclick = ev => { if (!ev.target.closest('button')) close(); };
+  m.querySelector('#tcLocalClose').focus();
 }

@@ -7,10 +7,10 @@ const Ios = (() => {
     (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches);
 
   /* Apple Maps, public transport; a place without numeric coordinates is searched by name */
-  function appleRoute(e) {
+  function appleRoute(e, mode = 'r') {
     const lat = e.lat === '' || e.lat == null ? NaN : +e.lat, lng = e.lng === '' || e.lng == null ? NaN : +e.lng;
     const to = Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : encodeURIComponent((e.pname || e.to || e.t || '') + ' Japan');
-    return `https://maps.apple.com/?daddr=${to}&dirflg=r`;
+    return `https://maps.apple.com/?daddr=${to}&dirflg=${mode}`;
   }
 
   /* ---------- iCalendar (RFC 5545) ---------- */
@@ -60,6 +60,7 @@ const Ios = (() => {
 
   /* ---------- in the app ---------- */
   const routeUrl = e => isIOS() ? appleRoute(e) : groute(e);
+  const walkUrl = e => isIOS() ? appleRoute(e, 'w') : groute(e).replace('travelmode=transit', 'travelmode=walking');
 
   /* the stops of a day worth a calendar entry, planned as they stand now */
   function dayEvents(day) {
@@ -119,5 +120,5 @@ const Ios = (() => {
     if (x) x.addEventListener('click', () => { try { localStorage.setItem(HINT_KEY, '1'); } catch (e) {} renderShell(); });
   }
 
-  return { isIOS, standalone, appleRoute, escText, fold, ics, routeUrl, dayEvents, calendarForDay, keepAwake, installHint, wireInstall };
+  return { isIOS, standalone, appleRoute, escText, fold, ics, routeUrl, walkUrl, dayEvents, calendarForDay, keepAwake, installHint, wireInstall };
 })();

@@ -81,3 +81,21 @@ def test_a_brand_new_phone_asks_who_you_are_once_the_trip_arrives(app, site):
     a = app(url=site, url_suffix="?trip=miras-aikosh", supabase=fake)       # nothing on the phone yet: the trip comes from the site
     a.page.wait_for_selector("#grNames [data-member]", timeout=10000)
     assert "Мирас" in a.page.inner_text("#tcSheet") and "Айкош" in a.page.inner_text("#tcSheet")
+
+
+def test_host_brings_the_group_plan_up_to_date_with_two_taps(app):
+    from test_group_join import logged
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
+    for d in fake.plan["doc"]["days"]:                                      # the group's copy predates the Japanese names
+        for e in d["ev"]: e.pop("loc", None); e.pop("locLang", None)
+    g = logged(app, fake, san, "4821")
+    g.page.click("#tcGear")
+    assert g.page.locator("#grPlanSync").count() == 0                        # guests never see it
+    h = logged(app, fake, fake.host_id, fake.host_pin)
+    h.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    h.page.click("#tcGear")
+    h.page.click("#grPlanSyncGo"); h.page.click("#grPlanSyncGo")
+    until(h.page, "Api.status().pending === 0")
+    assert fake.plan["version"] == 2 and any(e.get("loc") == "天龍寺" for d in fake.plan["doc"]["days"] for e in d["ev"])
+    h.page.click("#tcGear")
+    assert h.page.locator("#grPlanSync").count() == 0                        # up to date: the card is gone
