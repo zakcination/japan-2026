@@ -1056,7 +1056,7 @@ html { font-size: 17px; font: -apple-system-body; }
 .tc-cap.soon .tc-cap-sep, .tc-cap.go .tc-cap-sep { background: rgba(0,0,0,.25); }
 .tc-cap.go { animation: tc-pulse 1.6s ease-in-out infinite; }
 @keyframes tc-pulse { 50% { transform: scale(1.04); } }
-.tc-segs { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
+.tc-segs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }   /* one row for any trip length */
 .tc-seg { height: 4px; border-radius: 2px; background: var(--seg); }
 .tc-seg.done { background: var(--text); }
 .tc-seg.cur { background: linear-gradient(90deg, var(--ok) 0 var(--p, 0%), var(--seg) var(--p, 0%) 100%); }

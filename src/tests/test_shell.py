@@ -60,3 +60,12 @@ def test_theme_switches_on_tick(app):
     a.page.clock.set_fixed_time(datetime.fromisoformat("2026-10-18T17:30:00+09:00"))
     a.page.evaluate("window.dispatchEvent(new Event('japan2026:tick'))")
     assert a.page.get_attribute("#today", "data-th") == "dark"
+
+
+def test_day_segments_stay_on_one_row_for_a_twelve_day_trip(app):
+    import json
+    from conftest import ROOT
+    ours = json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8"))
+    a = app(trip=ours, state={"prevDay": 3, "prevTime": "10:00"})
+    tops = a.page.evaluate("[...document.querySelectorAll('.tc-segs .tc-seg')].map(s => Math.round(s.getBoundingClientRect().top))")
+    assert len(tops) == len(ours["days"]) == 12 and len(set(tops)) == 1
