@@ -8,7 +8,8 @@ const Core = (() => {
   };
   const hm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
   const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? `${h} ч ${pad(m % 60)} мин` : `${m} мин`; };
-  const cd = m => { m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + ':' + pad(m % 60); };
+  // «2 ч 51» / «51 мин»: «2:51» read as both hours and minutes:seconds
+  const cd = m => { m = Math.max(0, Math.round(m)); return m >= 60 ? Math.floor(m / 60) + ' ч ' + pad(m % 60) : m + ' мин'; };
   const ddmmyyyy = iso => { const [y, mo, d] = String(iso).split('-'); return `${d}.${mo}.${y}`; };
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 

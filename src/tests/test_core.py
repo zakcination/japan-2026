@@ -19,7 +19,7 @@ def by_id(evs):
 def test_formatters(core):
     pg = core()
     assert pg.evaluate("[Core.toMin('06:45'), Core.hm(405), Core.cd(171), Core.dur(65), Core.ddmmyyyy('2026-10-18')]") == \
-        [405, "06:45", "2:51", "1 ч 05 мин", "18.10.2026"]
+        [405, "06:45", "2 ч 51", "1 ч 05 мин", "18.10.2026"]
     assert pg.evaluate("Number.isNaN(Core.toMin('xx'))") is True
 
 

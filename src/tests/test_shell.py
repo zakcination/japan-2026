@@ -23,7 +23,7 @@ def test_five_tabs_and_switching(app):
 def test_capsule_calm_soon_go(app):
     calm = at(app, "13:24").page
     assert calm.locator("#tcCap").get_attribute("class").split()[-1] == "calm"
-    assert "17:00" in calm.inner_text("#tcCap") and "2:51" in calm.inner_text("#tcCap")
+    assert "17:00" in calm.inner_text("#tcCap") and "2 ч 51" in calm.inner_text("#tcCap")
     soon = at(app, "16:05").page
     assert "soon" in soon.locator("#tcCap").get_attribute("class")
     go = at(app, "16:18").page

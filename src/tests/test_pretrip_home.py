@@ -163,7 +163,7 @@ def test_countdown_skips_no_whole_day(app):
         return a
     assert "2 дня" in no_flights("2026-10-14T12:00:00+09:00").page.inner_text("#tcCount")     # 60 h before day 1
     assert "1 д 6 ч" in no_flights("2026-10-15T18:00:00+09:00").page.inner_text("#tcCount")   # 30 h before day 1
-    assert "5:12" in no_flights("2026-10-16T18:48:00+09:00").page.inner_text("#tcCount")      # 5 h 12 min before day 1
+    assert "5 ч 12" in no_flights("2026-10-16T18:48:00+09:00").page.inner_text("#tcCount")      # 5 h 12 min before day 1
 
 
 def test_the_evening_before_departure_says_tomorrow(app):

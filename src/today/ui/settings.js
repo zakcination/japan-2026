@@ -11,8 +11,8 @@ const sel = (id, label, val, opts) =>
     `<option value="${esc(k)}"${k === val ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
 const twoTap = (b, ask, fn) => {
   if (!b.dataset.sure) {
-    const was = b.textContent; b.dataset.sure = '1'; b.textContent = ask;
-    setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = was; } }, 4000);
+    const was = b.innerHTML; b.dataset.sure = '1'; b.textContent = ask;          // innerHTML: icon-only buttons come back whole
+    setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.innerHTML = was; } }, 4000);
     return;
   }
   fn();

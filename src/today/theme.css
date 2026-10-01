@@ -1,3 +1,7 @@
+/* Dynamic Type: on iPhone the root follows Settings → Display → Text Size (17px at the default size);
+   body text below is in rem/17, so at the default it is pixel-identical, and capped at 1.4× so layouts hold.
+   Elsewhere -apple-system-body is ignored and the root stays 17px. The map uses px and sets its own body font. */
+html { font-size: 17px; font: -apple-system-body; }
 /* ================= TODAY · design tokens (Apple style) =================
    Light by day, dark after sunset: the shell sets data-th on #today and on the sheet. */
 #today, .tc-sheet-bg, .tc-ticket {

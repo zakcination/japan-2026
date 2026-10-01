@@ -50,9 +50,9 @@ function openFlights() {
   sheet('Мои рейсы', `
     <p class="tc-sub">Номер рейса и дата вылета — остальное подставится, если рейс известен. Время — местное в каждом аэропорту.
       Список хранится на этом телефоне.</p>
-    ${legs.length ? `<div class="tc-group" id="flList">${legs.map((l, i) => {
+    ${legs.length ? `<span class="tc-sech">${own ? 'Мои рейсы' : 'Рейсы поездки'}</span><div class="tc-group" id="flList">${legs.map((l, i) => {
       const t = Flights.times(l);
-      return `<div class="tc-flrow"><span><b>${esc(Flights.pretty(l.no))}</b> · ${l.date.slice(8)}.${l.date.slice(5, 7)}<small>${esc(l.frm)} ${esc(l.dep)} → ${esc(l.to)} ${t && t.arr ? esc(l.arr) : '—'}</small></span>
+      return `<div class="tc-flrow"><span><span class="tc-fl-t"><b>${esc(Flights.pretty(l.no))}</b> · ${l.date.slice(8)}.${l.date.slice(5, 7)}</span><small>${esc(l.frm)} ${esc(l.dep)} → ${esc(l.to)} ${t && t.arr ? esc(l.arr) : '—'}</small></span>
         <button type="button" class="tc-x" data-fldel="${i}" aria-label="Удалить рейс ${esc(Flights.pretty(l.no))}">${icon('close')}</button></div>`;
     }).join('')}</div>` : ''}
     <span class="tc-sech">Добавить рейс</span>
@@ -98,7 +98,7 @@ function openFlights() {
       if (!leg) { $('flMsg').textContent = 'Нужны рейс, дата, коды аэропортов (3 буквы) и время вылета.'; return; }
       saveFlights([...myFlights(), leg]); closeSheet(); renderShell();
     });
-    m.querySelectorAll('[data-fldel]').forEach(b => b.addEventListener('click', () => twoTap(b, '?', () => {
+    m.querySelectorAll('[data-fldel]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Удалить?', () => {
       const l = myFlights(); l.splice(+b.dataset.fldel, 1); saveFlights(l); openFlights(); renderShell();
     })));
     const rs = $('flReset');

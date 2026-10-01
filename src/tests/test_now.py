@@ -18,7 +18,7 @@ def test_now_and_next_by_day(app):
     now = a.page.inner_text("#tcNow")
     nxt = a.page.inner_text("#tcNext")
     assert "Oishi Park" in now and "до 15:45" in now
-    assert "17:00" in nxt and "Кавагутико → Мисима" in nxt and "2:51" in nxt
+    assert "17:00" in nxt and "Кавагутико → Мисима" in nxt and "2 ч 51" in nxt
     assert fits_one_screen(a.page)
     for b in a.page.locator("#tcNext button, #tcNext a").all():
         assert b.bounding_box()["height"] >= 44
