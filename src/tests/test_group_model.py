@@ -42,7 +42,7 @@ def test_personal_trip_merges_own_and_shared_stops(core):
     assert {e["t"] for e in d3["ev"]} == {"Осака: Dotonbori", "Кофе"}
     kofe = next(e for e in d3["ev"] if e["t"] == "Кофе")
     assert kofe["from"] == "mine" and kofe["sharedBy"] == "Мирас"
-    assert [x["n"] for x in t["days"]] == list(range(1, 12))
+    assert [x["n"] for x in t["days"]] == list(range(1, 13))          # our trip has the Shanghai night (28.10)
     assert t["bookings"] == TRIP["bookings"]
 
 

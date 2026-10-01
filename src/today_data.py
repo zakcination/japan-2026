@@ -37,7 +37,7 @@ def resolve(x, personal):
     if isinstance(x, (list, tuple)):
         return type(x)(resolve(v, personal) for v in x) if isinstance(x, list) else tuple(resolve(v, personal) for v in x)
     return x
-DATES = {n: f"2026-10-{16 + n}" for n in range(1, 12)}
+DATES = {n: f"2026-10-{16 + n}" for n in range(1, 13)}       # day 12 (28.10, Shanghai) is our trip only
 
 # place -> (lat, lng, map stop name or None, map category)
 PL = {
@@ -88,6 +88,11 @@ PL = {
     "ttower":   (35.6586, 139.7454, "Tokyo Tower 📍", "Attraction"),
     "uniqlo":   (35.6737637, 139.7651281, "UNIQLO TOKYO — Ginza 🛍", "Shopping"),
     "muji":     (35.6746, 139.7668, "MUJI Ginza 🛍", "Shopping"),
+    "shmuseum": (31.2283, 121.4752, None, None),
+    "nanjing":  (31.2366, 121.4807, None, None),
+    "nbund":    (31.2475, 121.4985, None, None),
+    "stower":   (31.2335, 121.5055, None, None),
+    "lujiazui": (31.2397, 121.4998, None, None),
     "pvg":      (31.1443, 121.8083, None, None),
     "maglev":   (31.2034, 121.5578, None, None),
     "bund":     (31.2400, 121.4900, None, None),
@@ -145,6 +150,10 @@ RECIPES = [
          url="https://www.shibuya-scramble-square.com/sky/ticket/", opens="2026-10-11T00:00+09:00",
          opens_note="11.10 00:00 по Японии = 10.10 20:00 по Алматы", buy_by="2026-10-11", price_pp=3400,
          tips="Слоты на закат уходят быстро."),
+    dict(bk="h_shanghai", what="Шанхай, ночь 27.10 → 28.10, у Бунда: выбрать и забронировать", site="Booking.com",
+         url="https://www.booking.com/searchresults.ru.html?ss=The+Bund%2C+Shanghai&checkin=2026-10-27&checkout=2026-10-28&group_adults=5&no_rooms=3&order=price",
+         opens=None, opens_note="", buy_by="2026-10-20", price_pp=None,
+         tips="Самое дешёвое у Бунда / Нанкин-лу — сетевые отели (Hanting, Home Inn, Jinjiang Inn), ориентир ¥250–400 юаней за номер (проверить). Только с бесплатной отменой: решите гулять всю ночь — отмените. Заезд около 02:00 — предупредить отель. Нужен ли отель — решите вместе."),
     dict(bk="teamlab", what="teamLab Borderless, 26.10, билет на время", site="teamLab",
          url="https://www.teamlab.art/e/tokyo/", opens=None, opens_note="проверить", buy_by="2026-10-20", price_pp=3600, tips=""),
 ]
@@ -196,13 +205,14 @@ BOOKINGS = [
     dict(id="disney", days=[8], t="Tokyo Disneyland", when="24.10 · 09:00–21:00", st="input", cost=24800),
     dict(id="sky", days=[9], t="Shibuya Sky", when="25.10 · ~16:30", st="input", cost=6800),
     dict(id="teamlab", days=[10], t="teamLab Borderless", when="26.10", st="input", cost=7200),
+    dict(id="h_shanghai", days=[12], t="Шанхай: отель на ночь у Бунда (по желанию)", when="27.10 → 28.10 · ночь", st="input", cost=None, only="own"),
     dict(id="flight_out", days=[11], t=P("Рейс MU540 Ханэда → Шанхай", "Вылет из Ханэды"), when=P("27.10.2026 · 20:15", "27.10 · 20:15 (пример — впишите свой рейс)"), st=P("fixed", "input"), cost=None),
 ]
 
 HOTEL = {1: P("Рёкан Sansuiso, Готанда", "Отель у ст. Готанда"), 2: "Отель в Киото (не выбран)", 3: "Отель в Киото (не выбран)",
          4: "Отель в Нагое (не выбран)", 5: "Отель в Нагое (не выбран)", 6: "Отель в Токио (не выбран)",
          7: "Отель в Токио (не выбран)", 8: "Отель в Токио (не выбран)", 9: "Отель в Токио (не выбран)",
-         10: "Отель в Токио (не выбран)", 11: "— вылет 20:15"}
+         10: "Отель в Токио (не выбран)", 11: "— вылет 20:15", 12: "Шанхай: отель у Бунда или прогулка"}
 
 # the place in the local script, for «Показать по-японски» (taxi drivers, passers-by, Maps search).
 # Names only — no street addresses: a famous place's name is what a driver needs, and a wrong address is worse than none.
@@ -219,6 +229,8 @@ LOC = {
     "camii": "東京ジャーミイ", "sky": "渋谷スカイ（渋谷スクランブルスクエア）", "teamlab": "チームラボボーダレス（麻布台ヒルズ）",
     "ttower": "東京タワー", "uniqlo": "ユニクロ 銀座", "muji": "無印良品 銀座",
     "pvg": ("浦东国际机场", "zh"), "maglev": ("龙阳路站", "zh"), "bund": ("外滩", "zh"), "yuyuan": ("豫园", "zh"),
+    "shmuseum": ("上海博物馆（人民广场）", "zh"), "nanjing": ("南京东路步行街", "zh"), "nbund": ("北外滩滨江", "zh"),
+    "stower": ("上海中心大厦", "zh"), "lujiazui": ("陆家嘴滨江", "zh"),
 }
 
 # ---------------------------------------------------------------------------------------
@@ -238,9 +250,13 @@ DAYS = [
    E("07:00", "07:30", "Маглев до Longyang Rd", "maglev", "transport", "planned", off=480, only="own", mode="Maglev",
      note="Ходит с 06:45, ~50 юаней — проверить."),
    E("07:30", "08:15", "Метро до Бунда", "bund", "transport", "planned", off=480, only="own", mode="Метро, линия 2", walk=10),
-   E("08:15", "10:30", "Набережная Бунд, Nanjing Road", "bund", "activity", "planned", off=480, only="own", km=3.0),
-   E("10:45", "12:15", "Сад Юйюань, старый город, обед", "yuyuan", "activity", "planned", off=480, only="own", walk=20, km=1.5),
-   E("12:30", "13:45", "Обратно в Пудун: метро + маглев", "pvg", "transport", "planned", off=480, only="own", mode="Метро + Maglev"),
+   E("08:15", "09:15", "Бунд утром, пока пусто", "bund", "activity", "planned", off=480, only="own", km=1.5),
+   E("09:15", "10:00", "Пешком к Народной площади, завтрак", "shmuseum", "food", "planned", off=480, only="own", walk=25, km=2.0),
+   E("10:00", "11:45", "Шанхайский музей: бронза, фарфор, каллиграфия", "shmuseum", "activity", "planned", off=480, only="own",
+     note="Вход бесплатный, по паспорту; может понадобиться онлайн-бронь — проверить. По понедельникам закрыт (17.10 — суббота)."),
+   E("11:45", "13:00", "Нанкин-лу Восточная: обувь", "nanjing", "activity", "flex", off=480, only="own", walk=10, km=1.0,
+     note="Флагманы спортивных брендов, Li-Ning и Anta; магазины с 10:00. Платить Alipay или картой — проверить."),
+   E("13:00", "13:45", "Обратно в Пудун: метро линия 2 + маглев", "pvg", "transport", "planned", off=480, only="own", mode="Метро + Maglev"),
    E("14:15", "17:15", "В аэропорту: регистрация MU575, досмотр, посадка", "pvg", "transport", "fixed", off=480, only="own",
      note="Не позже 14:15 — вылет в 17:15, международный рейс."),
    E("21:20", "22:00", P("Прилёт MU575, паспортный контроль и багаж", "Прилёт в Ханэду, паспортный контроль и багаж"), "hnd", "transport", P("fixed", "input"), mode="Самолёт", num=P("MU575", ""), frm=P("Шанхай", "—"), to="Ханэда T3", bk="flight_in",
@@ -425,6 +441,26 @@ DAYS = [
    E("20:15", "22:40", P("Вылет MU540 в Шанхай", "Вылет из Ханэды"), "hnd", "transport", P("fixed", "input"), mode="Самолёт", num=P("MU540", ""), frm="Ханэда T3", to=P("Шанхай", "—"), bk="flight_out",
      note=P("Ночь в Шанхае, домой MU6041 28.10 в 15:45.", "Впишите свой рейс и время.")),
  ]),
+ dict(n=12, own=True, city="Шанхай", label="Шанхай · ночь и утро", wcity="Shanghai", sun=(31.23, 121.47),
+      summary="Ночь в Шанхае: Северный Бунд, отель или прогулка, рассвет на Бунде, Shanghai Tower, в 15:45 домой",
+      konbini="FamilyMart и Lawson открыты круглосуточно",
+      ev=[
+   E("00:00", "00:30", "Пудун: паспортный контроль, большие сумки — в камеру хранения", "pvg", "transport", "fixed", off=480,
+     note="Прилёт MU540 в 22:40. Камера хранения в аэропорту — проверить, что работает ночью. С собой — рюкзак и паспорта."),
+   E("00:30", "01:20", "Такси / DiDi в город", "nbund", "transport", "planned", off=480, mode="Такси / DiDi", frm="Пудун", to="Северный Бунд",
+     note="Маглев и метро ночью не ходят. ~¥200–250 юаней за машину ночью (проверить); на пятерых — две машины. DiDi — через Alipay."),
+   E("01:20", "02:00", "Северный Бунд: вид на Лудзяцзуй (рядом Raffles City The Bund)", "nbund", "activity", "planned", off=480, km=1.0),
+   E("02:00", "05:30", "Ночь: отель у Бунда или прогулка по городу", "bund", "hotel", "flex", off=480, bk="h_shanghai",
+     note="Отель — бронь в «Делах», с бесплатной отменой. Если гуляете: Нанкин-лу и набережная, еда допоздна вокруг Хуанхэ-лу у Народной площади; халяль — лапша Ланьчжоу; FamilyMart/Lawson круглосуточно. Держитесь вместе."),
+   E("05:30", "07:00", "Рассвет на Бунде, тайцзи на набережной", "bund", "activity", "planned", off=480, km=1.5, note="Рассвет около 06:00."),
+   E("07:00", "08:15", "Халяль-завтрак, метро линия 2 в Лудзяцзуй", "lujiazui", "food", "planned", off=480, mode="Метро, линия 2"),
+   E("08:30", "10:30", "Shanghai Tower, 118 этаж — город с 546 м", "stower", "activity", "planned", off=480,
+     note="~¥180–200 юаней на человека (проверить), открытие ~08:30–09:00. В дымку — лучше просто набережная."),
+   E("10:30", "12:00", "Набережная Лудзяцзуй, обед", "lujiazui", "food", "flex", off=480, km=1.5),
+   E("12:00", "13:15", "В Пудун: метро линия 2 + маглев, забрать сумки", "pvg", "transport", "planned", off=480, mode="Метро + Maglev"),
+   E("13:15", "15:45", "В аэропорту: регистрация MU6041, посадка", "pvg", "transport", "fixed", off=480, num="MU6041",
+     note="Вылет в Алматы 15:45, прилёт 19:35."),
+ ]),
 ]
 
 # ---------------------------------------------------------------------------------------
@@ -482,6 +518,8 @@ def build_parts(days):
 def trip(personal):
     days = []
     for d in DAYS:
+        if d.get("own") and not personal:                       # our Shanghai night is not part of the template
+            continue
         d = resolve(d, personal)
         evs = []
         for ev in d["ev"]:

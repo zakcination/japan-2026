@@ -10,7 +10,10 @@ GROUPS = {"tickets", "phone", "money", "packing"}
 def test_shanghai_day_only_in_our_trip():
     d1 = OWN["days"][0]["ev"]
     sh = [e for e in d1 if e.get("off") == 480]
-    assert [e["s"] for e in sh] == ["05:30", "07:00", "07:30", "08:15", "10:45", "12:30", "14:15"]
+    assert [e["s"] for e in sh] == ["05:30", "07:00", "07:30", "08:15", "09:15", "10:00", "11:45", "13:00", "14:15"]   # museum and shoes
+    d12 = OWN["days"][-1]
+    assert d12["date"] == "2026-10-28" and all(e.get("off") == 480 for e in d12["ev"]) and d12["ev"][-1]["s"] == "13:15"
+    assert len(TPL["days"]) == 11 and not any(b["id"] == "h_shanghai" for b in TPL["bookings"])
     assert any(e["st"] == "fixed" and e["s"] == "14:15" for e in sh)          # back at the airport: an anchor
     assert not any(e.get("off") for d in TPL["days"] for e in d["ev"])
 

@@ -32,10 +32,10 @@ def test_show_in_japanese_big_and_copyable(app):
 
 
 def test_shanghai_shows_chinese(app):
-    a = stop(app, 1, "d1e4")
+    a = stop(app, 1, "d1e5")
     a.page.locator("#tcSheet [data-local]").click()
     assert "Показать по-китайски" not in a.page.inner_text("#tcLocal")
-    assert a.page.inner_text(".tc-local-name") == "豫园" and "请带我去这里" in a.page.inner_text("#tcLocal")
+    assert a.page.inner_text(".tc-local-name") == "上海博物馆（人民广场）" and "请带我去这里" in a.page.inner_text("#tcLocal")
     a.page.keyboard.press("Escape")
     assert a.page.locator("#tcLocal").is_hidden()
 
