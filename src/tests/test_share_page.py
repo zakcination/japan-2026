@@ -17,8 +17,8 @@ def og(path):
 
 def test_our_share_page_has_its_own_preview():
     t = og(ROOT / "t" / "miras-aikosh.html")
-    assert t["og:title"] == "Мирас и Айкош · Япония 2026" and "выберите себя" in t["og:description"]
-    assert t["og:image"] == "https://zakcination.github.io/japan-2026/og-miras-aikosh.jpg" and (ROOT / "og-miras-aikosh.jpg").stat().st_size < 300_000
+    assert t["og:title"] == "SHF Power Trip Japan 2026" and "выберите себя" in t["og:description"]
+    assert t["og:image"] == "https://zakcination.github.io/japan-2026/og-miras-aikosh.jpg?v=2" and (ROOT / "og-miras-aikosh.jpg").stat().st_size < 300_000
     assert t["og:url"].endswith("/t/miras-aikosh.html") and t["twitter:card"] == "summary_large_image"
     i = og(ROOT / "src" / "Japan_Guide_2026.html")
     assert i["og:image"].endswith("/og-v2.jpg") and (ROOT / "og-v2.jpg").exists() and i["og:url"] == "https://zakcination.github.io/japan-2026/"
@@ -32,6 +32,6 @@ def test_share_page_forwards_into_the_app_keeping_the_invite_and_the_link(app, s
 
 def test_the_app_shares_the_preview_page(app, site):
     a = app(url=site, url_suffix="?trip=miras-aikosh")
-    until(a.page, "document.title.includes('Мирас')")
+    until(a.page, "document.title.includes('SHF')")
     a.page.click("#tcGear")
     assert re.search(r"/t/miras-aikosh\.html$", a.page.inner_text("#setShare small"))

@@ -28,22 +28,22 @@ def settings_text(a):
 
 def test_link_opens_our_trip_and_is_remembered(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     a.page.click(".tc-tab[data-tab='tix']")
     assert "MU575" in a.page.text_content("#todayBody")
     assert "версия от" in settings_text(a)
     a.page.goto(site)                                   # no ?trip= any more
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     assert a.errors == []
 
 
 def test_no_network_uses_the_saved_copy(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     a.page.route("**/trips/*.json", abort)
     a.page.reload()
     a.page.wait_for_selector(".tc-tab")
-    assert "Мирас" in a.page.title()
+    assert "SHF" in a.page.title()
     a.page.wait_for_timeout(300)
     assert "без сети" in settings_text(a)
 
@@ -57,7 +57,7 @@ def test_first_open_without_network_shows_the_template(app, site):
 
 def test_a_newer_shared_version_arrives_and_keeps_marks(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     a.page.click(".tc-tab[data-tab='day']")
     a.page.locator(".tc-item >> nth=3 >> .tc-check").click()
     newer = dict(OURS, name="Мирас и Айкош · обновлено", updated="2026-10-01T09:30+05:00")
@@ -71,7 +71,7 @@ def test_a_newer_shared_version_arrives_and_keeps_marks(app, site):
 
 def test_local_edits_win_until_back_to_shared(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     a.page.click("#tcGear")
     a.page.click("#setMore summary")
     a.page.fill("#setName", "Наша правка")
@@ -123,7 +123,7 @@ def test_switch_trip_in_settings_resets_marks(app, site):
     assert "шаблон" in a.page.title()
     a.page.click("#tcGear")
     a.page.select_option("#setTrip", "miras-aikosh")
-    expect(a.page).to_have_title(re.compile('Мирас'))
+    expect(a.page).to_have_title(re.compile('SHF'))
     marks = json.loads(a.page.evaluate("localStorage.getItem('japan2026.today.v1')"))
     assert marks["done"] == {}
 
@@ -153,19 +153,19 @@ def test_switching_offline_to_a_trip_not_on_the_phone_changes_nothing(app, site)
 
 def test_each_trip_keeps_its_own_offline_copy(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile("Мирас"))
+    expect(a.page).to_have_title(re.compile("SHF"))
     a.page.click("#tcGear")
     a.page.select_option("#setTrip", "template")
     expect(a.page).to_have_title(re.compile("шаблон"))
     a.page.route("**/trips/*.json", abort)
     a.page.click("#tcGear")
     a.page.select_option("#setTrip", "miras-aikosh")
-    expect(a.page).to_have_title(re.compile("Мирас"))
+    expect(a.page).to_have_title(re.compile("SHF"))
 
 
 def test_organiser_changes_to_start_and_people_reach_the_phone(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile("Мирас"))
+    expect(a.page).to_have_title(re.compile("SHF"))
     a.page.click("#tcGear")
     a.page.keyboard.press("Escape")
     a.page.route("**/trips/miras-aikosh.json", fulfil(dict(OURS, start="2026-10-18", travelers=3, name="Мирас +1")))
@@ -179,7 +179,7 @@ def test_organiser_changes_to_start_and_people_reach_the_phone(app, site):
 def test_home_screen_app_opens_the_chosen_trip(app, site):
     """A Home Screen app has its own storage: its manifest must start on ?trip=<id>, not the template."""
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
-    expect(a.page).to_have_title(re.compile("Мирас"))
+    expect(a.page).to_have_title(re.compile("SHF"))
     assert a.page.get_attribute("link[rel=manifest]", "href") == "manifest-miras-aikosh.webmanifest"
     m = json.loads((ROOT / "manifest-miras-aikosh.webmanifest").read_text(encoding="utf-8"))
     assert m["start_url"] == m["id"] == "./?trip=miras-aikosh"

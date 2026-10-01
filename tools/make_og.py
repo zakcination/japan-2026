@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CARDS = {
-    "og-miras-aikosh.jpg": dict(img="fushimi.webp", kicker="Мирас и Айкош приглашают", title="Япония 2026",
+    "og-miras-aikosh.jpg": dict(img="fushimi.webp", kicker="SHF Power Trip", title="Japan 2026",
                                 sub="17–28 октября · Токио · Фудзи · Киото · Нагоя · Шанхай", pill="План поездки, билеты и кто куда едет"),
     "og-v2.jpg": dict(img="arashiyama.webp", kicker="Приложение поездки", title="Япония за 11 дней",
                       sub="Токио · Фудзи · Киото · Нагоя", pill="Что сейчас, что дальше — офлайн, на iPhone"),

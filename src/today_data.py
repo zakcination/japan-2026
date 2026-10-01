@@ -547,7 +547,7 @@ def trip(personal):
         if b.get("cost"):
             b["cost"] = round(b["cost"] / 2)
         bks.append(b)
-    return dict(schema=1, name="Мирас и Айкош · Япония 2026" if personal else "Япония за 11 дней · шаблон",
+    return dict(schema=1, name="SHF Power Trip Japan 2026" if personal else "Япония за 11 дней · шаблон",
                 template="japan-11d-2026", travelers=2, start=DATES[1], currency="KZT", rate=FX,
                 bookings=bks, flights=FLIGHTS if personal else [], days=days,
                 parts=build_parts(days) if personal else [], recipes=RECIPES if personal else [],
@@ -584,11 +584,11 @@ SHARE_PAGE = """<!doctype html>
 <meta property="og:title" content="{name}">
 <meta property="og:description" content="План поездки 17–28 октября: что сейчас, куда едем и какие билеты купить. Откройте ссылку и выберите себя.">
 <meta property="og:url" content="{base}t/{id}.html">
-<meta property="og:image" content="{base}og-{id}.jpg">
+<meta property="og:image" content="{base}og-{id}.jpg?v=2">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Тории Фусими-Инари и надпись «Япония 2026»">
+<meta property="og:image:alt" content="Тории Фусими-Инари и надпись «SHF Power Trip · Japan 2026»">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <script>(function () {{ var q = new URLSearchParams(location.search); q.set('trip', '{id}');
