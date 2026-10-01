@@ -16,16 +16,18 @@ function joinBarHTML(x) {
   if (group) html += parts.map(p => `<div class="tc-card tc-part"><button type="button" class="tc-part-chip" data-part="${esc(p.id)}">
       <b>${esc(p.title)}</b><small>едут: ${esc(initials(who(p)))}</small></button>
       ${Api.me().role === 'host' ? '' : partIn(p) ? `<button type="button" class="tc-btn" data-partjoin="${esc(p.id)}" data-mode="none">Не еду</button>`
-        : `<button type="button" class="tc-btn primary" id="grJoinPart" data-partjoin="${esc(p.id)}" data-mode="in">Я с вами: ${esc(p.title)}</button>`}</div>`).join('');
+        : `<button type="button" class="tc-btn primary" id="grJoinPart" data-partjoin="${esc(p.id)}" data-mode="in">Я с вами: ${esc(p.title)}</button>`}</div>`).join('')
+      + (Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" id="grProposeAdd">${icon('plus')}Предложить пункт в план группы</button>`);
   else if (!x.evs.length) html += `<div class="tc-card"><b>Свободный день — спланируйте сами</b>
       ${parts.length ? `<span class="tc-sub">Группа в этот день: ${esc(parts.map(p => p.title).join(', '))} — «План группы», чтобы присоединиться.</span>` : ''}</div>`;
   return html;
 }
-function wireJoinBar(root) {
+function wireJoinBar(root, x) {
   if (!Api.me()) return;
   root.querySelectorAll('#grView [data-view]').forEach(b => b.addEventListener('click', () => { S.viewMode = b.dataset.view; save(); renderShell(); }));
   root.querySelectorAll('[data-partjoin]').forEach(b => b.addEventListener('click', () => { setJoin('part', b.dataset.partjoin, b.dataset.mode); renderShell(); }));
   root.querySelectorAll('[data-part]').forEach(b => b.addEventListener('click', () => openPart(b.dataset.part)));
+  const pa = root.querySelector('#grProposeAdd'); if (pa) pa.addEventListener('click', () => openPropose(x.day, null));
 }
 function openPart(id) {
   const s = Api.state(), p = s.parts.find(x => x.id === id); if (!p) return;
@@ -53,11 +55,13 @@ function stopJoinHTML(day, e) {
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
   return `<p class="tc-sub">Идут: ${esc(who.join(', ') || '—')}</p>
     <div class="tc-actions two"><button type="button" class="tc-btn ${going ? '' : 'primary'}" data-join="in">Я еду</button>
-      <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>`;
+      <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>
+    ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" data-propose>${icon('edit')}Предложить изменение</button>`}`;
 }
 function wireStopJoin(m, day, e) {
   if (!Api.me()) return;
   m.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => { setJoin('stop', e.id, b.dataset.join); closeSheet(); renderShell(); }));
+  const pr = m.querySelector('[data-propose]'); if (pr) pr.addEventListener('click', () => { closeSheet(); openPropose(day, e); });
   const jm = m.querySelector('[data-joinmine]'); if (jm) jm.addEventListener('click', () => { setJoin('mine', e.id, jm.dataset.joinmine); closeSheet(); renderShell(); });
   const sh = m.querySelector('#grShare'); if (sh) sh.addEventListener('change', () => {
     const st = Api.state().my_stops.find(x => x.id === e.id); if (!st) return;

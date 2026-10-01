@@ -43,7 +43,7 @@ RENDER.day = (x, root) => {
     <div class="tc-actions two"><button type="button" class="tc-btn" id="tcAdd">${icon('plus')}Пункт</button>
       <button type="button" class="tc-btn" id="tcDayEdit">${icon('edit')}День</button></div>
   </div>`;
-  if (typeof wireJoinBar === 'function') wireJoinBar(root);
+  if (typeof wireJoinBar === 'function') wireJoinBar(root, x);
   const pick = n => { viewDay = n; renderShell(); };
   root.querySelectorAll('.tc-daypick').forEach(b => b.addEventListener('click', () => pick(+b.dataset.day)));
   const on = root.querySelector('.tc-daypick.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });

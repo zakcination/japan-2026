@@ -26,6 +26,7 @@ class FakeSupabase:
         self.my_stops, self.my_bookings, self.task_state, self.attachments = {}, {}, {}, {}
         self.files = {}
         self.events = set()         # (member, event) — the activation funnel
+        self.proposals, self.push_subs = [], {}
         self.clock = time.time      # tests may replace it
         self.fail_network = False   # tests flip it to simulate no signal
 
@@ -129,6 +130,8 @@ class FakeSupabase:
             "my_bookings": [b for b in self.my_bookings.values() if b["member"] == me],
             "task_state": [dict(ref=k[1], **v) for k, v in self.task_state.items() if k[0] == me],
             "attachments": [x for x in self.attachments.values() if x["member"] == me or x["shared"]],
+            "proposals": [p for p in sorted(self.proposals, key=lambda p: p["at"], reverse=True)
+                          if p["member"] == me or m["role"] == "host"],
             "now": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.clock()))})
 
     def rpc_set_join(self, token, p_scope, p_ref, p_mode):
@@ -230,6 +233,48 @@ class FakeSupabase:
         self._me(token, need_host=True)
         n = lambda ev: sum(1 for m, e in self.events if e == ev and m in self.members)
         return {"members": len(self.members), "login": n("login"), "installed": n("installed"), "joined": n("joined"), "bought": n("bought")}
+
+    def rpc_propose(self, token, p_kind, p_ref, p_day, p_payload, p_note):
+        m = self._me(token)
+        if p_kind not in ("time", "remove", "add", "comment"): raise RpcError(400, "bad proposal")
+        if p_kind == "add" and (p_day is None or not (p_payload or {}).get("t")): raise RpcError(400, "bad proposal")
+        if p_kind != "add" and not p_ref: raise RpcError(400, "bad proposal")
+        if len(json.dumps(p_payload or {})) > 4000 or len(p_note or "") > 500: raise RpcError(400, "too long")
+        if sum(1 for p in self.proposals if p["member"] == m["id"] and p["status"] == "open") >= 20: raise RpcError(400, "too many open proposals")
+        i = str(uuid.uuid4())
+        self.proposals.append({"id": i, "member": m["id"], "kind": p_kind, "ref": p_ref or None, "day": p_day, "payload": p_payload or {},
+                               "note": (p_note or "").strip() or None, "status": "open", "at": time.time()})
+        return i
+
+    def rpc_withdraw_proposal(self, token, p_id):
+        me = self._me(token)["id"]
+        p = next((p for p in self.proposals if p["id"] == p_id and p["member"] == me and p["status"] == "open"), None)
+        if not p: raise RpcError(400, "no such proposal")
+        p["status"] = "withdrawn"; return True
+
+    def rpc_decide_proposal(self, token, p_id, p_accept, p_doc=None, p_version=None):
+        self._me(token, need_host=True)
+        p = next((p for p in self.proposals if p["id"] == p_id and p["status"] == "open"), None)
+        if not p: raise RpcError(400, "no such proposal")
+        if p_accept is None: raise RpcError(400, "bad decision")
+        if p_accept and p["kind"] != "comment":
+            if p_doc is None or p_version is None: raise RpcError(400, "plan needed")
+            if p_version != self.plan["version"]: raise RpcError(400, "plan version changed")
+            self.plan = {"doc": p_doc, "version": p_version + 1}
+        p["status"] = "accepted" if p_accept else "rejected"
+        return self.plan["version"]
+
+    def rpc_save_push(self, token, p_sub):
+        me = self._me(token)["id"]
+        e = (p_sub or {}).get("endpoint") or ""
+        if not e.startswith("https://") or len(e) > 1000: raise RpcError(400, "bad subscription")
+        self.push_subs[e] = {"member": me, "sub": p_sub}
+        return True
+
+    def rpc_delete_push(self, token, p_endpoint):
+        me = self._me(token)["id"]
+        if self.push_subs.get(p_endpoint, {}).get("member") == me: del self.push_subs[p_endpoint]
+        return True
 
     def rpc_save_task(self, token, p_task):
         self._me(token, need_host=True)

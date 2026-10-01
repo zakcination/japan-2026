@@ -118,6 +118,31 @@ def run_all(c, host_id, host_pin):
     assert after["login"] - before["login"] <= 1 and after["login"] >= 1
     assert set(after) == {"members", "login", "installed", "joined", "bought"} and all(isinstance(v, int) for v in after.values())
     err(c.rpc(z, "funnel_counts", {}), "host")
+    # stage 2 — proposals: a member proposes, sees only their own; a host sees them and decides; plan changes need the version
+    err(c.rpc(x, "propose", {"p_kind": "comment", "p_ref": "d3e3", "p_day": None, "p_payload": {}, "p_note": "x"}), "not a member")
+    err(c.rpc(z, "propose", {"p_kind": "hack", "p_ref": "d3e3", "p_day": None, "p_payload": {}, "p_note": ""}), "bad proposal")
+    err(c.rpc(z, "propose", {"p_kind": "add", "p_ref": None, "p_day": 3, "p_payload": {}, "p_note": ""}), "bad proposal")
+    pid = ok(c.rpc(z, "propose", {"p_kind": "time", "p_ref": "d3e3", "p_day": 3, "p_payload": {"s": "10:00", "e": "11:00"}, "p_note": "позже"}))
+    cid = ok(c.rpc(z, "propose", {"p_kind": "comment", "p_ref": "d3e4", "p_day": 3, "p_payload": {}, "p_note": "можно без меня?"}))
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert {p["id"] for p in hs["proposals"]} >= {pid, cid}
+    err(c.rpc(z, "decide_proposal", {"p_id": pid, "p_accept": True, "p_doc": hs["plan"]["doc"], "p_version": hs["plan"]["version"]}), "host")
+    err(c.rpc(host, "decide_proposal", {"p_id": pid, "p_accept": True, "p_doc": None, "p_version": None}), "plan needed")
+    err(c.rpc(host, "decide_proposal", {"p_id": pid, "p_accept": True, "p_doc": hs["plan"]["doc"], "p_version": hs["plan"]["version"] - 1}), "version")
+    v = ok(c.rpc(host, "decide_proposal", {"p_id": pid, "p_accept": True, "p_doc": hs["plan"]["doc"], "p_version": hs["plan"]["version"]}))
+    assert v == hs["plan"]["version"] + 1
+    err(c.rpc(host, "decide_proposal", {"p_id": pid, "p_accept": False, "p_doc": None, "p_version": None}), "no such proposal")   # decided once
+    ok(c.rpc(host, "decide_proposal", {"p_id": cid, "p_accept": False, "p_doc": None, "p_version": None}))                         # a comment needs no plan
+    mine = ok(c.rpc(z, "group_state", {"p_trip": TRIP}))["proposals"]
+    assert {p["id"]: p["status"] for p in mine if p["id"] in (pid, cid)} == {pid: "accepted", cid: "rejected"}
+    wid = ok(c.rpc(z, "propose", {"p_kind": "remove", "p_ref": "d3e2", "p_day": 3, "p_payload": {}, "p_note": ""}))
+    err(c.rpc(host, "withdraw_proposal", {"p_id": wid}), "no such proposal")                       # only the author withdraws
+    ok(c.rpc(z, "withdraw_proposal", {"p_id": wid}))
+    # push subscriptions: https endpoints only, members only
+    err(c.rpc(x, "save_push", {"p_sub": {"endpoint": "https://push.example/1", "keys": {}}}), "not a member")
+    err(c.rpc(z, "save_push", {"p_sub": {"endpoint": "http://push.example/1", "keys": {}}}), "bad subscription")
+    ok(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://push.example/contract-1", "keys": {"p256dh": "x", "auth": "y"}}}))
+    ok(c.rpc(z, "delete_push", {"p_endpoint": "https://push.example/contract-1"}))
     return True
 
 

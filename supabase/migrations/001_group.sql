@@ -122,6 +122,19 @@ begin
   return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name) order by name) from public.members where trip = p_trip), '[]');
 end $$;
 
+-- ===== stage 2: proposals from guests, hosts decide; push subscriptions =====
+create table if not exists public.proposals (id uuid primary key default gen_random_uuid(), trip text not null references public.trips(id),
+  member uuid not null references public.members(id) on delete cascade, kind text not null check (kind in ('time','remove','add','comment')),
+  ref text, day int, payload jsonb not null default '{}', note text, status text not null default 'open'
+  check (status in ('open','accepted','rejected','withdrawn')), decided_by uuid, decided_at timestamptz, at timestamptz not null default now());
+alter table public.proposals enable row level security;
+create table if not exists public.push_subs (endpoint text primary key, member uuid not null references public.members(id) on delete cascade,
+  sub jsonb not null, at timestamptz not null default now());
+alter table public.push_subs enable row level security;
+-- where the database pings the notification function, and the shared secret it proves itself with (owner sets it once)
+create table if not exists public._hook (id int primary key default 1 check (id = 1), url text not null, secret text not null);
+alter table public._hook enable row level security;
+
 create or replace function public.group_state(p_trip text) returns jsonb language plpgsql stable security definer
 set search_path = public, extensions as $$
 declare m public.members := public._me();
@@ -143,6 +156,10 @@ begin
     'task_state', coalesce((select jsonb_agg(jsonb_build_object('ref', ref, 'done', done, 'at', at)) from public.task_state where member = m.id), '[]'),
     'attachments', coalesce((select jsonb_agg(a || jsonb_build_object('member', a2.member, 'shared', a2.shared)) from public.attachments a2
                              join public.members x on x.id = a2.member where x.trip = p_trip and (a2.member = m.id or a2.shared)), '[]'),
+    'proposals', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'member', p.member, 'kind', p.kind, 'ref', p.ref, 'day', p.day,
+                             'payload', p.payload, 'note', p.note, 'status', p.status, 'at', p.at) order by p.at desc)
+                           from public.proposals p where p.trip = p_trip
+                             and (p.member = m.id or (m.role = 'host' and (p.status = 'open' or p.at > now() - interval '14 days')))), '[]'),
     'now', now());
 end $$;
 
@@ -315,6 +332,121 @@ begin
     from public.member_events e join public.members x on x.id = e.member where x.trip = m.trip);
 end $$;
 
+-- ===== stage 2 functions =====
+create or replace function public.propose(p_kind text, p_ref text, p_day int, p_payload jsonb, p_note text) returns uuid language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me(); i uuid;
+begin
+  if p_kind is null or p_kind not in ('time','remove','add','comment') then raise exception 'bad proposal' using errcode = 'P0001'; end if;
+  if p_kind = 'add' and (p_day is null or coalesce(p_payload->>'t', '') = '') then raise exception 'bad proposal' using errcode = 'P0001'; end if;
+  if p_kind <> 'add' and coalesce(p_ref, '') = '' then raise exception 'bad proposal' using errcode = 'P0001'; end if;
+  if pg_column_size(coalesce(p_payload, '{}'::jsonb)) > 4000 or length(coalesce(p_note, '')) > 500 then raise exception 'too long' using errcode = 'P0001'; end if;
+  if (select count(*) from public.proposals where member = m.id and status = 'open') >= 20 then raise exception 'too many open proposals' using errcode = 'P0001'; end if;
+  insert into public.proposals(trip, member, kind, ref, day, payload, note)
+    values (m.trip, m.id, p_kind, nullif(p_ref, ''), p_day, coalesce(p_payload, '{}'::jsonb), nullif(trim(coalesce(p_note, '')), '')) returning id into i;
+  return i;
+end $$;
+
+create or replace function public.withdraw_proposal(p_id uuid) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  update public.proposals set status = 'withdrawn' where id = p_id and member = m.id and status = 'open';
+  if not found then raise exception 'no such proposal' using errcode = 'P0001'; end if;
+  return true;
+end $$;
+
+-- a host accepts (with the new plan, computed by the app, under the usual version check) or rejects
+create or replace function public.decide_proposal(p_id uuid, p_accept boolean, p_doc jsonb default null, p_version int default null)
+returns int language plpgsql security definer set search_path = public, extensions as $$
+declare m public.members := public._host(); p public.proposals; v int;
+begin
+  select * into p from public.proposals where id = p_id and trip = m.trip and status = 'open';
+  if p.id is null then raise exception 'no such proposal' using errcode = 'P0001'; end if;
+  if p_accept is null then raise exception 'bad decision' using errcode = 'P0001'; end if;
+  if p_accept and p.kind <> 'comment' then
+    if p_doc is null or p_version is null then raise exception 'plan needed' using errcode = 'P0001'; end if;
+    update public.plan set doc = p_doc, version = version + 1 where trip = m.trip and version = p_version returning version into v;
+    if v is null then raise exception 'plan version changed' using errcode = 'P0001'; end if;
+  end if;
+  update public.proposals set status = case when p_accept then 'accepted' else 'rejected' end, decided_by = m.id, decided_at = now() where id = p.id;
+  return coalesce(v, (select version from public.plan where trip = m.trip));
+end $$;
+
+create or replace function public.save_push(p_sub jsonb) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me(); e text := p_sub->>'endpoint';
+begin
+  if e is null or e !~ '^https://' or length(e) > 1000 or pg_column_size(p_sub) > 4000 then raise exception 'bad subscription' using errcode = 'P0001'; end if;
+  insert into public.push_subs(endpoint, member, sub) values (e, m.id, p_sub)
+    on conflict (endpoint) do update set member = excluded.member, sub = excluded.sub, at = now();
+  delete from public.push_subs where member = m.id and endpoint not in
+    (select endpoint from public.push_subs where member = m.id order by at desc limit 5);          -- a few phones per person
+  return true;
+end $$;
+
+create or replace function public.delete_push(p_endpoint text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  delete from public.push_subs where endpoint = p_endpoint and member = m.id;
+  return true;
+end $$;
+
+-- ping the notification function; never let a failed ping break the write that caused it
+create or replace function public._notify(p jsonb) returns void language plpgsql security definer
+set search_path = public, extensions as $$
+declare h public._hook;
+begin
+  select * into h from public._hook where id = 1;
+  if h.url is null then return; end if;
+  begin
+    perform net.http_post(url := h.url, body := p, headers := jsonb_build_object('Content-Type', 'application/json', 'x-hook-secret', h.secret));
+  exception when others then null;
+  end;
+end $$;
+
+create or replace function public._on_proposal() returns trigger language plpgsql security definer
+set search_path = public, extensions as $$
+begin
+  if tg_op = 'INSERT' then perform public._notify(jsonb_build_object('type', 'proposal', 'id', new.id));
+  elsif new.status in ('accepted', 'rejected') and old.status = 'open' then perform public._notify(jsonb_build_object('type', 'decision', 'id', new.id));
+  end if;
+  return null;
+end $$;
+drop trigger if exists proposals_notify on public.proposals;
+create trigger proposals_notify after insert or update of status on public.proposals for each row execute function public._on_proposal();
+
+create or replace function public._on_join() returns trigger language plpgsql security definer
+set search_path = public, extensions as $$
+declare j public.joins := coalesce(new, old);
+begin
+  if j.scope = 'part' or (j.scope = 'stop' and j.mode = 'out') then
+    perform public._notify(jsonb_build_object('type', 'join', 'member', j.member, 'scope', j.scope, 'ref', j.ref,
+      'mode', case when tg_op = 'DELETE' then 'none' else new.mode end));
+  end if;
+  return null;
+end $$;
+drop trigger if exists joins_notify on public.joins;
+create trigger joins_notify after insert or update or delete on public.joins for each row execute function public._on_join();
+
+create or replace function public._on_plan() returns trigger language plpgsql security definer
+set search_path = public, extensions as $$
+begin
+  if new.version is distinct from old.version then perform public._notify(jsonb_build_object('type', 'plan', 'trip', new.trip, 'version', new.version)); end if;
+  return null;
+end $$;
+drop trigger if exists plan_notify on public.plan;
+create trigger plan_notify after update on public.plan for each row execute function public._on_plan();
+
+-- pg_net (pings) and pg_cron (the daily deadline check, 03:00 UTC = 08:00 in Almaty); skipped quietly where unavailable
+do $$ begin create extension if not exists pg_net; exception when others then raise notice 'pg_net unavailable: %', sqlerrm; end $$;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule('trip-deadlines') where exists (select 1 from cron.job where jobname = 'trip-deadlines');
+  perform cron.schedule('trip-deadlines', '0 3 * * *', $c$select public._notify('{"type":"deadlines"}'::jsonb)$c$);
+exception when others then raise notice 'pg_cron unavailable: %', sqlerrm; end $$;
+
 -- Deny-by-default: revoke the implicit grants Postgres/Supabase hand out on function creation (to PUBLIC,
 -- and Supabase's own default privileges additionally grant to anon/authenticated), then grant back only
 -- the RPCs the app calls plus the two storage helpers above.
@@ -322,6 +454,7 @@ revoke all on all functions in schema public from public, anon, authenticated;
 grant execute on function public.member_names, public.group_state, public.claim_member(uuid, text, text), public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
   public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks, public.invite_link, public.track, public.funnel_counts,
+  public.propose, public.withdraw_proposal, public.decide_proposal, public.save_push, public.delete_push,
   public._device_member, public._can_read_ticket to authenticated;
 
 -- storage: private bucket; a member writes only into <member id>/...; reads own files and files of shared attachments

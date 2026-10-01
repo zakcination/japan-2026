@@ -1711,8 +1711,8 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 """
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
-TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "group/model.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
-                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "group/ui_login.js", "group/ui_join.js", "group/ui_tasks.js", "group/ui_attach.js", "vendor/qrcode.js", "group/ui_invite.js", "boot.js"]
+TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "group/model.js", "group/proposals.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
+                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "group/ui_login.js", "group/ui_join.js", "group/ui_tasks.js", "group/ui_propose.js", "group/ui_attach.js", "vendor/qrcode.js", "group/ui_invite.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 
 

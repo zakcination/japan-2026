@@ -50,7 +50,7 @@ RENDER.tix = (x, root) => {
   const rest = planDoc().bookings.filter(b => !(b.days || []).includes(x.day.n))
     .sort((a, b) => ((a.days || [])[0] || 0) - ((b.days || [])[0] || 0));
   const bought = today.filter(b => b.st === 'fixed').length;
-  root.innerHTML = `<div class="tc-page">${typeof tasksHTML === 'function' ? tasksHTML(Date.now()) : ''}
+  root.innerHTML = `<div class="tc-page">${typeof proposalsHTML === 'function' ? proposalsHTML() : ''}${typeof tasksHTML === 'function' ? tasksHTML(Date.now()) : ''}
     <section id="tcBkToday"><h2 class="tc-sech">${x.day === x.cday ? 'Сегодня' : Core.ddmmyyyy(dateOf(x.day)).slice(0, 5)} · ${bought} из ${today.length} куплено</h2>
       <div class="tc-group">${today.length ? today.map(b => bkRow(b, false)).join('') : '<p class="tc-empty">На этот день броней нет.</p>'}</div></section>
     ${rest.length ? `<section id="tcBkAll"><h2 class="tc-sech">Вся поездка</h2><div class="tc-group">${rest.map(b => bkRow(b, true)).join('')}</div></section>` : ''}
@@ -58,6 +58,7 @@ RENDER.tix = (x, root) => {
   </div>`;
   if (typeof wireAttach === 'function') wireAttach(root);
   if (typeof wireTasks === 'function') wireTasks(root);
+  if (typeof wireProposals === 'function') wireProposals(root);
   root.querySelectorAll('[data-bkst]').forEach(b => b.addEventListener('click', () => {
     const bk = bookingById(b.dataset.bkst); if (!bk) return;
     bk.st = bk.st === 'fixed' ? 'input' : 'fixed'; saveTrip(); renderShell();
