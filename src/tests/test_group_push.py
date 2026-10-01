@@ -9,7 +9,7 @@ MOCK = """(() => {
   Notification.requestPermission = async () => (window.__perm = 'granted');
   Object.defineProperty(Notification, 'permission', { get: () => window.__perm, configurable: true });
   let sub = null;
-  const pm = { subscribe: async o => (sub = { endpoint: 'https://push.example/abc', key: o.applicationServerKey,
+  const pm = { subscribe: async o => (sub = { endpoint: 'https://web.push.apple.com/abc', key: o.applicationServerKey,
                  toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'k', auth: 'a' } }; }, unsubscribe: async () => { sub = null; return true; } }),
                getSubscription: async () => sub };
   Object.defineProperty(navigator, 'serviceWorker', { value: { ready: Promise.resolve({ pushManager: pm }), controller: null }, configurable: true });
@@ -23,8 +23,8 @@ def test_notifications_on_and_off_store_and_drop_the_subscription(app):
     g.page.click("#tcGear")
     g.page.click("#grPushOn")
     until(g.page, "!!document.getElementById('grPushOff')")
-    assert fake.push_subs["https://push.example/abc"]["member"] == san
-    assert g.page.evaluate("localStorage.getItem('japan2026.push.v1')") == "https://push.example/abc"
+    assert fake.push_subs["https://web.push.apple.com/abc"]["member"] == san
+    assert g.page.evaluate("localStorage.getItem('japan2026.push.v1')") == "https://web.push.apple.com/abc"
     assert g.page.evaluate("document.getElementById('grPushOff').getBoundingClientRect().height") >= 44
     g.page.click("#grPushOff")
     until(g.page, "!!document.getElementById('grPushOn') && Api.status().pending === 0")

@@ -139,10 +139,14 @@ def run_all(c, host_id, host_pin):
     err(c.rpc(host, "withdraw_proposal", {"p_id": wid}), "no such proposal")                       # only the author withdraws
     ok(c.rpc(z, "withdraw_proposal", {"p_id": wid}))
     # push subscriptions: https endpoints only, members only
-    err(c.rpc(x, "save_push", {"p_sub": {"endpoint": "https://push.example/1", "keys": {}}}), "not a member")
-    err(c.rpc(z, "save_push", {"p_sub": {"endpoint": "http://push.example/1", "keys": {}}}), "bad subscription")
-    ok(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://push.example/contract-1", "keys": {"p256dh": "x", "auth": "y"}}}))
-    ok(c.rpc(z, "delete_push", {"p_endpoint": "https://push.example/contract-1"}))
+    keys = {"p256dh": "x", "auth": "y"}
+    err(c.rpc(x, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/c1", "keys": keys}}), "not a member")
+    err(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://evil.example/c1", "keys": keys}}), "bad subscription")       # only real push services
+    err(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com.evil.example/c1", "keys": keys}}), "bad subscription")
+    err(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/c1", "keys": {}}}), "bad subscription")
+    ok(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/contract-1", "keys": keys}}))
+    ok(c.rpc(host, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/contract-1", "keys": keys}}))           # no takeover: silently kept
+    ok(c.rpc(z, "delete_push", {"p_endpoint": "https://web.push.apple.com/contract-1"}))
     return True
 
 

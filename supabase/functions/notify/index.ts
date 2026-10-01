@@ -5,6 +5,9 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { messages } from "./logic.mjs";
+import { timingSafeEqual } from "node:crypto";
+
+const same = (a: string, b: string) => { const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b); return x.length === y.length && timingSafeEqual(x, y); };
 
 const env = (k: string) => Deno.env.get(k) ?? "";
 webpush.setVapidDetails("https://zakcination.github.io/japan-2026/", env("VAPID_PUBLIC"), env("VAPID_PRIVATE"));
@@ -36,22 +39,21 @@ async function load(trip: string) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("POST only", { status: 405 });
-  if (!env("HOOK_SECRET") || req.headers.get("x-hook-secret") !== env("HOOK_SECRET")) return new Response("forbidden", { status: 403 });
+  if (!env("HOOK_SECRET") || !same(req.headers.get("x-hook-secret") ?? "", env("HOOK_SECRET"))) return new Response("forbidden", { status: 403 });
   const ev = await req.json().catch(() => null);
   if (!ev || typeof ev.type !== "string") return new Response("bad event", { status: 400 });
   let sent = 0, gone = 0;
   for (const trip of await tripOf(ev)) {
     const D = await load(trip);
-    for (const m of messages(ev, D, Date.now())) {
-      for (const s of D.subs.filter((x: any) => m.to.includes(x.member))) {
-        try {
-          await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, url: m.url, tag: m.tag }), { TTL: 86400, urgency: "normal" });
-          sent++;
-        } catch (e: any) {
-          if (e && (e.statusCode === 404 || e.statusCode === 410)) { await db.from("push_subs").delete().eq("endpoint", s.endpoint); gone++; }
-        }
+    const jobs = messages(ev, D, Date.now()).flatMap(m => D.subs.filter((x: any) => m.to.includes(x.member)).map((s: any) => async () => {
+      try {
+        await webpush.sendNotification(s.sub, JSON.stringify({ title: m.title, body: m.body, url: m.url, tag: m.tag }), { TTL: 86400, urgency: "normal", timeout: 10000 });
+        sent++;
+      } catch (e: any) {
+        if (e && (e.statusCode === 404 || e.statusCode === 410)) { await db.from("push_subs").delete().eq("endpoint", s.endpoint); gone++; }
       }
-    }
+    }));
+    await Promise.allSettled(jobs.map(j => j()));                           // one slow phone never holds up the rest
   }
   return new Response(JSON.stringify({ sent, gone }), { headers: { "Content-Type": "application/json" } });
 });

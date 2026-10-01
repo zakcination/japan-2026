@@ -5,8 +5,9 @@ const dm = iso => { const d = String(iso || '').slice(0, 10); return d ? `${d.sl
 const almaty = (ms) => new Date(ms + 5 * 3600e3).toISOString();               // Asia/Almaty is UTC+5 all year
 const findEv = (doc, ref) => { for (const d of (doc && doc.days) || []) for (const e of d.ev || []) if (String(e.id) === String(ref)) return e; return null; };
 
+const cut = (s, n) => { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
 function describe(p, doc) {
-  const pl = p.payload || {}, e = p.ref ? findEv(doc, p.ref) : null, what = e ? `«${e.t}»` : 'пункт';
+  const pl = Object.fromEntries(Object.entries(p.payload || {}).map(([k, v]) => [k, cut(v, 120)])), e = p.ref ? findEv(doc, p.ref) : null, what = e ? `«${e.t}»` : 'пункт';
   if (p.kind === 'time') return `${what}: другое время ${pl.s}–${pl.e}`;
   if (p.kind === 'remove') return `${what}: убрать из плана`;
   if (p.kind === 'add') return `Новый пункт: ${pl.s}–${pl.e} ${pl.t || ''}`.trim();
@@ -51,5 +52,5 @@ export function messages(ev, D, now) {
       if (to.length) out.push({ to, title, body, url: url('task=bk:' + r.bk), tag: 'deadline-' + r.bk });
     }
   }
-  return out.filter(m => m.to.length);
+  return out.filter(m => m.to.length).map(m => ({ ...m, title: cut(m.title, 120), body: cut(m.body, 200) }));
 }

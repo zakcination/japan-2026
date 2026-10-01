@@ -134,6 +134,7 @@ alter table public.push_subs enable row level security;
 -- where the database pings the notification function, and the shared secret it proves itself with (owner sets it once)
 create table if not exists public._hook (id int primary key default 1 check (id = 1), url text not null, secret text not null);
 alter table public._hook enable row level security;
+revoke all on public._hook, public.proposals, public.push_subs from anon, authenticated;
 
 create or replace function public.group_state(p_trip text) returns jsonb language plpgsql stable security definer
 set search_path = public, extensions as $$
@@ -341,7 +342,9 @@ begin
   if p_kind = 'add' and (p_day is null or coalesce(p_payload->>'t', '') = '') then raise exception 'bad proposal' using errcode = 'P0001'; end if;
   if p_kind <> 'add' and coalesce(p_ref, '') = '' then raise exception 'bad proposal' using errcode = 'P0001'; end if;
   if pg_column_size(coalesce(p_payload, '{}'::jsonb)) > 4000 or length(coalesce(p_note, '')) > 500 then raise exception 'too long' using errcode = 'P0001'; end if;
-  if (select count(*) from public.proposals where member = m.id and status = 'open') >= 20 then raise exception 'too many open proposals' using errcode = 'P0001'; end if;
+  if (select count(*) from public.proposals where member = m.id and status = 'open') >= 20
+     or (select count(*) from public.proposals where member = m.id and at > now() - interval '1 hour') >= 30 then
+    raise exception 'too many open proposals' using errcode = 'P0001'; end if;
   insert into public.proposals(trip, member, kind, ref, day, payload, note)
     values (m.trip, m.id, p_kind, nullif(p_ref, ''), p_day, coalesce(p_payload, '{}'::jsonb), nullif(trim(coalesce(p_note, '')), '')) returning id into i;
   return i;
@@ -361,7 +364,7 @@ create or replace function public.decide_proposal(p_id uuid, p_accept boolean, p
 returns int language plpgsql security definer set search_path = public, extensions as $$
 declare m public.members := public._host(); p public.proposals; v int;
 begin
-  select * into p from public.proposals where id = p_id and trip = m.trip and status = 'open';
+  select * into p from public.proposals where id = p_id and trip = m.trip and status = 'open' for update;   -- two hosts at once: one wins
   if p.id is null then raise exception 'no such proposal' using errcode = 'P0001'; end if;
   if p_accept is null then raise exception 'bad decision' using errcode = 'P0001'; end if;
   if p_accept and p.kind <> 'comment' then
@@ -369,7 +372,7 @@ begin
     update public.plan set doc = p_doc, version = version + 1 where trip = m.trip and version = p_version returning version into v;
     if v is null then raise exception 'plan version changed' using errcode = 'P0001'; end if;
   end if;
-  update public.proposals set status = case when p_accept then 'accepted' else 'rejected' end, decided_by = m.id, decided_at = now() where id = p.id;
+  update public.proposals set status = case when p_accept then 'accepted' else 'rejected' end, decided_by = m.id, decided_at = now() where id = p.id and status = 'open';
   return coalesce(v, (select version from public.plan where trip = m.trip));
 end $$;
 
@@ -377,9 +380,13 @@ create or replace function public.save_push(p_sub jsonb) returns boolean languag
 set search_path = public, extensions as $$
 declare m public.members := public._me(); e text := p_sub->>'endpoint';
 begin
-  if e is null or e !~ '^https://' or length(e) > 1000 or pg_column_size(p_sub) > 4000 then raise exception 'bad subscription' using errcode = 'P0001'; end if;
+  -- only the real push services (Apple, Google, Mozilla, Microsoft): the notification function POSTs to this address
+  if e is null or e !~ '^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|([a-z0-9-]+\.)*push\.apple\.com|([a-z0-9-]+\.)*notify\.windows\.com)/'
+     or length(e) > 1000 or pg_column_size(p_sub) > 4000
+     or coalesce(p_sub->'keys'->>'p256dh', '') = '' or coalesce(p_sub->'keys'->>'auth', '') = '' then
+    raise exception 'bad subscription' using errcode = 'P0001'; end if;
   insert into public.push_subs(endpoint, member, sub) values (e, m.id, p_sub)
-    on conflict (endpoint) do update set member = excluded.member, sub = excluded.sub, at = now();
+    on conflict (endpoint) do update set sub = excluded.sub, at = now() where public.push_subs.member = excluded.member;   -- never take over someone else's
   delete from public.push_subs where member = m.id and endpoint not in
     (select endpoint from public.push_subs where member = m.id order by at desc limit 5);          -- a few phones per person
   return true;

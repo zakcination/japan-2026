@@ -240,7 +240,8 @@ class FakeSupabase:
         if p_kind == "add" and (p_day is None or not (p_payload or {}).get("t")): raise RpcError(400, "bad proposal")
         if p_kind != "add" and not p_ref: raise RpcError(400, "bad proposal")
         if len(json.dumps(p_payload or {})) > 4000 or len(p_note or "") > 500: raise RpcError(400, "too long")
-        if sum(1 for p in self.proposals if p["member"] == m["id"] and p["status"] == "open") >= 20: raise RpcError(400, "too many open proposals")
+        if (sum(1 for p in self.proposals if p["member"] == m["id"] and p["status"] == "open") >= 20
+                or sum(1 for p in self.proposals if p["member"] == m["id"] and p["at"] > time.time() - 3600) >= 30): raise RpcError(400, "too many open proposals")
         i = str(uuid.uuid4())
         self.proposals.append({"id": i, "member": m["id"], "kind": p_kind, "ref": p_ref or None, "day": p_day, "payload": p_payload or {},
                                "note": (p_note or "").strip() or None, "status": "open", "at": time.time()})
@@ -266,8 +267,11 @@ class FakeSupabase:
 
     def rpc_save_push(self, token, p_sub):
         me = self._me(token)["id"]
-        e = (p_sub or {}).get("endpoint") or ""
-        if not e.startswith("https://") or len(e) > 1000: raise RpcError(400, "bad subscription")
+        import re
+        e, k = (p_sub or {}).get("endpoint") or "", (p_sub or {}).get("keys") or {}
+        ok = re.match(r"^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|([a-z0-9-]+\.)*push\.apple\.com|([a-z0-9-]+\.)*notify\.windows\.com)/", e)
+        if not ok or len(e) > 1000 or not k.get("p256dh") or not k.get("auth"): raise RpcError(400, "bad subscription")
+        if e in self.push_subs and self.push_subs[e]["member"] != me: return True          # never take over someone else's
         self.push_subs[e] = {"member": me, "sub": p_sub}
         return True
 

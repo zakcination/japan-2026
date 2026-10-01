@@ -12,7 +12,7 @@ const Proposals = (() => {
     if (p.kind === 'comment') return out;
     if (p.kind === 'add') {
       const d = (out.days || []).find(x => x.n === p.day);
-      if (!d || !HM.test(pl.s || '') || !HM.test(pl.e || '') || !String(pl.t || '').trim()) throw new Error('bad proposal');
+      if (!d || !HM.test(pl.s || '') || !HM.test(pl.e || '') || pl.e <= pl.s || !String(pl.t || '').trim()) throw new Error('bad proposal');
       const ev = { id: 'p-' + String(p.id).replace(/[^a-z0-9]/gi, '').slice(0, 10), s: pl.s, e: pl.e, t: String(pl.t).trim().slice(0, 120),
                    cat: 'activity', st: 'planned', note: String(pl.note || '').slice(0, 500), lat: null, lng: null, walk: 0, ride: 0, buf: 0 };
       d.ev = (d.ev || []).concat([ev]).sort((a, b) => String(a.s).localeCompare(String(b.s)));

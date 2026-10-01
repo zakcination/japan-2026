@@ -53,15 +53,17 @@ const badgeAdd = async d => {
 self.addEventListener('push', e => {
   let m = {}; try { m = e.data ? e.data.json() : {}; } catch (x) { m = { title: e.data ? e.data.text() : '' }; }
   e.waitUntil((async () => {
-    const n = await badgeAdd(1);
-    if (self.navigator && self.navigator.setAppBadge) self.navigator.setAppBadge(n).catch(() => {});
+    try {                                                                   // the badge may fail; the notification must not (iOS drops silent pushes)
+      const n = await badgeAdd(1);
+      if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(n).catch(() => {});
+    } catch (x) {}
     await self.registration.showNotification(m.title || 'Поездка', { body: m.body || '', tag: m.tag, data: { url: m.url || './' }, icon: 'icon-192.png', badge: 'icon-192.png' });
   })());
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = new URL((e.notification.data && e.notification.data.url) || './', self.location.href);
-  if (url.origin !== self.location.origin) return;                          // only our own pages
+  if (url.origin !== self.location.origin || !url.pathname.startsWith(new URL(self.registration.scope).pathname)) return;   // only this app's pages
   e.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const w = all.find(c => new URL(c.url).origin === url.origin);
