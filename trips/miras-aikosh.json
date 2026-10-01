@@ -2415,7 +2415,8 @@
  ],
  "group": {
   "url": "https://ajpiptdkybhtkaoozqet.supabase.co",
-  "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi"
+  "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
+  "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0"
  },
  "prep": [
   {
@@ -2550,5 +2551,5 @@
   }
  ],
  "id": "miras-aikosh",
- "updated": "2026-10-01T11:53+05:00"
+ "updated": "2026-10-01T12:12+05:00"
 }

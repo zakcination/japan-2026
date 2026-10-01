@@ -55,6 +55,7 @@ function groupSettingsHTML() {
   return `<div class="tc-card"><b>Вы вошли как ${esc(me.name)}</b><span class="tc-sub">${esc(sync)}${st.online ? '' : ' · нет сети'}${st.error && st.error !== 'login' ? ' · ' + esc(st.error) : ''}</span>
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
+    ${pushHTML()}
     ${me.role === 'host' && planBehind() ? `<div class="tc-card tc-note" id="grPlanSync"><b>Опубликован новый план поездки</b>
       <span class="tc-sub">У группы — прежняя версия. Обновить её для всех? Ваши правки плана в приложении заменятся.</span>
       <button type="button" class="tc-btn primary" id="grPlanSyncGo">Обновить план группы</button></div>` : ''}
@@ -70,6 +71,7 @@ function groupSettingsHTML() {
 function wireGroupSettings(m) {
   const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
   on('#grLogin', () => { closeSheet(); openLogin(); });
+  wirePush(m);
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
   on('#grPlanSyncGo', () => twoTap(m.querySelector('#grPlanSyncGo'), 'Точно обновить?', () => {

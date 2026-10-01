@@ -266,7 +266,7 @@ GROUPS = {}
 for _t in TRIPS_INDEX:
     _g = json.loads(pathlib.Path(f"../trips/{_t['id']}.json").read_text(encoding="utf-8")).get("group")
     if _g and _g.get("url") and _g.get("anon"):
-        GROUPS[_t["id"]] = {"url": _g["url"], "anon": _g["anon"]}
+        GROUPS[_t["id"]] = {"url": _g["url"], "anon": _g["anon"], **({"vapid": _g["vapid"]} if _g.get("vapid") else {})}
 
 KZ_EMOJI = ("📍", "🏟", "💴", "🏪", "🚌", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
 
@@ -1712,7 +1712,7 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
 TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "group/model.js", "group/proposals.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
-                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "group/ui_login.js", "group/ui_join.js", "group/ui_tasks.js", "group/ui_propose.js", "group/ui_attach.js", "vendor/qrcode.js", "group/ui_invite.js", "boot.js"]
+                 "ui/bookings.js", "ui/stats.js", "ui/settings.js", "group/ui_login.js", "group/ui_join.js", "group/ui_tasks.js", "group/ui_propose.js", "group/ui_attach.js", "group/ui_push.js", "vendor/qrcode.js", "group/ui_invite.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 
 

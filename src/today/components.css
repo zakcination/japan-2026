@@ -473,3 +473,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
   background: #F2F2F7; color: #000; font: 600 17px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; cursor: pointer; }
 .tc-local .tc-btn.primary { background: #000; color: #fff; }
 .tc-local .tc-ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tc-push { gap: 12px; }
+.tc-push > span { flex: 1; }
+.tc-push .tc-btn { min-height: 44px; padding-inline: 16px; }
