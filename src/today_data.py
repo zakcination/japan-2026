@@ -572,6 +572,32 @@ def write_trip(tid, data):
                                ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
 
+PAGES = "https://zakcination.github.io/japan-2026/"
+SHARE_PAGE = """<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>{name}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="План поездки 17–28 октября: что сейчас, куда едем и какие билеты купить. Откройте ссылку и выберите себя.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Япония 2026">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="{name}">
+<meta property="og:description" content="План поездки 17–28 октября: что сейчас, куда едем и какие билеты купить. Откройте ссылку и выберите себя.">
+<meta property="og:url" content="{base}t/{id}.html">
+<meta property="og:image" content="{base}og-{id}.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Тории Фусими-Инари и надпись «Япония 2026»">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<script>(function () {{ var q = new URLSearchParams(location.search); q.set('trip', '{id}');
+  location.replace('../?' + q.toString() + location.hash); }})();</script>
+<noscript><meta http-equiv="refresh" content="0;url=../?trip={id}"></noscript>
+</head><body style="font:17px -apple-system,sans-serif;padding:24px"><a href="../?trip={id}">Открыть план поездки</a></body></html>
+"""
+
+
 def build():
     TRIPS.mkdir(exist_ok=True)
     tpl, own = trip(False), trip(True)
@@ -583,6 +609,11 @@ def build():
     for t in (own,):
         m = dict(base, id=f"./?trip={t['id']}", start_url=f"./?trip={t['id']}", name=t["name"], short_name="Япония")
         (TRIPS.parent / f"manifest-{t['id']}.webmanifest").write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # each shared trip gets its own short page for link previews (WhatsApp, iMessage): its own title and picture,
+    # then straight into the app with the invite code and any #link kept
+    share = TRIPS.parent / "t"; share.mkdir(exist_ok=True)
+    for t in (own,):
+        (share / f"{t['id']}.html").write_text(SHARE_PAGE.format(id=t["id"], name=t["name"], base=PAGES), encoding="utf-8")
     (TRIPS / "index.json").write_text(json.dumps([dict(id="template", name=tpl["name"]), dict(id="miras-aikosh", name=own["name"])],
                                                  ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 

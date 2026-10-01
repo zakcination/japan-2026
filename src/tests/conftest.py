@@ -40,6 +40,7 @@ def site(built, tmp_path_factory):
     root = tmp_path_factory.mktemp("site")
     shutil.copy(SRC / "Japan_Guide_2026.html", root / "index.html")
     shutil.copytree(ROOT / "trips", root / "trips")
+    shutil.copytree(ROOT / "t", root / "t")
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
     handler.log_message = lambda *a: None
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)

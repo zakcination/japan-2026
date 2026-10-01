@@ -12,7 +12,7 @@ def test_assets_exist_and_are_linked():
     from conftest import ROOT, SRC
     html = (SRC / "Japan_Guide_2026.html").read_text(encoding="utf-8")
     for f, size in [("apple-touch-icon.png", (180, 180)), ("icon-192.png", (192, 192)), ("icon-512.png", (512, 512)),
-                    ("favicon-32x32.png", (32, 32)), ("og.png", (1200, 630))]:
+                    ("favicon-32x32.png", (32, 32)), ("og-v2.jpg", (1200, 630)), ("og-miras-aikosh.jpg", (1200, 630))]:
         assert Image.open(ROOT / f).size == size, f
     assert (ROOT / "favicon.ico").exists()
     splashes = re.findall(r'apple-touch-startup-image" href="(splash/[^"]+)"', html)
@@ -20,4 +20,4 @@ def test_assets_exist_and_are_linked():
     for s in splashes:
         w, h = map(int, re.search(r"(\d+)x(\d+)", s).groups())
         assert Image.open(ROOT / s).size == (w, h)
-    assert 'og:image" content="https://zakcination.github.io/japan-2026/og.png"' in html
+    assert 'og:image" content="https://zakcination.github.io/japan-2026/og-v2.jpg"' in html

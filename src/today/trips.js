@@ -88,7 +88,9 @@ const Trips = (() => {
     return (up ? `версия от ${up}` : 'общая версия') + (net === 'offline' ? ' · без сети, сохранённая копия' : '');
   }
   const nameOf = tid => (LIST.find(t => t.id === tid) || {}).name || tid;
-  const shareUrl = () => location.origin + location.pathname + (id === 'template' ? '' : `?trip=${id}`);
+  /* a published trip shares its own short page (its own link preview in WhatsApp); it forwards into the app with ?who=&code= and #links kept */
+  const shareUrl = () => id === 'template' ? location.origin + location.pathname
+    : LIST.some(t => t.id === id) ? location.origin + location.pathname.replace(/[^/]*$/, '') + `t/${id}.html` : location.origin + location.pathname + `?trip=${id}`;
 
   return { list: LIST, id: () => id, asked: () => asked, refresh, switchTo, backToShared, version, nameOf, shareUrl };
 })();

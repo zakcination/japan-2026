@@ -9,9 +9,13 @@
 <title>Япония за 11 дней</title>
 <meta name="description" content="Поездка по Японии на 11 дней: что сейчас, что дальше и когда выходить. Работает офлайн на iPhone.">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Япония 2026">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:url" content="https://zakcination.github.io/japan-2026/">
 <meta property="og:title" content="Япония за 11 дней">
-<meta property="og:description" content="Сейчас · что дальше · когда выходить. Токио, Фудзи, Киото, Нагоя — офлайн, на iPhone.">
-<meta property="og:image" content="https://zakcination.github.io/japan-2026/og.png">
+<meta property="og:description" content="Что сейчас, что дальше и когда выходить. Токио, Фудзи, Киото, Нагоя — офлайн, на iPhone.">
+<meta property="og:image" content="https://zakcination.github.io/japan-2026/og-v2.jpg">
+<meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -3129,7 +3133,9 @@ const Trips = (() => {
     return (up ? `версия от ${up}` : 'общая версия') + (net === 'offline' ? ' · без сети, сохранённая копия' : '');
   }
   const nameOf = tid => (LIST.find(t => t.id === tid) || {}).name || tid;
-  const shareUrl = () => location.origin + location.pathname + (id === 'template' ? '' : `?trip=${id}`);
+  /* a published trip shares its own short page (its own link preview in WhatsApp); it forwards into the app with ?who=&code= and #links kept */
+  const shareUrl = () => id === 'template' ? location.origin + location.pathname
+    : LIST.some(t => t.id === id) ? location.origin + location.pathname.replace(/[^/]*$/, '') + `t/${id}.html` : location.origin + location.pathname + `?trip=${id}`;
 
   return { list: LIST, id: () => id, asked: () => asked, refresh, switchTo, backToShared, version, nameOf, shareUrl };
 })();
