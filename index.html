@@ -4942,7 +4942,10 @@ const alert0 = (m, e) => { const p = m.querySelector('#setMsg'); if (p) p.textCo
 
 /* the plan published in the trip file vs the group's copy in Supabase (signed-in people see the copy) */
 const filePlan = () => { const d = JSON.parse(JSON.stringify(T)); delete d.group; return d; };
-const planKey = d => JSON.stringify({ days: (d && d.days) || [], bookings: (d && d.bookings) || [] });
+/* key order does not matter: Postgres jsonb stores keys in its own order, so compare a canonical form */
+const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']'
+  : v && typeof v === 'object' ? '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v);
+const planKey = d => canon({ days: (d && d.days) || [], bookings: (d && d.bookings) || [] });
 function planBehind() {
   const s = Api.state(); if (!s || !s.plan || !s.plan.doc || !s.trip || T.id !== s.trip.id) return false;
   return planKey(Core.cleanTrip(JSON.parse(JSON.stringify(s.plan.doc)))) !== planKey(Core.cleanTrip(filePlan()));

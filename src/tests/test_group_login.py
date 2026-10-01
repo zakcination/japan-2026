@@ -99,3 +99,17 @@ def test_host_brings_the_group_plan_up_to_date_with_two_taps(app):
     assert fake.plan["version"] == 2 and any(e.get("loc") == "天龍寺" for d in fake.plan["doc"]["days"] for e in d["ev"])
     h.page.click("#tcGear")
     assert h.page.locator("#grPlanSync").count() == 0                        # up to date: the card is gone
+
+
+def test_plan_update_card_ignores_key_order_like_postgres_jsonb(app):
+    from test_group_join import logged
+    fake = FakeSupabase.seeded()
+    def shuffle(o):                                                        # jsonb hands keys back in its own order
+        if isinstance(o, dict): return {k: shuffle(o[k]) for k in sorted(o, key=lambda k: (len(k), k))}
+        if isinstance(o, list): return [shuffle(x) for x in o]
+        return o
+    fake.plan["doc"] = shuffle(fake.plan["doc"])
+    h = logged(app, fake, fake.host_id, fake.host_pin)
+    h.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    h.page.click("#tcGear")
+    assert h.page.locator("#grPlanSync").count() == 0                      # same plan, different key order: nothing to update
