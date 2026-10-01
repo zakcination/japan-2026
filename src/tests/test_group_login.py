@@ -83,23 +83,40 @@ def test_a_brand_new_phone_asks_who_you_are_once_the_trip_arrives(app, site):
     assert "Мирас" in a.page.inner_text("#tcSheet") and "Айкош" in a.page.inner_text("#tcSheet")
 
 
-def test_host_brings_the_group_plan_up_to_date_with_two_taps(app):
-    from test_group_join import logged
+def from_site(app, site, fake, member, pin):
+    """A real phone: the trip comes from the site (?trip=), nothing stored locally as «my edits»."""
+    a = app(url=site, url_suffix="?trip=miras-aikosh", supabase=fake)
+    until(a.page, "document.title.includes('SHF')")
+    a.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    look = a.page.locator("#grJustLook")
+    if look.count() and look.is_visible(): look.click()
+    code = fake.members[member].get("invite")
+    assert a.page.evaluate(f"Api.login('{member}', '{pin}', {json.dumps(code)})")["ok"]
+    return a
+
+
+def test_host_phone_brings_the_group_plan_forward_by_itself_never_back(app, site):
     fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
     for d in fake.plan["doc"]["days"]:                                      # the group's copy predates the Japanese names
         for e in d["ev"]: e.pop("loc", None); e.pop("locLang", None)
-    g = logged(app, fake, san, "4821")
-    g.page.click("#tcGear")
-    assert g.page.locator("#grPlanSync").count() == 0                        # guests never see it
-    h = logged(app, fake, fake.host_id, fake.host_pin)
-    h.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
-    h.page.click("#tcGear")
-    h.page.click("#grPlanSyncGo"); h.page.click("#grPlanSyncGo")
-    until(h.page, "Api.status().pending === 0")
-    assert fake.plan["version"] == 2 and any(e.get("loc") == "天龍寺" for d in fake.plan["doc"]["days"] for e in d["ev"])
-    h.page.click("#tcGear")
-    assert h.page.locator("#grPlanSync").count() == 0                        # up to date: the card is gone
+    fake.plan["doc"]["updated"] = "2026-09-30T10:00+05:00"                  # and an older published version
+    g = from_site(app, site, fake, san, "4821")
+    g.page.wait_for_timeout(400)
+    assert fake.plan["version"] == 1                                         # guests never write the plan
+    h = from_site(app, site, fake, fake.host_id, fake.host_pin)
+    until(h.page, "Api.status().pending === 0 && Api.state().plan.version === 2")
+    assert any(e.get("loc") == "天龍寺" for d in fake.plan["doc"]["days"] for e in d["ev"])
+    h.page.evaluate("Api.refresh()"); h.page.wait_for_timeout(400)
+    assert fake.plan["version"] == 2                                         # up to date: no more writes
 
+
+def test_a_newer_group_plan_is_never_replaced_by_an_older_file(app, site):
+    fake = FakeSupabase.seeded()
+    fake.plan["doc"]["updated"] = "2027-01-01T00:00+05:00"                  # hosts edited in the app after the last publish
+    fake.plan["doc"]["days"][2]["ev"][0]["t"] = "Правка хозяев"
+    h = from_site(app, site, fake, fake.host_id, fake.host_pin)
+    h.page.evaluate("Api.refresh()"); h.page.wait_for_timeout(400)
+    assert fake.plan["version"] == 1 and fake.plan["doc"]["days"][2]["ev"][0]["t"] == "Правка хозяев"
 
 def test_plan_update_card_ignores_key_order_like_postgres_jsonb(app):
     from test_group_join import logged
@@ -112,4 +129,5 @@ def test_plan_update_card_ignores_key_order_like_postgres_jsonb(app):
     h = logged(app, fake, fake.host_id, fake.host_pin)
     h.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
     h.page.click("#tcGear")
-    assert h.page.locator("#grPlanSync").count() == 0                      # same plan, different key order: nothing to update
+    h.page.evaluate("Api.refresh()"); h.page.wait_for_timeout(300)
+    assert fake.plan["version"] == 1                                         # same plan, different key order: nothing to write

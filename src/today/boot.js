@@ -17,7 +17,7 @@ setTitle();
 tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; renderShell(); startGroup(); } });
 if (S.tab && TABS.some(t => t[0] === S.tab && t[0] !== 'map')) tab = S.tab;
 refreshTickets().then(renderShell);
-Trips.refresh().then(changed => { if (changed) { setTitle(); viewDay = null; renderShell(); startGroup(); } });
+Trips.refresh().then(changed => { if (changed) { setTitle(); viewDay = null; renderShell(); startGroup(); autoSyncPlan(); } });
 // group: first open asks «Кто вы?» once; server updates re-render unless a sheet is open
 if (Api.me() && Ios.standalone()) track('installed');
 /* «Кто вы?»: once per phone (or whenever an invite link is opened) — also when the trip arrives after start,
@@ -29,7 +29,7 @@ function startGroup() {
   if (!asked || INVITE) openLogin();
 }
 startGroup();
-window.addEventListener('japan2026:group', () => { const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
+window.addEventListener('japan2026:group', () => { autoSyncPlan(); const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
 // installed on the Home Screen: ask Safari to keep the tickets and the trip copy
 if (Ios.standalone() && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // '#map' in the link opens straight onto the map (also used by the map tests)

@@ -56,9 +56,6 @@ function groupSettingsHTML() {
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
     ${pushHTML()}
-    ${me.role === 'host' && planBehind() ? `<div class="tc-card tc-note" id="grPlanSync"><b>Опубликован новый план поездки</b>
-      <span class="tc-sub">У группы — прежняя версия. Обновить её для всех? Ваши правки плана в приложении заменятся.</span>
-      <button type="button" class="tc-btn primary" id="grPlanSyncGo">Обновить план группы</button></div>` : ''}
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
         ${x.role === 'guest' ? `<span class="tc-actions two"><button type="button" class="tc-btn primary" data-invite="${esc(x.id)}">Пригласить</button>
@@ -74,11 +71,6 @@ function wireGroupSettings(m) {
   wirePush(m);
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
-  on('#grPlanSyncGo', () => twoTap(m.querySelector('#grPlanSyncGo'), 'Точно обновить?', () => {
-    const doc = filePlan(), v = Api.state().plan.version;
-    Api.call('save_plan', { p_doc: doc, p_version: v }, s => { s.plan = { doc, version: v + 1 }; });
-    closeSheet(); renderShell();
-  }));
   on('#grAdd', () => {
     const name = m.querySelector('#grNewName').value.trim(); if (!name) return;
     Api.run('add_member', { p_name: name, p_role: 'guest' }).then(r => showInvite(name, r && r.id, r && r.code))
@@ -103,4 +95,20 @@ const planKey = d => canon({ days: (d && d.days) || [], bookings: (d && d.bookin
 function planBehind() {
   const s = Api.state(); if (!s || !s.plan || !s.plan.doc || !s.trip || T.id !== s.trip.id) return false;
   return planKey(Core.cleanTrip(JSON.parse(JSON.stringify(s.plan.doc)))) !== planKey(Core.cleanTrip(filePlan()));
+}
+
+/* a host's phone brings the group's copy up to the published plan by itself — only ever forward (a strictly newer
+   «updated» stamp), never from a phone's own local edits, once per published version */
+let synced = null;
+function autoSyncPlan() {
+  const me = Api.me(), s = Api.state();
+  if (!me || me.role !== 'host' || !s || !s.plan || !T.updated) return false;
+  if (typeof isCustom === 'function' && isCustom()) return false;
+  if (synced === T.updated || !planBehind()) return false;
+  const fileUp = Date.parse(T.updated), docUp = Date.parse((s.plan.doc || {}).updated || '');
+  if (!(fileUp > (Number.isFinite(docUp) ? docUp : 0))) return false;      // never roll the group back
+  synced = T.updated;
+  const doc = filePlan(), v = s.plan.version;
+  Api.call('save_plan', { p_doc: doc, p_version: v }, st => { st.plan = { doc, version: v + 1 }; });
+  return true;
 }
