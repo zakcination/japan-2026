@@ -16,6 +16,10 @@ for p in t.get("parts", []):
 for r in t.get("recipes", []):
     out.append(f"insert into public.recipes values ('miras-aikosh', {q(r['bk'])}, {j(dict(r, host_ref=''))}) on conflict (trip, bk) do update "
                "set r = excluded.r || jsonb_build_object('host_ref', coalesce(public.recipes.r->>'host_ref', ''));")
+# parts and recipes no longer in the trip file go too (e.g. a stop taken out of the plan)
+keep = lambda xs: ", ".join(q(x) for x in xs) or "''"
+out.append(f"delete from public.parts where trip = 'miras-aikosh' and id not in ({keep([p['id'] for p in t.get('parts', [])])});")
+out.append(f"delete from public.recipes where trip = 'miras-aikosh' and bk not in ({keep([r['bk'] for r in t.get('recipes', [])])});")
 for name in ("Мирас", "Айкош"):
     out.append(f"insert into public.members(trip, name, role) select 'miras-aikosh', {q(name)}, 'host' "
                f"where not exists (select 1 from public.members where trip = 'miras-aikosh' and name = {q(name)});")
