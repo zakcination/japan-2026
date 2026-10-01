@@ -1,4 +1,4 @@
-E-- Group planning, stage 1. Paste into Supabase → SQL Editor → Run. Idempotent.
+-- Group planning, stage 1. Paste into Supabase → SQL Editor → Run. Idempotent.
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.trips (id text primary key, name text not null);
