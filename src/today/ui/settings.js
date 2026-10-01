@@ -34,6 +34,8 @@ function openSettings() {
     <div class="tc-fs"><span class="tc-sech">Тема · днём светлая, после заката тёмная</span>
       <div class="tc-seg3s" role="radiogroup" aria-label="Тема">${THEMES.map(([k, l]) =>
         `<label class="tc-seg3"><input type="radio" name="tcTheme" value="${k}"${k === theme ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
+    <button type="button" class="tc-act" id="setShare">${icon('share')}<span>Поделиться поездкой<small>${esc(Trips.shareUrl().replace(/^https?:\/\//, ''))}</small></span></button>
+    <details class="tc-more" id="setMore"><summary>Настройки поездки и перенос</summary>
     <div class="tc-form">
       ${fld('setName', 'Название', T.name || '')}
       ${fld('setStart', 'Первый день', SET.start, 'date')}
@@ -43,15 +45,15 @@ function openSettings() {
     <p class="tc-foot">Курс по умолчанию примерный — впишите актуальный. Сдвиг даты переносит весь маршрут;
       пункты с датой (например, финалы) помечаются, если дата не совпала. Всё хранится только на этом телефоне.</p>
     <button type="button" class="tc-btn primary wide" id="setSave">Сохранить</button>
-    <span class="tc-sech">Поделиться или перенести</span>
+    <span class="tc-sech">Перенести на другой телефон</span>
     <div class="tc-group">
-      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Экспорт JSON<small>файл для другого телефона или друзей</small></span></button>
-      <label class="tc-act">${icon('clip')}<span>Импорт из файла<small>.json от другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
-      <button type="button" class="tc-act" id="setShare">${icon('share')}<span>Поделиться поездкой<small>${esc(Trips.shareUrl().replace(/^https?:\/\//, ''))}</small></span></button>
+      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
+      <label class="tc-act">${icon('clip')}<span>Открыть файл поездки<small>с другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
     </div>
-    <label class="tc-f" for="setJson"><span>JSON поездки — можно вставить свой</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
-    <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Загрузить</button>
-      <button type="button" class="tc-btn" id="setCopy">Скопировать</button></div>
+    <label class="tc-f" for="setJson"><span>Поездка текстом — для переноса</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
+    <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Применить текст</button>
+      <button type="button" class="tc-btn" id="setCopy">Скопировать текст</button></div>
+    </details>
     <p class="tc-foot" id="setMsg" role="status"></p>`, m => {
     wireGroupSettings(m);
     const msg = t => { m.querySelector('#setMsg').textContent = t; };

@@ -83,6 +83,7 @@ def test_import_hostile_trip_is_escaped(app):
             "link": "javascript:alert(1)",
             "lat": '1" onclick="window.__pwned=1', "lng": 2, "bound": evil, "ride": evil, "walk": evil, "buf": evil},
             {"id": "constructor", "s": "12:00", "e": "12:30", "t": "обычный пункт"}]}], "bookings": [{"id": "b", "days": [1], "t": evil, "when": evil}]}
+    s.locator("#setMore summary").click()                        # folded away: open it like a person would
     s.locator("#setJson").fill(json.dumps(trip))
     s.locator("#setLoad").click()
     for t in ("now", "day", "tix", "stats"):
@@ -100,6 +101,7 @@ def test_import_hostile_trip_is_escaped(app):
 def test_back_to_template_takes_two_taps(app):
     a = open_(app)
     s = settings(a)
+    s.locator("#setMore summary").click()
     s.locator("#setName").fill("Наша")
     s.locator("#setSave").click()
     assert a.page.title() == "Наша"

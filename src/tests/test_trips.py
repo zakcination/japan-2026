@@ -73,6 +73,7 @@ def test_local_edits_win_until_back_to_shared(app, site):
     a = app(state=NIGHT, url=site, url_suffix="?trip=miras-aikosh")
     expect(a.page).to_have_title(re.compile('Мирас'))
     a.page.click("#tcGear")
+    a.page.click("#setMore summary")
     a.page.fill("#setName", "Наша правка")
     a.page.click("#setSave")
     a.page.route("**/trips/miras-aikosh.json", fulfil(dict(OURS, name="С сервера")))

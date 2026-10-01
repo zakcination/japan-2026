@@ -449,3 +449,13 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-flash { animation: tc-flash 1.6s ease-out 1; }
 @keyframes tc-flash { from { box-shadow: 0 0 0 3px var(--tint); } to { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { .tc-flash { animation: none; outline: 2px solid var(--tint); } }
+
+/* ⚙: rarely used trip editing and transfer, folded away */
+.tc-more { border-radius: 14px; background: var(--card); padding: 0 14px; }
+.tc-more > summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font: 600 min(0.9412rem, 22.4px)/1.2 var(--sf); color: var(--tint); list-style: none; }
+.tc-more > summary::-webkit-details-marker { display: none; }
+.tc-more > summary::after { content: '›'; margin-left: auto; transition: transform .2s; font-size: 1.3em; }
+.tc-more[open] > summary::after { transform: rotate(90deg); }
+.tc-more[open] { padding-bottom: 14px; display: grid; gap: 12px; }
+
+.tc-vh { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; }

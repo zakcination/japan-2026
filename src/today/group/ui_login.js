@@ -25,10 +25,14 @@ async function openLogin() {
   });
 }
 function openPin(id, name) {
-  sheet(name, `<label class="tc-f" for="grPin"><span>PIN — 4 цифры</span>
-      <input id="grPin" type="password" inputmode="numeric" pattern="\\d*" maxlength="4" autocomplete="one-time-code" autofocus></label>
+  const first = !!(INVITE && INVITE.who === id && INVITE.code);       // a guest inventing a PIN vs signing in again
+  /* a real sign-in form (username = the name, password = the PIN) so iPhone can offer to keep it in Keychain */
+  sheet(name, `<form id="grPinForm" autocomplete="on"><input class="tc-vh" type="text" name="username" autocomplete="username" value="${esc(Trips.id() + ' · ' + name)}" tabindex="-1" aria-hidden="true">
+    <label class="tc-f" for="grPin"><span>PIN — 4 цифры${first ? ', придумайте' : ''}</span>
+      <input id="grPin" name="password" type="password" inputmode="numeric" pattern="\\d*" maxlength="4" autocomplete="${first ? 'new-password' : 'current-password'}" autofocus></label></form>
     <p class="tc-warn" id="grMsg" role="status"></p>`, m => {
-    const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg');
+    const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg'), form = m.querySelector('#grPinForm');
+    form.addEventListener('submit', e => e.preventDefault());              // never navigates (CSP form-action 'none' too)
     pin.addEventListener('input', async () => {
       if (pin.disabled) return;                                   // one attempt at a time (paste / autofill fire twice)
       pin.value = pin.value.replace(/\D/g, '').slice(0, 4);
@@ -36,7 +40,7 @@ function openPin(id, name) {
       pin.disabled = true;
       const r = await Api.login(id, pin.value, INVITE && INVITE.who === id ? INVITE.code : null);
       pin.disabled = false;
-      if (r.ok) { track('login'); if (Ios.standalone()) track('installed'); if (onboarded()) { closeSheet(); renderShell(); } else openFirstRun(); return; }
+      if (r.ok) { try { form.requestSubmit(); } catch (e) {} track('login'); if (Ios.standalone()) track('installed'); if (onboarded()) { closeSheet(); renderShell(); } else openFirstRun(); return; }
       msg.textContent = PIN_ERR[r.error] || 'Не получилось войти — попробуйте ещё раз'; pin.value = ''; pin.focus();
     });
     pin.focus();
