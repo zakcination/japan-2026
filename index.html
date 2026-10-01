@@ -1000,7 +1000,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .leaflet-control-attribution { font-size: 10px; }
   .pin.dim { opacity: .25; pointer-events: none; }
 </style>
-<style>/* ================= TODAY · design tokens (Apple style) =================
+<style>/* Dynamic Type: on iPhone the root follows Settings → Display → Text Size (17px at the default size);
+   body text below is in rem/17, so at the default it is pixel-identical, and capped at 1.4× so layouts hold.
+   Elsewhere -apple-system-body is ignored and the root stays 17px. The map uses px and sets its own body font. */
+html { font-size: 17px; font: -apple-system-body; }
+/* ================= TODAY · design tokens (Apple style) =================
    Light by day, dark after sunset: the shell sets data-th on #today and on the sheet. */
 #today, .tc-sheet-bg, .tc-ticket {
   --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --sec: #6E6E73; --sep: #E5E5EA; --inset: #F2F2F7;
@@ -1039,7 +1043,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-head[hidden] { display: none; }
 .tc-cap { align-self: center; display: inline-flex; align-items: center; gap: 11px; min-height: 46px;
   border: 0; border-radius: 999px; padding: 7px 16px 7px 7px; background: #000; color: #fff;
-  font: 600 15px/1 var(--sf); box-shadow: 0 6px 20px rgba(0,0,0,.18); cursor: pointer; }
+  font: 600 min(0.8824rem, 21px)/1 var(--sf); box-shadow: 0 6px 20px rgba(0,0,0,.18); cursor: pointer; }
 #today[data-th="dark"] .tc-cap { box-shadow: 0 0 0 1px #2C2C2E; }
 .tc-cap-ic { width: 32px; height: 32px; border-radius: 50%; background: var(--alert); color: #000;
   display: flex; align-items: center; justify-content: center; }
@@ -1058,7 +1062,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-seg.cur { background: linear-gradient(90deg, var(--ok) 0 var(--p, 0%), var(--seg) var(--p, 0%) 100%); }
 .tc-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
 .tc-title h1 { margin: 0; font: 700 clamp(28px, 8.5vw, 34px)/1.1 var(--sf); letter-spacing: -.02em; text-wrap: balance; }
-.tc-title span { font: 600 15px/1 var(--sf); color: var(--sec); white-space: nowrap; padding-bottom: 6px; }
+.tc-title span { font: 600 min(0.8824rem, 21px)/1 var(--sf); color: var(--sec); white-space: nowrap; padding-bottom: 6px; }
 
 /* tab bar */
 /* iOS proportions: 49 pt of tabs, then the home-indicator strip (34 pt on Face ID iPhones in Home Screen
@@ -1074,7 +1078,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-tab .tc-ic { width: 26px; height: 26px; }
 /* Pro Max / Plus widths (428–440 pt): a little larger, like the system tab bar there */
 @media (min-width: 428px) {
-  .tc-tab { min-height: 52px; font-size: 11px; }
+  .tc-tab { min-height: 52px; font-size: min(0.6471rem, 15.4px); }
   .tc-tab .tc-ic { width: 28px; height: 28px; }
   #today .tc-wrap { padding-left: 20px; padding-right: 20px; }
   .tc-head { padding-left: 24px; padding-right: 24px; }
@@ -1092,7 +1096,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-sheet > * { flex-shrink: 0; }
 .tc-grab { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--seg); }
 .tc-sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.tc-sheet-head h2 { margin: 0; font: 700 22px/1.2 var(--sf); letter-spacing: -.01em; }
+.tc-sheet-head h2 { margin: 0; font: 700 min(1.2941rem, 30.8px)/1.2 var(--sf); letter-spacing: -.01em; }
 .tc-x { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--inset); color: var(--sec);
   display: flex; align-items: center; justify-content: center; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .tc-cap.go, .tc-sheet { animation: none; } }
@@ -1101,20 +1105,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #today .tc-page { display: flex; flex-direction: column; gap: 12px; }
 .tc-card { background: var(--card); border-radius: 24px; padding: 16px 18px; box-shadow: var(--shadow);
   display: flex; flex-direction: column; gap: 9px; color: var(--text); }
-.tc-lbl { font: 600 13px/1.2 var(--sf); color: var(--sec); }
-.tc-h2 { margin: 0; font: 700 21px/1.2 var(--sf); letter-spacing: -.01em; }
-.tc-sub { font: 400 15px/1.35 var(--sf); color: var(--sec); }
-.tc-sub.right { text-align: right; font-size: 13.5px; }
+.tc-lbl { font: 600 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); }
+.tc-h2 { margin: 0; font: 700 min(1.2353rem, 29.4px)/1.2 var(--sf); letter-spacing: -.01em; }
+.tc-sub { font: 400 min(0.8824rem, 21px)/1.35 var(--sf); color: var(--sec); }
+.tc-sub.right { text-align: right; font-size: min(0.7941rem, 18.9px); }
 .tc-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .tc-bar { height: 6px; border-radius: 3px; background: var(--inset); overflow: hidden; }
 .tc-bar i { display: block; height: 100%; border-radius: 3px; background: var(--ok); }
-.tc-st { display: inline-flex; align-items: center; gap: 5px; font: 600 13px/1 var(--sf); color: var(--sec); white-space: nowrap; }
+.tc-st { display: inline-flex; align-items: center; gap: 5px; font: 600 min(0.7647rem, 18.2px)/1 var(--sf); color: var(--sec); white-space: nowrap; }
 .tc-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .tc-st.fixed i { background: var(--text); } .tc-st.flex i { background: var(--warn); } .tc-st.input i { background: var(--bad); }
 .tc-when { display: flex; align-items: baseline; gap: 12px; }
 .tc-big { font: 700 clamp(44px, 14vw, 56px)/1 var(--rd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .tc-whatbox { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tc-what { font: 600 17px/1.25 var(--sf); }
+.tc-what { font: 600 min(1rem, 23.8px)/1.25 var(--sf); }
 .tc-inset { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--inset);
   border-radius: 18px; padding: 12px 16px; }
 .tc-inset > div { display: flex; flex-direction: column; gap: 2px; }
@@ -1122,25 +1126,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-actions { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
 .tc-actions:has(> :nth-child(2):last-child) { grid-template-columns: 1.4fr 1fr; }
 .tc-btn { min-height: 50px; border: 0; border-radius: 999px; background: var(--inset); color: var(--text);
-  font: 600 16px/1 var(--sf); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 min(0.9412rem, 22.4px)/1 var(--sf); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   text-decoration: none; padding: 0 14px; cursor: pointer; }
 .tc-btn .tc-ic { width: 18px; height: 18px; stroke-width: 2.4; }
 .tc-btn.primary { background: var(--text); color: var(--bg); }
-.tc-btn.wide { width: 100%; min-height: 56px; font-size: 17px; }
+.tc-btn.wide { width: 100%; min-height: 56px; font-size: min(1rem, 23.8px); }
 .tc-alert { background: var(--alert); color: #000; box-shadow: none; }
 .tc-alert .tc-what { color: #000; }
 .tc-alert-h { margin: 0; font: 800 32px/1.05 var(--sf); letter-spacing: -.02em; }
-.tc-alert-p { margin: 0; font: 500 16px/1.35 var(--sf); }
+.tc-alert-p { margin: 0; font: 500 min(0.9412rem, 22.4px)/1.35 var(--sf); }
 .tc-alert .tc-btn.primary { background: #000; color: #fff; }
 .tc-alert .tc-btn.soft { background: rgba(0,0,0,.12); color: #000; }
 .tc-note { background: var(--note); box-shadow: none; }
-.tc-warn { margin: 0; font: 600 14px/1.35 var(--sf); color: var(--bad); }
+.tc-warn { margin: 0; font: 600 min(0.8235rem, 19.6px)/1.35 var(--sf); color: var(--late); }   /* accessible red: ≥ 4.5:1 in both themes */
 .tc-bignow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 4px; }
 .tc-bignow span { font: 700 clamp(56px, 18vw, 72px)/1 var(--rd); letter-spacing: -.03em; color: var(--alert); font-variant-numeric: tabular-nums; }
-.tc-bignow em { font: 600 15px/1.2 var(--sf); font-style: normal; color: var(--sec); text-align: right; }
-.tc-preview { margin: 2px 4px 0; font: 500 13px/1.8 var(--sf); color: var(--sec); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
-.tc-preview select, .tc-preview input { font: 600 14px var(--sf); color: var(--text); background: var(--card); border: 1px solid var(--sep);
-  border-radius: 10px; padding: 6px 10px; min-height: 44px; font-size: 16px; }
+.tc-bignow em { font: 600 min(0.8824rem, 21px)/1.2 var(--sf); font-style: normal; color: var(--sec); text-align: right; }
+.tc-preview { margin: 2px 4px 0; font: 500 min(0.7647rem, 18.2px)/1.8 var(--sf); color: var(--sec); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.tc-preview select, .tc-preview input { font: 600 min(0.8235rem, 19.6px) var(--sf); color: var(--text); background: var(--card); border: 1px solid var(--sep);
+  border-radius: 10px; padding: 6px 10px; min-height: 44px; font-size: min(0.9412rem, 22.4px); }
 
 /* ---------- tab «День» ---------- */
 .tc-days { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; scroll-snap-type: x proximity; }
@@ -1148,15 +1152,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-daypick { flex: 0 0 auto; min-width: 48px; min-height: 60px; border: 0; border-radius: 16px; background: var(--card);
   color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   scroll-snap-align: center; cursor: pointer; }
-.tc-daypick small { font: 600 12px/1 var(--sf); color: var(--sec); }
-.tc-daypick b { font: 700 19px/1 var(--rd); font-variant-numeric: tabular-nums; }
+.tc-daypick small { font: 600 min(0.7059rem, 16.8px)/1 var(--sf); color: var(--sec); }
+.tc-daypick b { font: 700 min(1.1176rem, 26.6px)/1 var(--rd); font-variant-numeric: tabular-nums; }
 .tc-daypick.today b { color: var(--tint); }
 .tc-daypick.on { background: var(--text); color: var(--bg); }
 .tc-daypick.on small { color: inherit; opacity: .7; }
 .tc-daypick.on.today b { color: inherit; }
-.tc-daysum { padding: 0 4px; font: 600 14px/1.3 var(--sf); color: var(--sec); }
+.tc-daysum { padding: 0 4px; font: 600 min(0.8235rem, 19.6px)/1.3 var(--sf); color: var(--sec); }
 .tc-list { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; touch-action: pan-y; }
-.tc-empty { margin: 0; padding: 22px 18px; color: var(--sec); font: 500 16px/1.3 var(--sf); }
+.tc-empty { margin: 0; padding: 22px 18px; color: var(--sec); font: 500 min(0.9412rem, 22.4px)/1.3 var(--sf); }
 .tc-item { display: flex; align-items: stretch; border-top: 1px solid var(--sep); }
 .tc-item:first-child { border-top: 0; }
 .tc-item.now { background: var(--hl); }
@@ -1168,11 +1172,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-check input:focus-visible + span { outline: 3px solid var(--ring3); outline-offset: 2px; }
 .tc-open { flex: 1; min-width: 0; min-height: 60px; border: 0; background: none; color: var(--text); text-align: left;
   display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px 12px 0; cursor: pointer; font: inherit; }
-.tc-itime { flex: 0 0 50px; display: flex; flex-direction: column; font: 700 16px/1.3 var(--rd); font-variant-numeric: tabular-nums; }
-.tc-itime s { font: 500 12px/1.2 var(--rd); color: var(--sec); }
+.tc-itime { flex: 0 0 50px; display: flex; flex-direction: column; font: 700 min(0.9412rem, 22.4px)/1.3 var(--rd); font-variant-numeric: tabular-nums; }
+.tc-itime s { font: 500 min(0.7059rem, 16.8px)/1.2 var(--rd); color: var(--sec); }
 .tc-ibody { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.tc-ititle { font: 600 16px/1.3 var(--sf); }
-.tc-imeta { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 400 13.5px/1.3 var(--sf); color: var(--sec); }
+.tc-ititle { font: 600 min(0.9412rem, 22.4px)/1.3 var(--sf); }
+.tc-imeta { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 400 min(0.7941rem, 18.9px)/1.3 var(--sf); color: var(--sec); }
 .tc-bad { color: var(--bad); font-weight: 600; }
 .tc-item.done .tc-ititle { color: var(--sec); text-decoration: line-through; }
 .tc-item.skip .tc-open { opacity: .45; }
@@ -1180,34 +1184,34 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-actions.two { grid-template-columns: 1fr 1fr; }
 
 /* stop sheet */
-.tc-notepara { margin: 0; font: 400 15px/1.45 var(--sf); white-space: pre-wrap; }
+.tc-notepara { margin: 0; font: 400 min(0.8824rem, 21px)/1.45 var(--sf); white-space: pre-wrap; }
 .tc-group { background: var(--card); border-radius: 18px; overflow: hidden; }
 .tc-act { display: flex; align-items: center; gap: 14px; min-height: 54px; padding: 8px 16px; border: 0; width: 100%;
-  background: none; color: var(--text); text-decoration: none; font: 600 16px/1.25 var(--sf); text-align: left; cursor: pointer;
+  background: none; color: var(--text); text-decoration: none; font: 600 min(0.9412rem, 22.4px)/1.25 var(--sf); text-align: left; cursor: pointer;
   border-top: 1px solid var(--sep); }
 .tc-act:first-child { border-top: 0; }
 .tc-act .tc-ic { color: var(--tint); flex: 0 0 auto; }
 .tc-act span { display: flex; flex-direction: column; gap: 2px; }
-.tc-act small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-act small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); }
 .tc-grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
 .tc-tile { min-height: 64px; border: 0; border-radius: 16px; background: var(--card); color: var(--text); display: flex;
-  flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 600 14px/1.1 var(--sf); cursor: pointer; }
+  flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 600 min(0.8235rem, 19.6px)/1.1 var(--sf); cursor: pointer; }
 .tc-tile .tc-ic { width: 20px; height: 20px; color: var(--tint); }
 
 /* ---------- tab «Брони» ---------- */
 #tcBkToday, #tcBkAll { display: flex; flex-direction: column; gap: 8px; }
-.tc-sech { margin: 6px 4px 0; font: 600 13px/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
+.tc-sech { margin: 6px 4px 0; font: 600 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
 .tc-bk { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--sep); }
 .tc-bk:first-child { border-top: 0; }
 .tc-bkbody { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; flex: 1; min-width: 0; }
-.tc-bkt { font: 600 16px/1.3 var(--sf); }
+.tc-bkt { font: 600 min(0.9412rem, 22.4px)/1.3 var(--sf); }
 .tc-bkst { min-height: 44px; margin: -6px 0 -10px; padding: 0 10px 0 0; border: 0; background: none; cursor: pointer; }
 .tc-qr, .tc-file { flex: 0 0 auto; min-height: 44px; min-width: 64px; padding: 0 14px; border: 0; border-radius: 999px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 600 14px/1 var(--sf); cursor: pointer; }
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
 .tc-qr { background: var(--tint); color: #fff; }
 .tc-file { background: var(--inset); color: var(--text); }
 .tc-file .tc-ic { width: 16px; height: 16px; }
-.tc-foot { margin: 4px; font: 400 13px/1.4 var(--sf); color: var(--sec); }
+.tc-foot { margin: 4px; font: 400 min(0.7647rem, 18.2px)/1.4 var(--sf); color: var(--sec); }
 
 /* the full-screen ticket: always dark, the code on white */
 .tc-ticket { position: fixed; inset: 0; z-index: 3200; background: #000; color: #fff; display: flex; flex-direction: column;
@@ -1216,17 +1220,17 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-ticket[hidden] { display: none; }
 .tc-ticket .tc-ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .tc-tk-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.tc-tk-awake { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/1 var(--sf); color: #FFCC00; }
+.tc-tk-awake { display: inline-flex; align-items: center; gap: 6px; font: 600 min(0.7647rem, 18.2px)/1 var(--sf); color: #FFCC00; }
 .tc-tk-awake[hidden] { display: none; }
-.tc-ticket h2 { margin: 8px 0 0; font: 700 22px/1.25 var(--sf); text-align: center; }
-.tc-tk-sub { margin: 0; font: 400 15px/1.35 var(--sf); color: #98989D; text-align: center; }
+.tc-ticket h2 { margin: 8px 0 0; font: 700 min(1.2941rem, 30.8px)/1.25 var(--sf); text-align: center; }
+.tc-tk-sub { margin: 0; font: 400 min(0.8824rem, 21px)/1.35 var(--sf); color: #98989D; text-align: center; }
 .tc-tk-hold:not(:empty) { background: #fff; border-radius: 24px; padding: 16px; width: min(100%, 420px); display: grid; place-items: center; }
 .tc-tk-hold img { max-width: 100%; max-height: 62vh; display: block; }
 .tc-tk-hold iframe { width: 100%; height: 62vh; border: 0; }
 .tc-tk-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: auto; }
 .tc-tk-actions > * { flex: 1 1 120px; }
 .tc-tk-btn { min-height: 50px; padding: 0 18px; border: 0; border-radius: 999px; background: #2C2C2E; color: #fff;
-  font: 600 16px/1 var(--sf); display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  font: 600 min(0.9412rem, 22.4px)/1 var(--sf); display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
 .tc-tk-btn[hidden] { display: none; }
 .tc-tk-btn.light { background: #fff; color: #000; }
 .tc-tk-top .tc-tk-btn { min-height: 44px; }
@@ -1238,24 +1242,24 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-rings circle { fill: none; stroke-width: 10; stroke-linecap: round; }
 .tc-rings circle.bg { opacity: .18; }
 .tc-rings circle.fg { transition: stroke-dasharray .6s ease; }
-.tc-rings text { font: 700 20px var(--rd); fill: var(--text); }
+.tc-rings text { font: 700 min(1.1765rem, 28px) var(--rd); fill: var(--text); }
 .tc-legend { display: flex; flex-direction: column; gap: 12px; }
 .tc-legend div { display: flex; flex-direction: column; gap: 1px; }
-.tc-lg { font: 600 13px/1.2 var(--sf); }
+.tc-lg { font: 600 min(0.7647rem, 18.2px)/1.2 var(--sf); }
 .tc-legend b { font: 700 24px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
-.tc-legend small { font: 400 12px/1.2 var(--sf); color: var(--sec); }
+.tc-legend small { font: 400 min(0.7059rem, 16.8px)/1.2 var(--sf); color: var(--sec); }
 .tc-bars { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; height: 140px; align-items: end; }
 .tc-barcol { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
 .tc-barcol i { display: block; width: min(18px, 70%); border-radius: 6px; background: var(--seg); max-height: calc(100% - 20px); }
 .tc-barcol.done i { background: var(--text); }
 .tc-barcol.cur i { background: var(--ring3); }
-.tc-barcol small { font: 500 11px/1 var(--sf); color: var(--sec); }
+.tc-barcol small { font: 500 min(0.6471rem, 15.4px)/1 var(--sf); color: var(--sec); }
 .tc-barcol.on small { color: var(--text); font-weight: 700; }
 .tc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tc-tile2 { gap: 4px; }
 .tc-tv { font: 700 26px/1.1 var(--rd); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .tc-tile2 input { margin-top: 6px; min-height: 44px; width: 100%; box-sizing: border-box; border: 0; border-radius: 12px;
-  background: var(--inset); color: var(--text); font: 600 16px var(--sf); padding: 0 12px; }
+  background: var(--inset); color: var(--text); font: 600 min(0.9412rem, 22.4px) var(--sf); padding: 0 12px; }
 
 /* ---------- ⚙ settings and editors ---------- */
 .tc-gear { flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none;
@@ -1269,11 +1273,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-form2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .tc-form3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tc-f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.tc-f > span { font: 600 13px/1.2 var(--sf); color: var(--sec); padding: 0 4px; }
+.tc-f > span { font: 600 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); padding: 0 4px; }
 .tc-f input, .tc-f select, .tc-f textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; border: 0; border-radius: 12px;
-  background: var(--card); color: var(--text); font: 500 17px/1.3 var(--sf); padding: 10px 14px; -webkit-appearance: none; appearance: none; }
-.tc-f textarea { min-height: 80px; resize: vertical; font: 400 16px/1.4 var(--sf); }
-#setJson { font: 400 13px/1.4 ui-monospace, Menlo, monospace; }
+  background: var(--card); color: var(--text); font: 500 min(1rem, 23.8px)/1.3 var(--sf); padding: 10px 14px; -webkit-appearance: none; appearance: none; }
+.tc-f textarea { min-height: 80px; resize: vertical; font: 400 min(0.9412rem, 22.4px)/1.4 var(--sf); }
+#setJson { font: 400 min(0.7647rem, 18.2px)/1.4 ui-monospace, Menlo, monospace; }
 .tc-f select { background-image: linear-gradient(45deg, transparent 50%, var(--sec) 50%), linear-gradient(135deg, var(--sec) 50%, transparent 50%);
   background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
 .tc-fs { display: flex; flex-direction: column; gap: 6px; }
@@ -1281,27 +1285,27 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #tcSheet .tc-seg3s { background: var(--seg); }
 .tc-seg3 { position: relative; cursor: pointer; }
 .tc-seg3 input { position: absolute; opacity: 0; inset: 0; margin: 0; }
-.tc-seg3 span { min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font: 600 15px/1 var(--sf); color: var(--sec); }
+.tc-seg3 span { min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font: 500 min(0.8824rem, 21px)/1 var(--sf); color: var(--text); }   /* --sec on --seg was 3.3:1 */
 .tc-seg3 input:checked + span { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
 .tc-seg3 input:focus-visible + span { outline: 3px solid var(--ring3); outline-offset: 1px; }
 .tc-more { background: var(--card); border-radius: 16px; padding: 0 14px; }
-.tc-more summary { min-height: 48px; display: flex; align-items: center; font: 600 16px/1.2 var(--sf); cursor: pointer; }
+.tc-more summary { min-height: 48px; display: flex; align-items: center; font: 600 min(0.9412rem, 22.4px)/1.2 var(--sf); cursor: pointer; }
 .tc-more[open] { padding-bottom: 14px; }
 .tc-more .tc-f input { background: var(--inset); }
 .tc-warn:empty, .tc-foot:empty { display: none; }
 
 /* ---------- iPhone extras ---------- */
 .tc-calrow { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 44px;
-  padding: 8px 16px; border-top: 1px solid var(--sep); font: 400 15px/1.3 var(--sf); }
+  padding: 8px 16px; border-top: 1px solid var(--sep); font: 400 min(0.8824rem, 21px)/1.3 var(--sf); }
 .tc-calrow:first-child { border-top: 0; }
-.tc-calrow b { font: 600 16px/1 var(--rd); font-variant-numeric: tabular-nums; }
-.tc-calrow em { font: 600 13px/1 var(--sf); font-style: normal; color: var(--tint); display: inline-flex; align-items: center; gap: 4px;
+.tc-calrow b { font: 600 min(0.9412rem, 22.4px)/1 var(--rd); font-variant-numeric: tabular-nums; }
+.tc-calrow em { font: 600 min(0.7647rem, 18.2px)/1 var(--sf); font-style: normal; color: var(--tint); display: inline-flex; align-items: center; gap: 4px;
   font-variant-numeric: tabular-nums; }
 #tcSheet .tc-calrow .tc-ic { width: 14px; height: 14px; }
 .tc-install { flex-direction: row; align-items: flex-start; gap: 14px; }
 .tc-install > div { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.tc-install b { font: 700 16px/1.25 var(--sf); }
-.tc-install .tc-sub { font-size: 14px; line-height: 1.4; }
+.tc-install b { font: 700 min(0.9412rem, 22.4px)/1.25 var(--sf); }
+.tc-install .tc-sub { font-size: min(0.8235rem, 19.6px); line-height: 1.4; }
 .tc-install .tc-sub .tc-ic { width: 16px; height: 16px; color: var(--tint); vertical-align: -3px; }
 .tc-install-ic { flex: 0 0 44px; height: 44px; border-radius: 12px; background: #BC002D; display: grid; place-items: center; }
 .tc-install-ic i { width: 18px; height: 18px; border-radius: 50%; background: #fff; }
@@ -1312,20 +1316,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-flight .tc-lbl, .tc-flight .tc-sub { color: #A1A1A8; }
 .tc-flight.empty { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
 .tc-flight.empty .tc-lbl, .tc-flight.empty .tc-sub { color: var(--sec); }
-.tc-fl-no { font: 700 15px/1 var(--rd); color: var(--alert); letter-spacing: .02em; }
+.tc-fl-no { font: 700 min(0.8824rem, 21px)/1 var(--rd); color: var(--alert); letter-spacing: .02em; }
 .tc-fl-count { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .tc-fl-count b { font: 700 clamp(52px, 17vw, 72px)/1 var(--rd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .tc-fl-count { column-gap: 4px; }
 .tc-fl-count b.rest { font-size: clamp(34px, 11vw, 44px); color: var(--alert); }
-.tc-fl-count span { font: 600 17px/1 var(--sf); color: #A1A1A8; margin-right: 8px; }
-.tc-fl-route { font: 600 17px/1.3 var(--sf); }
+.tc-fl-count span { font: 600 min(1rem, 23.8px)/1 var(--sf); color: #A1A1A8; margin-right: 8px; }
+.tc-fl-route { font: 600 min(1rem, 23.8px)/1.3 var(--sf); }
 .tc-flight .tc-btn { background: #2C2C2E; color: #fff; }
 .tc-flight.empty .tc-btn.primary { background: var(--text); color: var(--bg); }
 .tc-flrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 8px 6px 16px;
   border-top: 1px solid var(--sep); }
 .tc-flrow:first-child { border-top: 0; }
-.tc-flrow span { display: flex; flex-direction: column; gap: 2px; font: 500 16px/1.25 var(--sf); }
-.tc-flrow small { font: 400 13px/1.2 var(--rd); color: var(--sec); }
+.tc-flrow span { display: flex; flex-direction: column; gap: 2px; font: 500 min(0.9412rem, 22.4px)/1.25 var(--sf); }
+.tc-flrow .tc-fl-t { display: block; white-space: nowrap; }
+.tc-x[data-sure] { width: auto; padding: 0 14px; border-radius: 999px; color: var(--late); font: 600 min(0.8824rem, 21px)/1 var(--sf); }
+.tc-flrow small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--rd); color: var(--sec); }
 .tc-f[hidden] { display: none; }
 
 /* ---------- «Сейчас» top row: sun widget, flight tile ---------- */
@@ -1333,11 +1339,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tc-mini { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 12px 14px; border: 0; color: var(--text);
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 96px; text-align: left; font: inherit; }
 button.tc-mini { cursor: pointer; }
-.tc-mini-lbl { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
+.tc-mini-lbl { display: inline-flex; align-items: center; gap: 5px; font: 600 min(0.7059rem, 16.8px)/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
 #today .tc-mini-lbl .tc-ic { width: 15px; height: 15px; }
 .tc-mini b { font: 600 28px/1.05 var(--rd); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
-.tc-mini small { font: 500 13px/1.2 var(--sf); color: var(--sec); margin-top: auto; }
-.tc-mini-fl b { font-size: 22px; margin-top: 6px; }
+.tc-mini small { font: 500 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); margin-top: auto; }
+.tc-mini-fl b { font-size: min(1.2941rem, 30.8px); margin-top: 6px; }
 .tc-sun { background: linear-gradient(180deg, #1D4E9E, #2E66BF); color: #fff; box-shadow: none; }
 #today[data-th="dark"] .tc-sun { background: linear-gradient(180deg, #16223F, #2A3B66); }
 .tc-sun .tc-mini-lbl, .tc-sun small { color: rgba(255,255,255,.94); }
@@ -1357,19 +1363,19 @@ button.tc-mini { cursor: pointer; }
 .tc-wx { background: linear-gradient(180deg, #1F5A9E, #2F72BD); color: #fff; box-shadow: none; }
 #today[data-th="dark"] .tc-wx { background: linear-gradient(180deg, #1B2A47, #2C4270); }
 .tc-wx .tc-mini-lbl, .tc-wx small { color: rgba(255,255,255,.92); }
-.tc-wx b .lo { font-size: 18px; opacity: .8; }
-.tc-wx-note { font-size: 11.5px !important; opacity: .85; }
+.tc-wx b .lo { font-size: min(1.0588rem, 25.2px); opacity: .8; }
+.tc-wx-note { font-size: min(0.6765rem, 16.1px) !important; opacity: .85; }
 .tc-wx-hours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; margin: 4px 0 2px; }
 .tc-wx-hours span { display: flex; flex-direction: column; align-items: center; gap: 1px; border-radius: 10px; padding: 2px 0; }
 .tc-wx-hours span.now { background: rgba(255,255,255,.2); }
 .tc-wx-hours span.stop::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #fff; margin-top: 1px; }
-.tc-wx-hours small { font: 600 11px/1 var(--sf); margin: 0; }
-.tc-wx-hours i { font-style: normal; font-size: 15px; line-height: 1.2; }
-.tc-wx-hours em { font: 600 13px/1 var(--rd); font-style: normal; font-variant-numeric: tabular-nums; }
+.tc-wx-hours small { font: 600 min(0.6471rem, 15.4px)/1 var(--sf); margin: 0; }
+.tc-wx-hours i { font-style: normal; font-size: min(0.8824rem, 21px); line-height: 1.2; }
+.tc-wx-hours em { font: 600 min(0.7647rem, 18.2px)/1 var(--rd); font-style: normal; font-variant-numeric: tabular-nums; }
 .tc-flline { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 16px; border: 0; border-radius: 18px;
-  background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: 600 16px/1.2 var(--sf); cursor: pointer; }
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: 600 min(0.9412rem, 22.4px)/1.2 var(--sf); cursor: pointer; }
 .tc-flline > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.tc-flline small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-flline small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); }
 #today .tc-flline .tc-ic { width: 20px; height: 20px; color: var(--sec); }
 #today .tc-flline .tc-ic:first-child { color: var(--tint); }
 
@@ -1380,20 +1386,20 @@ button.tc-mini { cursor: pointer; }
   padding: 6px 8px 6px 16px; border-top: 1px solid var(--sep); }
 .tc-prep-item:first-child { border-top: 0; }
 .tc-prep-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tc-prep-t b { font: 600 16px/1.25 var(--sf); }
-.tc-prep-t small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-prep-t b { font: 600 min(0.9412rem, 22.4px)/1.25 var(--sf); }
+.tc-prep-t small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); }
 .tc-prep-item.done .tc-prep-t b { text-decoration: line-through; color: var(--sec); }
 .tc-prep-r { display: flex; align-items: center; gap: 6px; }
-.tc-prep-r small { font: 400 13px/1.2 var(--sf); color: var(--sec); white-space: nowrap; }
+.tc-prep-r small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); white-space: nowrap; }
 
 /* ---------- «Сейчас» before the trip: countdown, first thing, readiness, the first day ---------- */
 .tc-count-n { font: 700 56px/1 var(--rd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .tc-count .tc-fl-no { color: var(--tint); }
 .tc-inl { color: var(--tint); text-decoration: none; font-weight: 600; display: inline-block; padding: 12px 0; margin: -12px 0; }
-.tc-first b { font: 600 18px/1.3 var(--sf); }
+.tc-first b { font: 600 min(1.0588rem, 25.2px)/1.3 var(--sf); }
 .tc-actions.two:has(> :only-child) { grid-template-columns: 1fr; }
 .tc-link { align-self: flex-start; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--tint);
-  font: 600 16px/1 var(--sf); cursor: pointer; }
+  font: 600 min(0.9412rem, 22.4px)/1 var(--sf); cursor: pointer; }
 .tc-ready { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tc-ready-chip { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 12px; border: 0; border-radius: 20px;
   background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
@@ -1402,16 +1408,16 @@ button.tc-mini { cursor: pointer; }
 .tc-ready-ring .bg { stroke: var(--seg); }
 .tc-ready-ring .fg { stroke: var(--ok); stroke-linecap: round; }
 .tc-ready-chip > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tc-ready-chip b { font: 600 15px/1.2 var(--sf); }
-.tc-ready-chip small { font: 500 13px/1.2 var(--rd); color: var(--sec); font-variant-numeric: tabular-nums; }
+.tc-ready-chip b { font: 600 min(0.8824rem, 21px)/1.2 var(--sf); }
+.tc-ready-chip small { font: 500 min(0.7647rem, 18.2px)/1.2 var(--rd); color: var(--sec); font-variant-numeric: tabular-nums; }
 button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; min-height: 44px; }
 #today .tc-day1 .tc-row .tc-ic { width: 18px; height: 18px; color: var(--sec); }
 .tc-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.tc-steps li { position: relative; display: grid; grid-template-columns: 3.4em 1fr; gap: 10px; padding: 7px 0 7px 18px; font: 400 15px/1.3 var(--sf); }
+.tc-steps li { position: relative; display: grid; grid-template-columns: 3.4em 1fr; gap: 10px; padding: 7px 0 7px 18px; font: 400 min(0.8824rem, 21px)/1.3 var(--sf); }
 .tc-steps li::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--seg); }
-.tc-steps b { align-self: start; font: 600 15px/1.3 var(--rd); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc-steps b { align-self: start; font: 600 min(0.8824rem, 21px)/1.3 var(--rd); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tc-steps li > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.tc-steps li > span small { font: 400 13px/1.25 var(--sf); color: var(--sec); }
+.tc-steps li > span small { font: 400 min(0.7647rem, 18.2px)/1.25 var(--sf); color: var(--sec); }
 .tc-steps li.now > span small { color: inherit; opacity: .85; }
 .tc-steps li.tc-steps-fold { display: block; padding: 0 0 0 18px; }
 .tc-steps li.tc-steps-fold::before { top: 18px; }
@@ -1419,7 +1425,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-cap.tc-cap-pre .tc-cap-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-cap.tc-cap-pre .tc-cap-when { flex: 0 0 auto; white-space: nowrap; }
 .tc-pvchip { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; min-height: 44px; margin: -8px -6px -6px 0; padding: 0 8px 0 12px;
-  border: 0; border-radius: 999px; background: var(--note); color: var(--text); font: 600 13px/1 var(--sf); cursor: pointer; }
+  border: 0; border-radius: 999px; background: var(--note); color: var(--text); font: 600 min(0.7647rem, 18.2px)/1 var(--sf); cursor: pointer; }
 .tc-title:has(.tc-pvchip) h1 { font-size: 28px; }
 #today .tc-pvchip .tc-ic { width: 14px; height: 14px; color: var(--sec); }
 .tc-late { color: var(--late); font-weight: 600; }
@@ -1427,30 +1433,30 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-steps li.now::before { background: var(--tint); }
 .tc-steps li.done { color: var(--sec); }
 .tc-steps li.done::before { background: var(--ok); }
-.tc-itime small { font: 500 11px/1.15 var(--sf); color: var(--sec); }
+.tc-itime small { font: 500 min(0.6471rem, 15.4px)/1.15 var(--sf); color: var(--sec); }
 
 /* ---------- group: my plan / group plan, parts, own stops ---------- */
 .tc-seg3s.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.tc-seg3s.two button { min-height: 44px; border: 0; border-radius: 10px; background: none; font: 600 15px/1 var(--sf); color: var(--sec); cursor: pointer; }
+.tc-seg3s.two button { min-height: 44px; border: 0; border-radius: 10px; background: none; font: 600 min(0.8824rem, 21px)/1 var(--sf); color: var(--sec); cursor: pointer; }
 .tc-seg3s.two button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
 .tc-part { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
 .tc-part-chip { flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; text-align: left; display: flex; flex-direction: column; gap: 2px; cursor: pointer; color: var(--text); }
-.tc-part-chip b { font: 600 16px/1.2 var(--sf); }
-.tc-part-chip small { font: 400 13px/1.2 var(--sf); color: var(--sec); }
+.tc-part-chip b { font: 600 min(0.9412rem, 22.4px)/1.2 var(--sf); }
+.tc-part-chip small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); }
 .tc-mine { color: var(--tint); font-weight: 600; }
 
 /* ---------- «Дела»: buying recipes ---------- */
 #grTasks { display: flex; flex-direction: column; gap: 10px; }
-.tc-task .tc-row b { font: 600 17px/1.3 var(--sf); }
+.tc-task .tc-row b { font: 600 min(1rem, 23.8px)/1.3 var(--sf); }
 .tc-task.done .tc-row b { color: var(--sec); text-decoration: line-through; }
 .tc-task.done { opacity: .75; }
-.tc-hostref { margin: 0; padding: 10px 12px; border-radius: 12px; font: 400 14px/1.4 var(--sf); }
+.tc-hostref { margin: 0; padding: 10px 12px; border-radius: 12px; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); }
 .tc-bkr { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 55%; }
 
 /* ticket sharing switch: a full 44 pt row like the other toggles */
 .tc-share { flex: 0 0 auto; min-height: 44px; min-width: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 /* the invite kit */
-.tc-invite-text { white-space: pre-wrap; font: inherit; font-size: 15px; margin: 0 0 12px; padding: 12px; border-radius: 12px; background: var(--inset); overflow-wrap: anywhere; }
+.tc-invite-text { white-space: pre-wrap; font: inherit; font-size: min(0.8824rem, 21px); margin: 0 0 12px; padding: 12px; border-radius: 12px; background: var(--inset); overflow-wrap: anywhere; }
 .tc-invite-qr { width: min(220px, 60vw); margin: 12px auto 4px; background: #fff; border-radius: 12px; overflow: hidden; }
 .tc-invite-qr svg { display: block; width: 100%; height: auto; }
 .tc-btn.tc-nudge { margin-top: 8px; width: 100%; min-height: 44px; justify-content: center; }
@@ -1462,18 +1468,28 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-actions.tc-task-acts:has(> :nth-child(2):last-child) { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 .tc-actions.tc-task-acts:has(> :only-child) { grid-template-columns: 1fr; }
 .tc-task-acts .tc-btn { min-width: 0; padding-inline: 6px; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tc-task-acts .tc-btn:not(.primary) { flex-direction: column; justify-content: center; gap: 2px; font-size: 12px; line-height: 1.1; padding-block: 4px; }
+.tc-task-acts .tc-btn:not(.primary) { flex-direction: column; justify-content: center; gap: 2px; font-size: min(0.7059rem, 16.8px); line-height: 1.1; padding-block: 4px; }
 .tc-task-acts .tc-btn:not(.primary) svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .tc-task-top { display: flex; align-items: center; flex: 0 0 auto; }
 .tc-nudge-ic { width: 44px; height: 44px; display: grid; place-items: center; color: var(--tint); border-radius: 50%; }
 .tc-nudge-ic svg { width: 20px; height: 20px; }
-.tc-howto { margin: 4px 0 16px; padding-left: 1.4em; font-size: 17px; line-height: 1.4; }
+.tc-howto { margin: 4px 0 16px; padding-left: 1.4em; font-size: min(1rem, 23.8px); line-height: 1.4; }
 .tc-howto li { margin: 6px 0; }
 .tc-fr-row input { flex: 0 0 auto; min-width: 44px; min-height: 28px; }
 .tc-funnel { margin-top: 8px; }
 .tc-flash { animation: tc-flash 1.6s ease-out 1; }
 @keyframes tc-flash { from { box-shadow: 0 0 0 3px var(--tint); } to { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { .tc-flash { animation: none; outline: 2px solid var(--tint); } }
+
+/* ⚙: rarely used trip editing and transfer, folded away */
+.tc-more { border-radius: 14px; background: var(--card); padding: 0 14px; }
+.tc-more > summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font: 600 min(0.9412rem, 22.4px)/1.2 var(--sf); color: var(--tint); list-style: none; }
+.tc-more > summary::-webkit-details-marker { display: none; }
+.tc-more > summary::after { content: '›'; margin-left: auto; transition: transform .2s; font-size: 1.3em; }
+.tc-more[open] > summary::after { transform: rotate(90deg); }
+.tc-more[open] { padding-bottom: 14px; display: grid; gap: 12px; }
+
+.tc-vh { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; }
 </style>
 </head>
 <body>
@@ -2497,7 +2513,8 @@ const Core = (() => {
   };
   const hm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
   const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? `${h} ч ${pad(m % 60)} мин` : `${m} мин`; };
-  const cd = m => { m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + ':' + pad(m % 60); };
+  // «2 ч 51» / «51 мин»: «2:51» read as both hours and minutes:seconds
+  const cd = m => { m = Math.max(0, Math.round(m)); return m >= 60 ? Math.floor(m / 60) + ' ч ' + pad(m % 60) : m + ' мин'; };
   const ddmmyyyy = iso => { const [y, mo, d] = String(iso).split('-'); return `${d}.${mo}.${y}`; };
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
@@ -3705,9 +3722,9 @@ function openFlights() {
   sheet('Мои рейсы', `
     <p class="tc-sub">Номер рейса и дата вылета — остальное подставится, если рейс известен. Время — местное в каждом аэропорту.
       Список хранится на этом телефоне.</p>
-    ${legs.length ? `<div class="tc-group" id="flList">${legs.map((l, i) => {
+    ${legs.length ? `<span class="tc-sech">${own ? 'Мои рейсы' : 'Рейсы поездки'}</span><div class="tc-group" id="flList">${legs.map((l, i) => {
       const t = Flights.times(l);
-      return `<div class="tc-flrow"><span><b>${esc(Flights.pretty(l.no))}</b> · ${l.date.slice(8)}.${l.date.slice(5, 7)}<small>${esc(l.frm)} ${esc(l.dep)} → ${esc(l.to)} ${t && t.arr ? esc(l.arr) : '—'}</small></span>
+      return `<div class="tc-flrow"><span><span class="tc-fl-t"><b>${esc(Flights.pretty(l.no))}</b> · ${l.date.slice(8)}.${l.date.slice(5, 7)}</span><small>${esc(l.frm)} ${esc(l.dep)} → ${esc(l.to)} ${t && t.arr ? esc(l.arr) : '—'}</small></span>
         <button type="button" class="tc-x" data-fldel="${i}" aria-label="Удалить рейс ${esc(Flights.pretty(l.no))}">${icon('close')}</button></div>`;
     }).join('')}</div>` : ''}
     <span class="tc-sech">Добавить рейс</span>
@@ -3753,7 +3770,7 @@ function openFlights() {
       if (!leg) { $('flMsg').textContent = 'Нужны рейс, дата, коды аэропортов (3 буквы) и время вылета.'; return; }
       saveFlights([...myFlights(), leg]); closeSheet(); renderShell();
     });
-    m.querySelectorAll('[data-fldel]').forEach(b => b.addEventListener('click', () => twoTap(b, '?', () => {
+    m.querySelectorAll('[data-fldel]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Удалить?', () => {
       const l = myFlights(); l.splice(+b.dataset.fldel, 1); saveFlights(l); openFlights(); renderShell();
     })));
     const rs = $('flReset');
@@ -4518,8 +4535,8 @@ const sel = (id, label, val, opts) =>
     `<option value="${esc(k)}"${k === val ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
 const twoTap = (b, ask, fn) => {
   if (!b.dataset.sure) {
-    const was = b.textContent; b.dataset.sure = '1'; b.textContent = ask;
-    setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = was; } }, 4000);
+    const was = b.innerHTML; b.dataset.sure = '1'; b.textContent = ask;          // innerHTML: icon-only buttons come back whole
+    setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.innerHTML = was; } }, 4000);
     return;
   }
   fn();
@@ -4541,6 +4558,8 @@ function openSettings() {
     <div class="tc-fs"><span class="tc-sech">Тема · днём светлая, после заката тёмная</span>
       <div class="tc-seg3s" role="radiogroup" aria-label="Тема">${THEMES.map(([k, l]) =>
         `<label class="tc-seg3"><input type="radio" name="tcTheme" value="${k}"${k === theme ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
+    <button type="button" class="tc-act" id="setShare">${icon('share')}<span>Поделиться поездкой<small>${esc(Trips.shareUrl().replace(/^https?:\/\//, ''))}</small></span></button>
+    <details class="tc-more" id="setMore"><summary>Настройки поездки и перенос</summary>
     <div class="tc-form">
       ${fld('setName', 'Название', T.name || '')}
       ${fld('setStart', 'Первый день', SET.start, 'date')}
@@ -4550,15 +4569,15 @@ function openSettings() {
     <p class="tc-foot">Курс по умолчанию примерный — впишите актуальный. Сдвиг даты переносит весь маршрут;
       пункты с датой (например, финалы) помечаются, если дата не совпала. Всё хранится только на этом телефоне.</p>
     <button type="button" class="tc-btn primary wide" id="setSave">Сохранить</button>
-    <span class="tc-sech">Поделиться или перенести</span>
+    <span class="tc-sech">Перенести на другой телефон</span>
     <div class="tc-group">
-      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Экспорт JSON<small>файл для другого телефона или друзей</small></span></button>
-      <label class="tc-act">${icon('clip')}<span>Импорт из файла<small>.json от другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
-      <button type="button" class="tc-act" id="setShare">${icon('share')}<span>Поделиться поездкой<small>${esc(Trips.shareUrl().replace(/^https?:\/\//, ''))}</small></span></button>
+      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
+      <label class="tc-act">${icon('clip')}<span>Открыть файл поездки<small>с другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
     </div>
-    <label class="tc-f" for="setJson"><span>JSON поездки — можно вставить свой</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
-    <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Загрузить</button>
-      <button type="button" class="tc-btn" id="setCopy">Скопировать</button></div>
+    <label class="tc-f" for="setJson"><span>Поездка текстом — для переноса</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
+    <div class="tc-actions two"><button type="button" class="tc-btn" id="setLoad">Применить текст</button>
+      <button type="button" class="tc-btn" id="setCopy">Скопировать текст</button></div>
+    </details>
     <p class="tc-foot" id="setMsg" role="status"></p>`, m => {
     wireGroupSettings(m);
     const msg = t => { m.querySelector('#setMsg').textContent = t; };
@@ -4755,10 +4774,14 @@ async function openLogin() {
   });
 }
 function openPin(id, name) {
-  sheet(name, `<label class="tc-f" for="grPin"><span>PIN — 4 цифры</span>
-      <input id="grPin" type="password" inputmode="numeric" pattern="\\d*" maxlength="4" autocomplete="one-time-code" autofocus></label>
+  const first = !!(INVITE && INVITE.who === id && INVITE.code);       // a guest inventing a PIN vs signing in again
+  /* a real sign-in form (username = the name, password = the PIN) so iPhone can offer to keep it in Keychain */
+  sheet(name, `<form id="grPinForm" autocomplete="on"><input class="tc-vh" type="text" name="username" autocomplete="username" value="${esc(Trips.id() + ' · ' + name)}" tabindex="-1" aria-hidden="true">
+    <label class="tc-f" for="grPin"><span>PIN — 4 цифры${first ? ', придумайте' : ''}</span>
+      <input id="grPin" name="password" type="password" inputmode="numeric" pattern="\\d*" maxlength="4" autocomplete="${first ? 'new-password' : 'current-password'}" autofocus></label></form>
     <p class="tc-warn" id="grMsg" role="status"></p>`, m => {
-    const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg');
+    const pin = m.querySelector('#grPin'), msg = m.querySelector('#grMsg'), form = m.querySelector('#grPinForm');
+    form.addEventListener('submit', e => e.preventDefault());              // never navigates (CSP form-action 'none' too)
     pin.addEventListener('input', async () => {
       if (pin.disabled) return;                                   // one attempt at a time (paste / autofill fire twice)
       pin.value = pin.value.replace(/\D/g, '').slice(0, 4);
@@ -4766,7 +4789,7 @@ function openPin(id, name) {
       pin.disabled = true;
       const r = await Api.login(id, pin.value, INVITE && INVITE.who === id ? INVITE.code : null);
       pin.disabled = false;
-      if (r.ok) { track('login'); if (Ios.standalone()) track('installed'); if (onboarded()) { closeSheet(); renderShell(); } else openFirstRun(); return; }
+      if (r.ok) { try { form.requestSubmit(); } catch (e) {} track('login'); if (Ios.standalone()) track('installed'); if (onboarded()) { closeSheet(); renderShell(); } else openFirstRun(); return; }
       msg.textContent = PIN_ERR[r.error] || 'Не получилось войти — попробуйте ещё раз'; pin.value = ''; pin.focus();
     });
     pin.focus();
