@@ -437,7 +437,9 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-task-acts .tc-btn { min-width: 0; padding-inline: 6px; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tc-task-acts .tc-btn:not(.primary) { flex-direction: column; justify-content: center; gap: 2px; font-size: 12px; line-height: 1.1; padding-block: 4px; }
 .tc-task-acts .tc-btn:not(.primary) svg { width: 18px; height: 18px; flex: 0 0 auto; }
-.tc-task-foot { display: flex; justify-content: flex-end; }
+.tc-task-top { display: flex; align-items: center; flex: 0 0 auto; }
+.tc-nudge-ic { width: 44px; height: 44px; display: grid; place-items: center; color: var(--tint); border-radius: 50%; }
+.tc-nudge-ic svg { width: 20px; height: 20px; }
 .tc-howto { margin: 4px 0 16px; padding-left: 1.4em; font-size: 17px; line-height: 1.4; }
 .tc-howto li { margin: 6px 0; }
 .tc-fr-row input { flex: 0 0 auto; min-width: 44px; min-height: 28px; }

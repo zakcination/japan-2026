@@ -80,6 +80,7 @@ function openFirstRun(step) {
 
 /* «Напомнить в WhatsApp»: the deadline and a link straight to it */
 function nudgeHTML(text, url, inline) {
+  if (inline === 'icon') return `<a class="tc-nudge-ic tc-nudge" href="${esc(waUrl(text + ': ' + url))}" target="_blank" rel="noopener" aria-label="Напомнить в WhatsApp" title="Напомнить в WhatsApp">${icon('share')}</a>`;
   return `<a class="${inline ? 'tc-link' : 'tc-btn'} tc-nudge" href="${esc(waUrl(text + ': ' + url))}" target="_blank" rel="noopener" aria-label="Напомнить в WhatsApp">${icon('share')}${inline ? 'Напомнить' : 'Напомнить в WhatsApp'}</a>`;
 }
 const deepLink = h => Trips.shareUrl() + '#' + h;

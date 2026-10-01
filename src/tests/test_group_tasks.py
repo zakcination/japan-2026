@@ -64,3 +64,8 @@ def test_task_buttons_share_one_row_half_quarter_quarter_and_hotels_say_book(app
     assert abs(boxes[0]["w"] - 2 * boxes[1]["w"]) < 12 and abs(boxes[1]["w"] - boxes[2]["w"]) < 2
     assert all(b["h"] >= 44 for b in boxes)
     assert "Править" in card.inner_text() and "Рецепт" not in card.inner_text()
+    ic = card.locator(".tc-task-top .tc-nudge-ic")                     # the reminder: a share icon beside the tick, no extra row
+    assert ic.count() == 1 and ic.get_attribute("href").startswith("https://wa.me/?text=")
+    b1, b2 = ic.bounding_box(), card.locator(".tc-check").bounding_box()
+    assert abs(b1["y"] - b2["y"]) < 4 and b1["width"] >= 44 and b1["height"] >= 44
+    assert card.locator(".tc-task-foot").count() == 0
