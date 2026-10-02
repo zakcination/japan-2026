@@ -102,3 +102,32 @@ def test_see_amans_own_route_in_detail_read_only_then_follow(app):
     g.page.click(".tc-tab[data-tab='now']"); g.page.click(".tc-tab[data-tab='day']")
     g.page.click("#grBackMine")
     assert "Онсэн у озера" not in g.page.inner_text("#tcList")                         # back to her own plan
+
+
+def test_face_shows_what_is_saved_and_says_when_it_was_not(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
+    g = logged(app, fake, san, "4821")
+    g.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    g.page.click("#tcGear")
+    assert "не выбран" in g.page.inner_text("#grFaceNow")
+    g.page.click("#grFaces [data-face='🐼']")
+    until(g.page, "/🐼 · сохранено/.test(document.getElementById('grFaceNow').textContent)")
+    fake.rpc_set_emoji = None                                                        # the server without the update: «no such function»
+    g.page.click("#grFaces [data-face='🦊']")
+    until(g.page, "/Не сохранилось/.test(document.getElementById('grFaceNow').textContent)")
+    assert g.page.locator("#grFaces [aria-checked='true']").get_attribute("data-face") == "🐼"
+
+
+def test_show_my_whole_plan_to_the_group_in_one_switch(app):
+    fake = FakeSupabase.seeded(); aman = fake._add("Aman", "guest")
+    for i in range(3):
+        fake.my_stops[f"m-o{i}"] = {"id": f"m-o{i}", "member": aman, "day": 4, "shared": False, "ev": {"s": f"1{i}:00", "e": f"1{i}:30", "t": f"Осака {i}"}}
+    a = logged(app, fake, aman, "4821")
+    a.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    a.page.click("#tcGear")
+    assert "скрыто: 3" in a.page.inner_text(".tc-shareall")
+    a.page.locator("#grShareAll").check()
+    until(a.page, "Api.status().pending === 0")
+    assert all(s["shared"] for s in fake.my_stops.values())
+    assert a.page.evaluate("localStorage.getItem('japan2026.shareall.v1')") == aman   # new stops will be shared too
+    assert a.page.locator("#grShareAll").is_checked() and "все 3" in a.page.inner_text(".tc-shareall")

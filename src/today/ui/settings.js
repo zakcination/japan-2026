@@ -181,7 +181,7 @@ function openEditor(day, id) {
         cost: num('edCost'), mode: v('edMode'), num: v('edNum'), frm: v('edFrm'), to: v('edTo'), plat: v('edPlat'),
         link: Core.safeUrl(v('edLink')), note: v('edNote') });
       if (mine) {
-        const stop = { id: id || 'm-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)), day: day.n, ev: x, shared: own ? !!own.shared : false };
+        const stop = { id: id || 'm-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)), day: day.n, ev: x, shared: own ? !!own.shared : shareAllOn() };
         Api.call('save_my_stop', { p_stop: stop }, s => { s.my_stops = (s.my_stops || []).filter(q => q.id !== stop.id).concat([{ ...stop, member: Api.me().id }]); });
         closeSheet(); renderShell(); return;
       }
