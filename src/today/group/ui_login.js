@@ -20,7 +20,7 @@ async function openLogin() {
     if (!names.length) { box.innerHTML = '<p class="tc-empty">Нет сети — войдите позже.</p>'; return; }
     const invited = INVITE && names.find(n => n.id === INVITE.who);
     if (invited) { openPin(invited.id, invited.name); return; }            // came by a personal invite link
-    box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${icon('now')}<span>${esc(n.name)}</span></button>`).join('');
+    box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${faceHTML(n, true)}<span>${esc(n.name)}</span></button>`).join('');
     box.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => openPin(b.dataset.member, b.textContent.trim())));
   });
 }
@@ -56,6 +56,7 @@ function groupSettingsHTML() {
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
     ${pushHTML()}
+    ${facePickHTML()}
     ${followHTML()}
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
@@ -69,7 +70,7 @@ function groupSettingsHTML() {
 function wireGroupSettings(m) {
   const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
   on('#grLogin', () => { closeSheet(); openLogin(); });
-  wirePush(m); wireFollow(m);
+  wirePush(m); wireFollow(m); wireFacePick(m);
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
   on('#grAdd', () => {

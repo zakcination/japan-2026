@@ -1512,6 +1512,18 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-push { gap: 12px; }
 .tc-push > span { flex: 1; }
 .tc-push .tc-btn { min-height: 44px; padding-inline: 16px; }
+
+/* faces: Apple emoji in small overlapping circles, like shared avatars in iOS */
+.tc-faces { display: inline-flex; align-items: center; vertical-align: middle; padding-left: 6px; }
+.tc-face { width: 24px; height: 24px; margin-left: -6px; border-radius: 50%; display: inline-grid; place-items: center; flex: 0 0 auto;
+  background: var(--inset); box-shadow: 0 0 0 2px var(--card); font: 15px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.tc-face.letter { font: 700 12px/1 var(--sf); color: var(--sec); }
+.tc-face.big { width: 34px; height: 34px; margin-left: 0; font-size: 21px; box-shadow: none; }
+.tc-face.big.letter { font-size: 15px; }
+.tc-who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tc-facepick { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; background: var(--card); border-radius: 14px; padding: 8px; }
+.tc-facepick button { min-height: 44px; border: 0; border-radius: 12px; background: none; font: 26px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; cursor: pointer; }
+.tc-facepick button[aria-checked="true"] { background: var(--inset); box-shadow: inset 0 0 0 2px var(--tint); }
 </style>
 </head>
 <body>
@@ -3147,28 +3159,56 @@ const Group = (() => {
   const roleOf = (st, id) => (byId(st.members, id) || {}).role;
   const allStops = plan => plan.days.flatMap(d => d.ev.map(e => ({ id: e.id, n: d.n })));
 
-  /* stop > day > part; nothing → out; hosts default in. Returns the Set of group stop ids the member is in. */
-  function effectiveIn(plan, st, mid) {
+  /* «ехать вместе с»: whom the member follows on day n — a day's own choice beats the whole trip; null if nobody */
+  function followOn(st, mid, n) {
+    const fs = (st.joins || []).filter(j => j.member === mid && j.scope === 'follow');
+    const day = fs.find(j => j.ref.endsWith(':' + n)), all = fs.find(j => !j.ref.includes(':'));
+    const j = day || all;
+    if (!j || j.mode !== 'in') return null;
+    const t = j.ref.split(':')[0];
+    return t !== mid && byId(st.members, t) ? t : null;
+  }
+
+  /* stop > day > following someone > part; nothing → out; hosts default in. The Set of group stop ids the member is in. */
+  function effectiveIn(plan, st, mid, seen) {
+    seen = seen || new Set(); seen.add(mid);
     const js = (st.joins || []).filter(j => j.member === mid);
     const host = roleOf(st, mid) === 'host';
     const rule = (scope, ref) => { const j = js.find(x => x.scope === scope && x.ref === String(ref)); return j ? j.mode : null; };
     const partsOf = (id, n) => (st.parts || []).filter(p => p.stops ? p.stops.includes(id) : p.days.includes(n)).map(p => p.id);
     const partRule = (id, n) => { const ms = partsOf(id, n).map(p => rule('part', p)).filter(Boolean);
       return ms.includes('in') ? 'in' : ms.includes('out') ? 'out' : null; };
+    const theirs = new Map();                                // a followed person's own set, worked out once (cycles stop)
+    const followRule = (id, n) => {
+      const t = followOn(st, mid, n); if (!t || seen.has(t)) return null;
+      if (!theirs.has(t)) theirs.set(t, effectiveIn(plan, st, t, new Set(seen)));
+      return theirs.get(t).has(id) ? 'in' : 'out';
+    };
     const out = new Set();
     allStops(plan).forEach(({ id, n }) => {
-      const m = rule('stop', id) || rule('day', n) || partRule(id, n) || (host ? 'in' : null);
+      const m = rule('stop', id) || rule('day', n) || followRule(id, n) || partRule(id, n) || (host ? 'in' : null);
       if (m === 'in') out.add(id);
     });
     return out;
   }
 
+  /* is someone's own stop in my plan: mine, joined by me, or brought by the person I follow that day (unless I said no) */
+  function mineIn(st, mid, s, seen) {
+    if (s.member === mid) return true;
+    if (!s.shared) return false;
+    const j = (st.joins || []).find(x => x.member === mid && x.scope === 'mine' && x.ref === s.id);
+    if (j) return j.mode === 'in';
+    seen = seen || new Set(); seen.add(mid);
+    const t = followOn(st, mid, s.day);
+    return !!t && !seen.has(t) && mineIn(st, t, s, seen);
+  }
+
   function personalTrip(plan, st, mid) {
     const inSet = effectiveIn(plan, st, mid);
     const names = new Map((st.members || []).map(m => [m.id, m.name]));
-    const who = id => (st.members || []).filter(m => effectiveIn(plan, st, m.id).has(id)).map(m => m.id);
-    const joinedMine = new Set((st.joins || []).filter(j => j.member === mid && j.scope === 'mine' && j.mode === 'in').map(j => j.ref));
-    const mine = (st.my_stops || []).filter(s => s.member === mid || (s.shared && joinedMine.has(s.id)));
+    const sets = new Map((st.members || []).map(m => [m.id, effectiveIn(plan, st, m.id)]));
+    const who = id => (st.members || []).filter(m => sets.get(m.id).has(id)).map(m => m.id);
+    const mine = (st.my_stops || []).filter(s => mineIn(st, mid, s));
     const days = plan.days.map(d => {
       const g = d.ev.filter(e => inSet.has(e.id)).map(e => ({ ...e, from: 'group', who: who(e.id) }));
       const m = mine.filter(s => s.day === d.n).map(s => ({ st: 'planned', cat: 'activity', ...s.ev, id: s.id, from: 'mine',
@@ -3233,7 +3273,7 @@ const Group = (() => {
     return { site: hit ? hit[1] : host.replace(/^www\./, ''), host };
   }
 
-  return { effective: effectiveIn, personalTrip, groupTrip, overlaps, tasks, siteOf };
+  return { effective: effectiveIn, followOn, mineIn, personalTrip, groupTrip, overlaps, tasks, siteOf };
 })();
 
 /* ---------- proposals: what a guest suggests, and the plan after a host accepts it — pure ---------- */
@@ -4844,6 +4884,32 @@ function openDayEditor(day) {
   });
 }
 
+/* ---------- faces: each person picks an emoji in ⚙; small overlapping faces stand in for initials ---------- */
+const FACES = '😀 😄 😎 🤓 🥳 😇 🤠 🧐 😺 🐼 🦊 🐨 🐯 🦁 🐸 🐵 🐻 🐰 🦄 🐧 🐱 🐶 🐹 🐙'.split(' ');
+const memberOf = id => ((Api.state() || {}).members || []).find(m => m.id === id) || null;
+/* one face: the chosen emoji (only from FACES), else the first letter */
+function faceHTML(m, big) {
+  const e = m && FACES.includes(m.emoji) ? m.emoji : null;
+  return `<span class="tc-face${e ? '' : ' letter'}${big ? ' big' : ''}" role="img" aria-label="${esc((m && m.name) || '?')}" title="${esc((m && m.name) || '')}">${e || esc(((m && m.name) || '?')[0])}</span>`;
+}
+const facesHTML = ids => `<span class="tc-faces">${(ids || []).map(id => faceHTML(memberOf(id))).join('')}</span>`;
+
+function facePickHTML() {
+  const me = Api.me(); if (!me) return '';
+  const cur = (memberOf(me.id) || {}).emoji;
+  return `<span class="tc-sech">Ваш смайлик · его видит группа</span>
+    <div class="tc-facepick" id="grFaces" role="radiogroup" aria-label="Ваш смайлик">${FACES.map(f =>
+      `<button type="button" role="radio" aria-checked="${f === cur}" data-face="${f}">${f}</button>`).join('')}</div>`;
+}
+function wireFacePick(m) {
+  m.querySelectorAll('[data-face]').forEach(b => b.addEventListener('click', () => {
+    const f = b.dataset.face, me = Api.me().id, next = (memberOf(me) || {}).emoji === f ? null : f;
+    Api.call('set_emoji', { p_emoji: next }, s => { const x = (s.members || []).find(y => y.id === me); if (x) x.emoji = next; });
+    m.querySelectorAll('[data-face]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.face === next)));
+    renderShell();
+  }));
+}
+
 /* ---------- «Кто вы?» + PIN; the group part of ⚙ ---------- */
 const LOGIN_ASKED = 'japan2026.loginasked.v1';
 const PIN_ERR = { 'wrong PIN': 'Неверный PIN', 'locked, try later': 'Слишком много попыток — подождите 15 минут', 'Нет сети': 'Нет сети — попробуйте позже',
@@ -4866,7 +4932,7 @@ async function openLogin() {
     if (!names.length) { box.innerHTML = '<p class="tc-empty">Нет сети — войдите позже.</p>'; return; }
     const invited = INVITE && names.find(n => n.id === INVITE.who);
     if (invited) { openPin(invited.id, invited.name); return; }            // came by a personal invite link
-    box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${icon('now')}<span>${esc(n.name)}</span></button>`).join('');
+    box.innerHTML = names.map(n => `<button type="button" class="tc-act" data-member="${esc(n.id)}">${faceHTML(n, true)}<span>${esc(n.name)}</span></button>`).join('');
     box.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => openPin(b.dataset.member, b.textContent.trim())));
   });
 }
@@ -4902,6 +4968,8 @@ function groupSettingsHTML() {
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
     ${pushHTML()}
+    ${facePickHTML()}
+    ${followHTML()}
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
         ${x.role === 'guest' ? `<span class="tc-actions two"><button type="button" class="tc-btn primary" data-invite="${esc(x.id)}">Пригласить</button>
@@ -4914,7 +4982,7 @@ function groupSettingsHTML() {
 function wireGroupSettings(m) {
   const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
   on('#grLogin', () => { closeSheet(); openLogin(); });
-  wirePush(m);
+  wirePush(m); wireFollow(m); wireFacePick(m);
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
   on('#grAdd', () => {
@@ -4960,7 +5028,6 @@ function autoSyncPlan() {
 }
 
 /* ---------- joining on «День»: my plan / group plan, parts, «Я еду / Без меня», own stops ---------- */
-const initials = ids => { const s = Api.state(); return (ids || []).map(id => ((s.members.find(m => m.id === id) || {}).name || '?')[0]).join(' '); };
 const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
   const me = Api.me().id; s.joins = s.joins.filter(j => !(j.member === me && j.scope === scope && j.ref === String(ref)));
   if (mode !== 'none') s.joins.push({ member: me, scope, ref: String(ref), mode });
@@ -4975,7 +5042,7 @@ function joinBarHTML(x) {
   let html = `<div class="tc-seg3s two" id="grView" role="radiogroup" aria-label="Чей план">
     <button type="button" data-view="mine" aria-pressed="${!group}">Мой план</button><button type="button" data-view="group" aria-pressed="${group}">План группы</button></div>`;
   if (group) html += parts.map(p => `<div class="tc-card tc-part"><button type="button" class="tc-part-chip" data-part="${esc(p.id)}">
-      <b>${esc(p.title)}</b><small>едут: ${esc(initials(who(p)))}</small></button>
+      <b>${esc(p.title)}</b><small>едут ${facesHTML(who(p))}</small></button>
       ${Api.me().role === 'host' ? '' : partIn(p) ? `<button type="button" class="tc-btn" data-partjoin="${esc(p.id)}" data-mode="none">Не еду</button>`
         : `<button type="button" class="tc-btn primary" id="grJoinPart" data-partjoin="${esc(p.id)}" data-mode="in">Я с вами: ${esc(p.title)}</button>`}</div>`).join('')
       + (Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" id="grProposeAdd">${icon('plus')}Предложить пункт в план группы</button>`);
@@ -4994,7 +5061,7 @@ function openPart(id) {
   const s = Api.state(), p = s.parts.find(x => x.id === id); if (!p) return;
   const going = s.members.filter(m => m.role === 'host' || s.joins.some(j => j.member === m.id && j.scope === 'part' && j.ref === id && j.mode === 'in'));
   sheet(p.title, `<p class="tc-sub">Дни: ${p.days.map(n => Core.ddmmyyyy(dateOf(planDoc().days.find(d => d.n === n) || { n })).slice(0, 5)).join(', ')}</p>
-    <p class="tc-sub">Едут: ${esc(going.map(m => m.name).join(', '))}</p>
+    <p class="tc-sub tc-who">Едут: ${facesHTML(going.map(m => m.id))} ${esc(going.map(m => m.name).join(', '))}</p>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn primary wide" data-in>Я с вами на всю часть</button><button type="button" class="tc-btn wide" data-none>Не еду</button>`}`, m => {
     const b1 = m.querySelector('[data-in]'), b2 = m.querySelector('[data-none]');
     if (b1) b1.addEventListener('click', () => { setJoin('part', id, 'in'); closeSheet(); renderShell(); });
@@ -5009,12 +5076,13 @@ function stopJoinHTML(day, e) {
     const own = (s.my_stops.find(x => x.id === e.id) || {}).member === me;
     if (own) return `<label class="tc-act"><span>Показать группе<small>другие смогут присоединиться</small></span><input type="checkbox" switch id="grShare"${e.shared ? ' checked' : ''}></label>`;
     const author = (s.members.find(m => m.id === (s.my_stops.find(x => x.id === e.id) || {}).member) || {}).name || '';
-    const joined = s.joins.some(j => j.member === me && j.scope === 'mine' && j.ref === e.id && j.mode === 'in');
-    return `<p class="tc-sub">Планирует ${esc(author)}</p><button type="button" class="tc-btn ${joined ? '' : 'primary'} wide" data-joinmine="${joined ? 'none' : 'in'}">${joined ? 'Не пойду' : 'Присоединиться'}</button>`;
+    const st0 = s.my_stops.find(x => x.id === e.id), joined = !!st0 && Group.mineIn(s, me, st0);
+    return `<p class="tc-sub">Планирует ${esc(author)}</p><button type="button" class="tc-btn ${joined ? '' : 'primary'} wide" data-joinmine="${joined ? 'out' : 'in'}">${joined ? 'Не пойду' : 'Присоединиться'}</button>`;
   }
   const going = Group.effective(planDoc(), s, me).has(e.id);
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
-  return `<p class="tc-sub">Идут: ${esc(who.join(', ') || '—')}</p>
+  const whoIds = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.id);
+  return `<p class="tc-sub tc-who">Идут: ${whoIds.length ? facesHTML(whoIds) + ' ' + esc(who.join(', ')) : '—'}</p>
     <div class="tc-actions two"><button type="button" class="tc-btn ${going ? '' : 'primary'}" data-join="in">Я еду</button>
       <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" data-propose>${icon('edit')}Предложить изменение</button>`}`;
@@ -5028,6 +5096,45 @@ function wireStopJoin(m, day, e) {
     const st = Api.state().my_stops.find(x => x.id === e.id); if (!st) return;
     const next = { ...st, shared: sh.checked };
     Api.call('save_my_stop', { p_stop: next }, s => { const i = s.my_stops.findIndex(x => x.id === e.id); if (i >= 0) s.my_stops[i] = next; });
+  });
+}
+
+/* «Ехать вместе с»: follow someone's personal plan — the whole trip or chosen days; own choices still win */
+const followJoins = (who) => (Api.state().joins || []).filter(j => j.member === Api.me().id && j.scope === 'follow' && j.ref.split(':')[0] === who);
+function followSummary(who) {
+  const js = followJoins(who), all = js.find(j => !j.ref.includes(':') && j.mode === 'in');
+  const days = js.filter(j => j.ref.includes(':') && j.mode === 'in').length, skip = js.filter(j => j.ref.includes(':') && j.mode === 'out').length;
+  return all ? (skip ? `весь маршрут, кроме ${skip} дн.` : 'весь маршрут') : days ? `${days} дн.` : '';
+}
+function followHTML() {
+  const me = Api.me(), s = Api.state(); if (!me || !s) return '';
+  const others = (s.members || []).filter(m => m.id !== me.id); if (!others.length) return '';
+  return `<span class="tc-sech">Ехать вместе с…</span><div class="tc-group" id="grFollow">${others.map(m => { const f = followSummary(m.id);
+    return `<button type="button" class="tc-act" data-follow="${esc(m.id)}">${faceHTML(m, true)}<span>${esc(m.name)}<small>${f ? 'вы с ' + esc(m.name) + ': ' + esc(f) : 'план — в ваш, целиком или по дням'}</small></span>${icon('arrow')}</button>`; }).join('')}</div>`;
+}
+function wireFollow(m) { m.querySelectorAll('[data-follow]').forEach(b => b.addEventListener('click', () => { closeSheet(); openFollow(b.dataset.follow); })); }
+function openFollow(who) {
+  const s = Api.state(), t = (s.members || []).find(m => m.id === who); if (!t) return;
+  const js = followJoins(who), all = !!js.find(j => !j.ref.includes(':') && j.mode === 'in');
+  const dayMode = n => { const j = js.find(x => x.ref === who + ':' + n); return j ? j.mode : null; };
+  const on = n => { const d = dayMode(n); return d ? d === 'in' : all; };
+  const days = planDoc().days;
+  sheet('Вместе с ' + t.name, `<p class="tc-sub">Куда едет ${esc(t.name)} — туда и вы: части поездки, пункты и пункты, которые ${esc(t.name)} показывает группе.
+      Ваши «Без меня» и свои пункты остаются вашими. Билеты каждый покупает сам — они появятся в «Делах».</p>
+    <label class="tc-act"><span><b>Весь маршрут</b><small>все дни поездки</small></span><input type="checkbox" switch id="flAll"${all ? ' checked' : ''}></label>
+    <span class="tc-sech">Или по дням</span>
+    <div class="tc-group">${days.map(d => `<label class="tc-act"><span>${esc(Core.ddmmyyyy(dateOf(d)).slice(0, 5))} · ${esc(d.label || d.city || '')}</span>
+      <input type="checkbox" switch data-flday="${d.n}"${on(d.n) ? ' checked' : ''}></label>`).join('')}</div>`, m => {
+    m.querySelector('#flAll').addEventListener('change', e => {
+      setJoin('follow', who, e.target.checked ? 'in' : 'none');
+      js.filter(j => j.ref.includes(':')).forEach(j => setJoin('follow', j.ref, 'none'));     // the whole trip resets the days
+      renderShell(); openFollow(who);
+    });
+    m.querySelectorAll('[data-flday]').forEach(i => i.addEventListener('change', () => {
+      const n = +i.dataset.flday, wholeNow = !!followJoins(who).find(j => !j.ref.includes(':') && j.mode === 'in');
+      setJoin('follow', who + ':' + n, i.checked ? (wholeNow ? 'none' : 'in') : (wholeNow ? 'out' : 'none'));
+      renderShell();
+    }));
   });
 }
 

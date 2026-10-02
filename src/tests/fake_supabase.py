@@ -77,7 +77,7 @@ class FakeSupabase:
         return m
 
     def _pub(self, m):
-        return {k: m[k] for k in ("id", "name", "role")}
+        return {"id": m["id"], "name": m["name"], "role": m["role"], "emoji": m.get("emoji")}
 
     # ---------- RPCs ----------
     def rpc(self, token, name, a):
@@ -116,7 +116,7 @@ class FakeSupabase:
     def rpc_member_names(self, token, p_trip):
         if not self.tokens.get(token): raise RpcError(401, "JWT expired or invalid")
         if p_trip != TRIP: return []
-        return [{"id": m["id"], "name": m["name"]} for m in self.members.values()]
+        return [{"id": m["id"], "name": m["name"], "emoji": m.get("emoji")} for m in self.members.values()]
 
     def rpc_group_state(self, token, p_trip):
         m = self._me(token); me = m["id"]
@@ -219,6 +219,13 @@ class FakeSupabase:
         m = self.members[p_member]; m["pin_hash"], m["fails"], m["locked_until"] = None, 0, 0
         m["invite"] = uuid.uuid4().hex[:12] if m["role"] == "guest" else None
         return {"code": m["invite"]}
+
+    FACES = ['😀', '😄', '😎', '🤓', '🥳', '😇', '🤠', '🧐', '😺', '🐼', '🦊', '🐨', '🐯', '🦁', '🐸', '🐵', '🐻', '🐰', '🦄', '🐧', '🐱', '🐶', '🐹', '🐙']
+
+    def rpc_set_emoji(self, token, p_emoji):
+        m = self._me(token)
+        if p_emoji is not None and p_emoji not in self.FACES: raise RpcError(400, "bad emoji")
+        m["emoji"] = p_emoji; return True
 
     def rpc_invite_link(self, token, p_member):
         me = self._me(token, need_host=True)

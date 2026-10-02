@@ -55,3 +55,24 @@ def test_saniya_follows_aman_in_settings_and_gets_his_tickets(app):
     until(g.page, "!!document.querySelector('#grTasks [data-ref=\"bk:bus18\"]')")      # his Fuji bus is now hers to buy
     r = g.page.evaluate("Api.run('set_join', {p_scope: 'follow', p_ref: Api.me().id, p_mode: 'in'}).then(() => 'ok', e => e.message)")
     assert "bad join" in r                                                            # nobody follows themselves
+
+
+def test_pick_a_face_in_settings_and_the_group_sees_it_instead_of_a_letter(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest")
+    fake.joins.append({"member": san, "scope": "part", "ref": "fuji", "mode": "in"})
+    g = logged(app, fake, san, "4821")
+    g.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    g.page.click("#tcGear")
+    b = g.page.locator("#grFaces [data-face='🦊']")
+    assert b.bounding_box()["height"] >= 44
+    b.click()
+    until(g.page, "Api.status().pending === 0")
+    assert fake.members[san]["emoji"] == "🦊"
+    r = g.page.evaluate("Api.run('set_emoji', {p_emoji: '<img src=x>'}).then(() => 'ok', e => e.message)")
+    assert "bad emoji" in r                                                            # only the app's own faces
+    h = logged(app, fake, fake.host_id, fake.host_pin)
+    h.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    h.page.click(".tc-tab[data-tab='day']")
+    h.page.click("#grView [data-view='group']")
+    chip = h.page.locator("[data-part='fuji'] .tc-faces")
+    assert "🦊" in chip.inner_text() and chip.locator(".tc-face").first.bounding_box()["height"] <= 26

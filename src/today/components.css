@@ -477,3 +477,15 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-push { gap: 12px; }
 .tc-push > span { flex: 1; }
 .tc-push .tc-btn { min-height: 44px; padding-inline: 16px; }
+
+/* faces: Apple emoji in small overlapping circles, like shared avatars in iOS */
+.tc-faces { display: inline-flex; align-items: center; vertical-align: middle; padding-left: 6px; }
+.tc-face { width: 24px; height: 24px; margin-left: -6px; border-radius: 50%; display: inline-grid; place-items: center; flex: 0 0 auto;
+  background: var(--inset); box-shadow: 0 0 0 2px var(--card); font: 15px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.tc-face.letter { font: 700 12px/1 var(--sf); color: var(--sec); }
+.tc-face.big { width: 34px; height: 34px; margin-left: 0; font-size: 21px; box-shadow: none; }
+.tc-face.big.letter { font-size: 15px; }
+.tc-who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tc-facepick { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; background: var(--card); border-radius: 14px; padding: 8px; }
+.tc-facepick button { min-height: 44px; border: 0; border-radius: 12px; background: none; font: 26px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; cursor: pointer; }
+.tc-facepick button[aria-checked="true"] { background: var(--inset); box-shadow: inset 0 0 0 2px var(--tint); }

@@ -1,5 +1,4 @@
 /* ---------- joining on «День»: my plan / group plan, parts, «Я еду / Без меня», own stops ---------- */
-const initials = ids => { const s = Api.state(); return (ids || []).map(id => ((s.members.find(m => m.id === id) || {}).name || '?')[0]).join(' '); };
 const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
   const me = Api.me().id; s.joins = s.joins.filter(j => !(j.member === me && j.scope === scope && j.ref === String(ref)));
   if (mode !== 'none') s.joins.push({ member: me, scope, ref: String(ref), mode });
@@ -14,7 +13,7 @@ function joinBarHTML(x) {
   let html = `<div class="tc-seg3s two" id="grView" role="radiogroup" aria-label="Чей план">
     <button type="button" data-view="mine" aria-pressed="${!group}">Мой план</button><button type="button" data-view="group" aria-pressed="${group}">План группы</button></div>`;
   if (group) html += parts.map(p => `<div class="tc-card tc-part"><button type="button" class="tc-part-chip" data-part="${esc(p.id)}">
-      <b>${esc(p.title)}</b><small>едут: ${esc(initials(who(p)))}</small></button>
+      <b>${esc(p.title)}</b><small>едут ${facesHTML(who(p))}</small></button>
       ${Api.me().role === 'host' ? '' : partIn(p) ? `<button type="button" class="tc-btn" data-partjoin="${esc(p.id)}" data-mode="none">Не еду</button>`
         : `<button type="button" class="tc-btn primary" id="grJoinPart" data-partjoin="${esc(p.id)}" data-mode="in">Я с вами: ${esc(p.title)}</button>`}</div>`).join('')
       + (Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" id="grProposeAdd">${icon('plus')}Предложить пункт в план группы</button>`);
@@ -33,7 +32,7 @@ function openPart(id) {
   const s = Api.state(), p = s.parts.find(x => x.id === id); if (!p) return;
   const going = s.members.filter(m => m.role === 'host' || s.joins.some(j => j.member === m.id && j.scope === 'part' && j.ref === id && j.mode === 'in'));
   sheet(p.title, `<p class="tc-sub">Дни: ${p.days.map(n => Core.ddmmyyyy(dateOf(planDoc().days.find(d => d.n === n) || { n })).slice(0, 5)).join(', ')}</p>
-    <p class="tc-sub">Едут: ${esc(going.map(m => m.name).join(', '))}</p>
+    <p class="tc-sub tc-who">Едут: ${facesHTML(going.map(m => m.id))} ${esc(going.map(m => m.name).join(', '))}</p>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn primary wide" data-in>Я с вами на всю часть</button><button type="button" class="tc-btn wide" data-none>Не еду</button>`}`, m => {
     const b1 = m.querySelector('[data-in]'), b2 = m.querySelector('[data-none]');
     if (b1) b1.addEventListener('click', () => { setJoin('part', id, 'in'); closeSheet(); renderShell(); });
@@ -53,7 +52,8 @@ function stopJoinHTML(day, e) {
   }
   const going = Group.effective(planDoc(), s, me).has(e.id);
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
-  return `<p class="tc-sub">Идут: ${esc(who.join(', ') || '—')}</p>
+  const whoIds = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.id);
+  return `<p class="tc-sub tc-who">Идут: ${whoIds.length ? facesHTML(whoIds) + ' ' + esc(who.join(', ')) : '—'}</p>
     <div class="tc-actions two"><button type="button" class="tc-btn ${going ? '' : 'primary'}" data-join="in">Я еду</button>
       <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" data-propose>${icon('edit')}Предложить изменение</button>`}`;
@@ -81,7 +81,7 @@ function followHTML() {
   const me = Api.me(), s = Api.state(); if (!me || !s) return '';
   const others = (s.members || []).filter(m => m.id !== me.id); if (!others.length) return '';
   return `<span class="tc-sech">Ехать вместе с…</span><div class="tc-group" id="grFollow">${others.map(m => { const f = followSummary(m.id);
-    return `<button type="button" class="tc-act" data-follow="${esc(m.id)}">${icon('day')}<span>${esc(m.name)}<small>${f ? 'вы с ' + esc(m.name) + ': ' + esc(f) : 'их план — в ваш, целиком или по дням'}</small></span>${icon('arrow')}</button>`; }).join('')}</div>`;
+    return `<button type="button" class="tc-act" data-follow="${esc(m.id)}">${faceHTML(m, true)}<span>${esc(m.name)}<small>${f ? 'вы с ' + esc(m.name) + ': ' + esc(f) : 'план — в ваш, целиком или по дням'}</small></span>${icon('arrow')}</button>`; }).join('')}</div>`;
 }
 function wireFollow(m) { m.querySelectorAll('[data-follow]').forEach(b => b.addEventListener('click', () => { closeSheet(); openFollow(b.dataset.follow); })); }
 function openFollow(who) {

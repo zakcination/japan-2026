@@ -8,6 +8,8 @@ create table if not exists public.members (
   pin_hash text, fails int not null default 0, locked_until timestamptz);
 -- one-time invite code for a guest's first sign-in (the ids are visible to «Кто вы?», so an id alone must not be enough)
 alter table public.members add column if not exists invite text;
+-- each person's face (one of the app's emoji), shown to the group instead of an initial
+alter table public.members add column if not exists emoji text;
 create table if not exists public.member_devices (
   uid uuid primary key, member uuid not null references public.members(id) on delete cascade, at timestamptz default now());
 create table if not exists public.plan (trip text primary key references public.trips(id), doc jsonb not null, version int not null default 1);
@@ -119,7 +121,7 @@ create or replace function public.member_names(p_trip text) returns jsonb langua
 set search_path = public, extensions as $$
 begin
   if auth.uid() is null then raise exception 'sign in first' using errcode = 'P0001'; end if;
-  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name) order by name) from public.members where trip = p_trip), '[]');
+  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'emoji', emoji) order by name) from public.members where trip = p_trip), '[]');
 end $$;
 
 -- ===== stage 2: proposals from guests, hosts decide; push subscriptions =====
@@ -145,7 +147,7 @@ begin
     'me', jsonb_build_object('id', m.id, 'name', m.name, 'role', m.role),
     'trip', (select to_jsonb(t) from public.trips t where t.id = p_trip),
     'plan', (select jsonb_build_object('doc', doc, 'version', version) from public.plan where trip = p_trip),
-    'members', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'role', role)) from public.members where trip = p_trip), '[]'),
+    'members', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'role', role, 'emoji', emoji)) from public.members where trip = p_trip), '[]'),
     'parts', coalesce((select jsonb_agg(part) from public.parts where trip = p_trip), '[]'),
     'joins', coalesce((select jsonb_agg(jsonb_build_object('member', j.member, 'scope', j.scope, 'ref', j.ref, 'mode', j.mode))
                        from public.joins j join public.members x on x.id = j.member where x.trip = p_trip), '[]'),
@@ -341,6 +343,15 @@ begin
     from public.member_events e join public.members x on x.id = e.member where x.trip = m.trip);
 end $$;
 
+create or replace function public.set_emoji(p_emoji text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if p_emoji is not null and p_emoji not in ('😀', '😄', '😎', '🤓', '🥳', '😇', '🤠', '🧐', '😺', '🐼', '🦊', '🐨', '🐯', '🦁', '🐸', '🐵', '🐻', '🐰', '🦄', '🐧', '🐱', '🐶', '🐹', '🐙') then raise exception 'bad emoji' using errcode = 'P0001'; end if;
+  update public.members set emoji = p_emoji where id = m.id;
+  return true;
+end $$;
+
 -- ===== stage 2 functions =====
 create or replace function public.propose(p_kind text, p_ref text, p_day int, p_payload jsonb, p_note text) returns uuid language plpgsql security definer
 set search_path = public, extensions as $$
@@ -469,7 +480,7 @@ revoke all on all functions in schema public from public, anon, authenticated;
 grant execute on function public.member_names, public.group_state, public.claim_member(uuid, text, text), public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
   public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks, public.invite_link, public.track, public.funnel_counts,
-  public.propose, public.withdraw_proposal, public.decide_proposal, public.save_push, public.delete_push,
+  public.set_emoji, public.propose, public.withdraw_proposal, public.decide_proposal, public.save_push, public.delete_push,
   public._device_member, public._can_read_ticket to authenticated;
 
 -- storage: private bucket; a member writes only into <member id>/...; reads own files and files of shared attachments
