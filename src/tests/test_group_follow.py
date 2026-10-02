@@ -131,3 +131,26 @@ def test_show_my_whole_plan_to_the_group_in_one_switch(app):
     assert all(s["shared"] for s in fake.my_stops.values())
     assert a.page.evaluate("localStorage.getItem('japan2026.shareall.v1')") == aman   # new stops will be shared too
     assert a.page.locator("#grShareAll").is_checked() and "все 3" in a.page.inner_text(".tc-shareall")
+
+
+def test_join_someone_by_day_and_pick_single_places(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest"); aman = fake._add("Aman", "guest")
+    fake.my_stops["m-u1"] = {"id": "m-u1", "member": aman, "day": 5, "shared": True, "ev": {"s": "08:30", "e": "20:30", "t": "Universal Studios Japan"}}
+    fake.my_stops["m-u2"] = {"id": "m-u2", "member": aman, "day": 5, "shared": True, "ev": {"s": "21:00", "e": "22:00", "t": "Ужин в Намбе"}}
+    g = logged(app, fake, san, "4821")
+    g.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    g.page.click("#tcGear"); g.page.click(f"#grFollow [data-follow='{aman}']")
+    day = g.page.locator(".tc-fday[data-fdn='5']")
+    assert "с вами 0 из 2" in day.inner_text()
+    day.locator("summary > span").click()                                             # open the day, pick one place
+    day.locator("[data-flstop='m-u1']").check()
+    until(g.page, "Api.status().pending === 0")
+    assert {"member": san, "scope": "mine", "ref": "m-u1", "mode": "in"} in fake.joins
+    day = g.page.locator(".tc-fday[data-fdn='5']")
+    assert "с вами 1 из 2" in day.inner_text() and day.get_attribute("open") is not None   # stays open where you were
+    day.locator("[data-flday='5']").check()                                           # then the whole day…
+    until(g.page, "Api.status().pending === 0")
+    assert "с вами 2 из 2" in g.page.locator(".tc-fday[data-fdn='5']").inner_text()
+    g.page.locator(".tc-fday[data-fdn='5'] [data-flstop='m-u2']").uncheck()           # …except dinner
+    until(g.page, "Api.status().pending === 0")
+    assert "с вами 1 из 2" in g.page.locator(".tc-fday[data-fdn='5']").inner_text()

@@ -96,18 +96,25 @@ function followHTML() {
     return `<button type="button" class="tc-act" data-follow="${esc(m.id)}">${faceHTML(m, true)}<span>${esc(m.name)}<small>${f ? 'вы с ' + esc(m.name) + ': ' + esc(f) : 'план — в ваш, целиком или по дням'}</small></span>${icon('arrow')}</button>`; }).join('')}</div>`;
 }
 function wireFollow(m) { m.querySelectorAll('[data-follow]').forEach(b => b.addEventListener('click', () => { closeSheet(); openFollow(b.dataset.follow); })); }
-function openFollow(who) {
+function openFollow(who, openDay) {
   const s = Api.state(), t = (s.members || []).find(m => m.id === who); if (!t) return;
+  const theirs = Group.personalTrip(planDoc(), s, who);                     // their day as they see it (shared own stops included)
+  const mineSet = new Set(Group.personalTrip(planDoc(), s, Api.me().id).days.flatMap(d => d.ev.map(e => e.id)));
   const js = followJoins(who), all = !!js.find(j => !j.ref.includes(':') && j.mode === 'in');
   const dayMode = n => { const j = js.find(x => x.ref === who + ':' + n); return j ? j.mode : null; };
   const on = n => { const d = dayMode(n); return d ? d === 'in' : all; };
   const days = planDoc().days;
-  sheet('Вместе с ' + t.name, `<p class="tc-sub">Куда едет ${esc(t.name)} — туда и вы: части поездки, пункты и пункты, которые ${esc(t.name)} показывает группе.
+  sheet('Вместе с ' + t.name, `<p class="tc-sub">Весь маршрут ${esc(t.name)}, отдельные дни или только выбранные места. Скрытые личные пункты ${esc(t.name)} здесь не видны.
       Ваши «Без меня» и свои пункты остаются вашими. Билеты каждый покупает сам — они появятся в «Делах».</p>
     <label class="tc-act"><span><b>Весь маршрут</b><small>все дни поездки</small></span><input type="checkbox" switch id="flAll"${all ? ' checked' : ''}></label>
-    <span class="tc-sech">Или по дням</span>
-    <div class="tc-group">${days.map(d => `<label class="tc-act"><span>${esc(Core.ddmmyyyy(dateOf(d)).slice(0, 5))} · ${esc(d.label || d.city || '')}</span>
-      <input type="checkbox" switch data-flday="${d.n}"${on(d.n) ? ' checked' : ''}></label>`).join('')}</div>`, m => {
+    <span class="tc-sech">Или по дням и местам</span>
+    <div class="tc-fdays">${days.map(d => { const ev = (theirs.days.find(x => x.n === d.n) || { ev: [] }).ev.filter(e => e.cat !== 'routine');
+      const got = ev.filter(e => mineSet.has(e.id)).length;
+      return `<details class="tc-fday" data-fdn="${d.n}"${String(d.n) === String(openDay) ? ' open' : ''}><summary><span><b>${esc(Core.ddmmyyyy(dateOf(d)).slice(0, 5))} · ${esc(d.label || d.city || '')}</b>
+          <small>${ev.length ? `с вами ${got} из ${ev.length}` : `у ${esc(t.name)} нет пунктов`}</small></span>
+          <label class="tc-fday-all" aria-label="Весь день"><input type="checkbox" switch data-flday="${d.n}"${on(d.n) ? ' checked' : ''}></label></summary>
+        ${ev.length ? `<div class="tc-group">${ev.map(e => `<label class="tc-act"><span>${esc(e.s || '')} · ${esc(e.t)}${e.from === 'mine' ? '<small>свой пункт ' + esc(t.name) + '</small>' : ''}</span>
+          <input type="checkbox" switch data-flstop="${esc(e.id)}" data-flmine="${e.from === 'mine' ? 1 : ''}"${mineSet.has(e.id) ? ' checked' : ''}></label>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`, m => {
     m.querySelector('#flAll').addEventListener('change', e => {
       setJoin('follow', who, e.target.checked ? 'in' : 'none');
       js.filter(j => j.ref.includes(':')).forEach(j => setJoin('follow', j.ref, 'none'));     // the whole trip resets the days
@@ -116,7 +123,13 @@ function openFollow(who) {
     m.querySelectorAll('[data-flday]').forEach(i => i.addEventListener('change', () => {
       const n = +i.dataset.flday, wholeNow = !!followJoins(who).find(j => !j.ref.includes(':') && j.mode === 'in');
       setJoin('follow', who + ':' + n, i.checked ? (wholeNow ? 'none' : 'in') : (wholeNow ? 'out' : 'none'));
-      renderShell();
+      renderShell(); openFollow(who, n);
+    }));
+    m.querySelectorAll('[data-fday-all], .tc-fday-all').forEach(l => l.addEventListener('click', e => e.stopPropagation()));   // the switch, not the fold
+    /* one place: my own «Я еду / Без меня» for that stop — it beats following, so it sticks */
+    m.querySelectorAll('[data-flstop]').forEach(i => i.addEventListener('change', () => {
+      setJoin(i.dataset.flmine ? 'mine' : 'stop', i.dataset.flstop, i.checked ? 'in' : 'out');
+      renderShell(); openFollow(who, +i.closest('[data-fdn]').dataset.fdn);
     }));
   });
 }

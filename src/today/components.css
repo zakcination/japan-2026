@@ -500,3 +500,13 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 
 .tc-face-now { display: flex; align-items: center; gap: 6px; margin: 0 4px; }
 .tc-face-cur { font: 22px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+
+/* «Ехать вместе с»: a day folds open to its places */
+.tc-fdays { display: grid; gap: 8px; }
+.tc-fday { background: var(--card); border-radius: 14px; }
+.tc-fday > summary { list-style: none; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 14px; cursor: pointer; }
+.tc-fday > summary::-webkit-details-marker { display: none; }
+.tc-fday > summary > span { flex: 1; display: grid; gap: 2px; }
+.tc-fday > summary small { color: var(--sec); font: 400 min(0.8235rem, 19.6px)/1.2 var(--sf); }
+.tc-fday-all { flex: 0 0 auto; min-width: 52px; min-height: 44px; display: grid; place-items: center; }
+.tc-fday .tc-group { margin: 0 8px 8px; }
