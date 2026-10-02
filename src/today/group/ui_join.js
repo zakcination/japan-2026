@@ -5,13 +5,22 @@ const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.cal
 }));
 function joinBarHTML(x) {
   if (!Api.me()) return '';
-  const s = Api.state(), group = S.viewMode === 'group';
+  const s = Api.state(), group = S.viewMode === 'group', person = viewPerson(), mineView = !group && !person;
   const parts = (s.parts || []).filter(p => p.days.includes(x.day.n));
   const inSet = Group.effective(planDoc(), s, Api.me().id);
   const partIn = p => (s.joins || []).some(j => j.member === Api.me().id && j.scope === 'part' && j.ref === p.id && j.mode === 'in');
   const who = p => s.members.filter(m => (s.joins || []).some(j => j.member === m.id && j.scope === 'part' && j.ref === p.id && j.mode === 'in') || m.role === 'host').map(m => m.id);
   let html = `<div class="tc-seg3s two" id="grView" role="radiogroup" aria-label="Чей план">
-    <button type="button" data-view="mine" aria-pressed="${!group}">Мой план</button><button type="button" data-view="group" aria-pressed="${group}">План группы</button></div>`;
+    <button type="button" data-view="mine" aria-pressed="${mineView}">Мой план</button><button type="button" data-view="group" aria-pressed="${group}">План группы</button></div>`;
+  const others = (s.members || []).filter(m => m.id !== Api.me().id);
+  if (others.length) html += `<div class="tc-people" id="grPeople" role="group" aria-label="Планы участников"><span class="tc-sub">Планы:</span>${others.map(m =>
+    `<button type="button" class="tc-person" data-person="${esc(m.id)}" aria-pressed="${person === m.id}" aria-label="План: ${esc(m.name)}">${faceHTML(m, true)}<small>${esc(m.name)}</small></button>`).join('')}</div>`;
+  if (person) { const pm = memberOf(person) || {};
+    html += `<div class="tc-card tc-note tc-person-note"><b>План ${esc(pm.name || '')} · только просмотр</b>
+      <span class="tc-sub">Части, пункты и «Без меня» — как у ${esc(pm.name || '')}. Скрытые личные пункты не видны.</span>
+      <div class="tc-actions two"><button type="button" class="tc-btn primary" data-follow-from-day="${esc(person)}">Ехать вместе</button>
+        <button type="button" class="tc-btn" data-view="mine" id="grBackMine">Мой план</button></div></div>`;
+    return html; }
   if (group) html += parts.map(p => `<div class="tc-card tc-part"><button type="button" class="tc-part-chip" data-part="${esc(p.id)}">
       <b>${esc(p.title)}</b><small>едут ${facesHTML(who(p))}</small></button>
       ${Api.me().role === 'host' ? '' : partIn(p) ? `<button type="button" class="tc-btn" data-partjoin="${esc(p.id)}" data-mode="none">Не еду</button>`
@@ -23,7 +32,10 @@ function joinBarHTML(x) {
 }
 function wireJoinBar(root, x) {
   if (!Api.me()) return;
-  root.querySelectorAll('#grView [data-view]').forEach(b => b.addEventListener('click', () => { S.viewMode = b.dataset.view; save(); renderShell(); }));
+  root.querySelectorAll('#grView [data-view], #grBackMine').forEach(b => b.addEventListener('click', () => { S.viewMode = b.dataset.view; save(); renderShell(); }));
+  root.querySelectorAll('[data-person]').forEach(b => b.addEventListener('click', () => {
+    S.viewMode = viewPerson() === b.dataset.person ? 'mine' : 'person:' + b.dataset.person; save(); renderShell(); }));
+  const ff = root.querySelector('[data-follow-from-day]'); if (ff) ff.addEventListener('click', () => openFollow(ff.dataset.followFromDay));
   root.querySelectorAll('[data-partjoin]').forEach(b => b.addEventListener('click', () => { setJoin('part', b.dataset.partjoin, b.dataset.mode); renderShell(); }));
   root.querySelectorAll('[data-part]').forEach(b => b.addEventListener('click', () => openPart(b.dataset.part)));
   const pa = root.querySelector('#grProposeAdd'); if (pa) pa.addEventListener('click', () => openPropose(x.day, null));

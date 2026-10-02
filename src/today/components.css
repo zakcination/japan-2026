@@ -489,3 +489,11 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-facepick { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; background: var(--card); border-radius: 14px; padding: 8px; }
 .tc-facepick button { min-height: 44px; border: 0; border-radius: 12px; background: none; font: 26px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; cursor: pointer; }
 .tc-facepick button[aria-checked="true"] { background: var(--inset); box-shadow: inset 0 0 0 2px var(--tint); }
+
+/* other people's plans on «День»: a row of faces */
+.tc-people { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 2px 0; scrollbar-width: none; }
+.tc-people::-webkit-scrollbar { display: none; }
+.tc-person { flex: 0 0 auto; min-width: 56px; min-height: 56px; display: grid; justify-items: center; gap: 2px; padding: 4px 6px; border: 0; border-radius: 14px; background: none; cursor: pointer; color: var(--text); }
+.tc-person small { font: 500 min(0.7059rem, 16.8px)/1.1 var(--sf); color: var(--sec); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-person[aria-pressed="true"] { background: var(--card); box-shadow: inset 0 0 0 2px var(--tint); }
+.tc-person-note { display: grid; gap: 8px; }

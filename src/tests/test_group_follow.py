@@ -76,3 +76,29 @@ def test_pick_a_face_in_settings_and_the_group_sees_it_instead_of_a_letter(app):
     h.page.click("#grView [data-view='group']")
     chip = h.page.locator("[data-part='fuji'] .tc-faces")
     assert "🦊" in chip.inner_text() and chip.locator(".tc-face").first.bounding_box()["height"] <= 26
+
+
+def test_see_amans_own_route_in_detail_read_only_then_follow(app):
+    fake = FakeSupabase.seeded(); san = fake._add("Сания", "guest"); aman = fake._add("Aman", "guest")
+    fake.joins += [{"member": aman, "scope": "part", "ref": "fuji", "mode": "in"},
+                   {"member": aman, "scope": "stop", "ref": "d2e3", "mode": "out"}]               # he skips one stop
+    fake.my_stops["m-a1"] = {"id": "m-a1", "member": aman, "day": 2, "shared": True, "ev": {"s": "15:00", "e": "16:00", "t": "Онсэн у озера"}}
+    fake.my_stops["m-a2"] = {"id": "m-a2", "member": aman, "day": 2, "shared": False, "ev": {"s": "16:30", "e": "17:00", "t": "Личное"}}
+    g = logged(app, fake, san, "4821")
+    g.page.evaluate("localStorage.setItem('japan2026.onboarded.v1', '1')")
+    g.page.click(".tc-tab[data-tab='day']")
+    g.page.click(f"#grPeople [data-person='{aman}']")
+    t = g.page.inner_text("#tcList")
+    assert "Онсэн у озера" in t and "Личное" not in t and "Oishi Park" in t
+    ids = g.page.evaluate("[...document.querySelectorAll('#tcList .tc-item')].map(i => i.dataset.id)")
+    assert "d2e3" not in ids and "m-a1" in ids
+    assert "только просмотр" in g.page.inner_text(".tc-person-note")
+    g.page.locator(".tc-item[data-id='m-a1'] .tc-open").click()
+    assert g.page.locator("#tcSheet [data-edit]").count() == 0                         # nothing of his is editable
+    g.page.keyboard.press("Escape")
+    g.page.click("[data-follow-from-day]")
+    assert g.page.locator("#flAll").is_visible()
+    g.page.keyboard.press("Escape")
+    g.page.click(".tc-tab[data-tab='now']"); g.page.click(".tc-tab[data-tab='day']")
+    g.page.click("#grBackMine")
+    assert "Онсэн у озера" not in g.page.inner_text("#tcList")                         # back to her own plan

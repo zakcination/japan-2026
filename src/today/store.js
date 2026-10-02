@@ -96,10 +96,17 @@ function refreshTickets() {
 
 /* the trip on screen: the group plan, or my own schedule (joined group stops + my stops) when logged in */
 const planDoc = () => { const s = typeof Api !== 'undefined' && Api.me() && Api.state(); const d = s && s.plan && Core.cleanTrip(s.plan.doc); return d || T; };
+/* «День» can show another member's personal plan: S.viewMode = 'person:<id>' */
+function viewPerson() {
+  const m = /^person:(.+)$/.exec(S.viewMode || ''), s = typeof Api !== 'undefined' && Api.me() && Api.state();
+  return m && s && m[1] !== Api.me().id && (s.members || []).some(x => x.id === m[1]) ? m[1] : null;
+}
 function TV() {
   const s = typeof Api !== 'undefined' && Api.me() && Api.state();
   if (!s) return planDoc();
   if (S.viewMode === 'group') return Group.groupTrip(planDoc(), s, Api.me().id);
+  const who = viewPerson();                                   // someone else's plan: on «День» only, read-only
+  if (who && typeof tab !== 'undefined' && tab === 'day') return Group.personalTrip(planDoc(), s, who);
   return Group.personalTrip(planDoc(), s, Api.me().id);
 }
 const bookingById = id => planDoc().bookings.find(b => b.id === id);

@@ -20,7 +20,7 @@ function itemRow(x, e, ov) {
     <button type="button" class="tc-open" aria-label="${lm(e.ns)}${e.sh ? ' по Шанхаю' : ''} ${esc(e.t)} — подробнее">
       <span class="tc-itime">${lm(e.ns)}${moved ? `<s>${lm(e.S)}</s>` : ''}${e.sh ? '<small>по Шанхаю</small>' : ''}</span>
       <span class="tc-ibody"><span class="tc-ititle">${esc(e.t)}${isNow ? ' · сейчас' : ''}</span>
-        <span class="tc-imeta">${stDot(e.st)}${bits ? `<span>${bits}</span>` : ''}${e.conflict ? `<span class="tc-bad">не успеваете на ${e.conflict} мин</span>` : ''}${e.auto ? '<span>убрано ради расписания</span>' : ''}${e.from === 'mine' ? `<span class="tc-mine">${e.sharedBy ? esc(e.sharedBy) : 'моё'}</span>` : ''}${ov && ov.get(e.id) ? `<span class="tc-bad">пересекается с ${esc(ov.get(e.id))}</span>` : ''}</span></span>
+        <span class="tc-imeta">${stDot(e.st)}${bits ? `<span>${bits}</span>` : ''}${e.conflict ? `<span class="tc-bad">не успеваете на ${e.conflict} мин</span>` : ''}${e.auto ? '<span>убрано ради расписания</span>' : ''}${e.from === 'mine' ? `<span class="tc-mine">${e.sharedBy ? esc(e.sharedBy) : typeof viewPerson === 'function' && viewPerson() ? esc((memberOf(viewPerson()) || {}).name || '') : 'моё'}</span>` : ''}${ov && ov.get(e.id) ? `<span class="tc-bad">пересекается с ${esc(ov.get(e.id))}</span>` : ''}</span></span>
     </button></div>`;
 }
 
@@ -80,7 +80,8 @@ function openStop(day, id) {
   if (!e) return;
   const fixed = e.st === 'fixed' || Core.isAnchor(e);
   const me = typeof Api !== 'undefined' && Api.me();
-  const canEdit = !me || me.role === 'host' || String(e.id).startsWith('m-');
+  const theirs = typeof viewPerson === 'function' && viewPerson();
+  const canEdit = !theirs && (!me || me.role === 'host' || (String(e.id).startsWith('m-') && !e.sharedBy));
   const hasTravel = Core.travel(e) > 0, lm = m => hm(Core.localMin(e, m));
   const act = (ic, txt, sub, attrs) => `<button type="button" class="tc-act" ${attrs}>${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
   const link = (ic, txt, sub, href) => `<a class="tc-act" href="${href}" target="_blank" rel="noopener">${icon(ic)}<span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></a>`;
