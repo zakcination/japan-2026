@@ -48,8 +48,8 @@ function stopJoinHTML(day, e) {
     const own = (s.my_stops.find(x => x.id === e.id) || {}).member === me;
     if (own) return `<label class="tc-act"><span>Показать группе<small>другие смогут присоединиться</small></span><input type="checkbox" switch id="grShare"${e.shared ? ' checked' : ''}></label>`;
     const author = (s.members.find(m => m.id === (s.my_stops.find(x => x.id === e.id) || {}).member) || {}).name || '';
-    const joined = s.joins.some(j => j.member === me && j.scope === 'mine' && j.ref === e.id && j.mode === 'in');
-    return `<p class="tc-sub">Планирует ${esc(author)}</p><button type="button" class="tc-btn ${joined ? '' : 'primary'} wide" data-joinmine="${joined ? 'none' : 'in'}">${joined ? 'Не пойду' : 'Присоединиться'}</button>`;
+    const st0 = s.my_stops.find(x => x.id === e.id), joined = !!st0 && Group.mineIn(s, me, st0);
+    return `<p class="tc-sub">Планирует ${esc(author)}</p><button type="button" class="tc-btn ${joined ? '' : 'primary'} wide" data-joinmine="${joined ? 'out' : 'in'}">${joined ? 'Не пойду' : 'Присоединиться'}</button>`;
   }
   const going = Group.effective(planDoc(), s, me).has(e.id);
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
@@ -67,5 +67,44 @@ function wireStopJoin(m, day, e) {
     const st = Api.state().my_stops.find(x => x.id === e.id); if (!st) return;
     const next = { ...st, shared: sh.checked };
     Api.call('save_my_stop', { p_stop: next }, s => { const i = s.my_stops.findIndex(x => x.id === e.id); if (i >= 0) s.my_stops[i] = next; });
+  });
+}
+
+/* «Ехать вместе с»: follow someone's personal plan — the whole trip or chosen days; own choices still win */
+const followJoins = (who) => (Api.state().joins || []).filter(j => j.member === Api.me().id && j.scope === 'follow' && j.ref.split(':')[0] === who);
+function followSummary(who) {
+  const js = followJoins(who), all = js.find(j => !j.ref.includes(':') && j.mode === 'in');
+  const days = js.filter(j => j.ref.includes(':') && j.mode === 'in').length, skip = js.filter(j => j.ref.includes(':') && j.mode === 'out').length;
+  return all ? (skip ? `весь маршрут, кроме ${skip} дн.` : 'весь маршрут') : days ? `${days} дн.` : '';
+}
+function followHTML() {
+  const me = Api.me(), s = Api.state(); if (!me || !s) return '';
+  const others = (s.members || []).filter(m => m.id !== me.id); if (!others.length) return '';
+  return `<span class="tc-sech">Ехать вместе с…</span><div class="tc-group" id="grFollow">${others.map(m => { const f = followSummary(m.id);
+    return `<button type="button" class="tc-act" data-follow="${esc(m.id)}">${icon('day')}<span>${esc(m.name)}<small>${f ? 'вы с ' + esc(m.name) + ': ' + esc(f) : 'их план — в ваш, целиком или по дням'}</small></span>${icon('arrow')}</button>`; }).join('')}</div>`;
+}
+function wireFollow(m) { m.querySelectorAll('[data-follow]').forEach(b => b.addEventListener('click', () => { closeSheet(); openFollow(b.dataset.follow); })); }
+function openFollow(who) {
+  const s = Api.state(), t = (s.members || []).find(m => m.id === who); if (!t) return;
+  const js = followJoins(who), all = !!js.find(j => !j.ref.includes(':') && j.mode === 'in');
+  const dayMode = n => { const j = js.find(x => x.ref === who + ':' + n); return j ? j.mode : null; };
+  const on = n => { const d = dayMode(n); return d ? d === 'in' : all; };
+  const days = planDoc().days;
+  sheet('Вместе с ' + t.name, `<p class="tc-sub">Куда едет ${esc(t.name)} — туда и вы: части поездки, пункты и пункты, которые ${esc(t.name)} показывает группе.
+      Ваши «Без меня» и свои пункты остаются вашими. Билеты каждый покупает сам — они появятся в «Делах».</p>
+    <label class="tc-act"><span><b>Весь маршрут</b><small>все дни поездки</small></span><input type="checkbox" switch id="flAll"${all ? ' checked' : ''}></label>
+    <span class="tc-sech">Или по дням</span>
+    <div class="tc-group">${days.map(d => `<label class="tc-act"><span>${esc(Core.ddmmyyyy(dateOf(d)).slice(0, 5))} · ${esc(d.label || d.city || '')}</span>
+      <input type="checkbox" switch data-flday="${d.n}"${on(d.n) ? ' checked' : ''}></label>`).join('')}</div>`, m => {
+    m.querySelector('#flAll').addEventListener('change', e => {
+      setJoin('follow', who, e.target.checked ? 'in' : 'none');
+      js.filter(j => j.ref.includes(':')).forEach(j => setJoin('follow', j.ref, 'none'));     // the whole trip resets the days
+      renderShell(); openFollow(who);
+    });
+    m.querySelectorAll('[data-flday]').forEach(i => i.addEventListener('change', () => {
+      const n = +i.dataset.flday, wholeNow = !!followJoins(who).find(j => !j.ref.includes(':') && j.mode === 'in');
+      setJoin('follow', who + ':' + n, i.checked ? (wholeNow ? 'none' : 'in') : (wholeNow ? 'out' : 'none'));
+      renderShell();
+    }));
   });
 }

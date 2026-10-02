@@ -56,6 +56,7 @@ function groupSettingsHTML() {
       ${st.error === 'login' ? '<button type="button" class="tc-btn primary" id="grRelogin">Войти снова</button>' : ''}
       <button type="button" class="tc-btn" id="grLogout">Выйти</button></div>
     ${pushHTML()}
+    ${followHTML()}
     ${me.role === 'host' ? `<span class="tc-sech">Участники</span><div class="tc-group">${s.members.map(x =>
       `<div class="tc-flrow"><span><b>${esc(x.name)}</b><small>${x.role === 'host' ? 'хозяин' : 'гость'}</small></span>
         ${x.role === 'guest' ? `<span class="tc-actions two"><button type="button" class="tc-btn primary" data-invite="${esc(x.id)}">Пригласить</button>
@@ -68,7 +69,7 @@ function groupSettingsHTML() {
 function wireGroupSettings(m) {
   const on = (id, f) => { const b = m.querySelector(id); if (b) b.addEventListener('click', f); };
   on('#grLogin', () => { closeSheet(); openLogin(); });
-  wirePush(m);
+  wirePush(m); wireFollow(m);
   on('#grRelogin', () => { const me = Api.me(); Api.reauth(); closeSheet(); openPin(me.id, me.name); });
   on('#grLogout', () => twoTap(m.querySelector('#grLogout'), 'Точно выйти?', () => { Api.logout(); closeSheet(); renderShell(); }));
   on('#grAdd', () => {

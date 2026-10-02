@@ -136,7 +136,12 @@ class FakeSupabase:
 
     def rpc_set_join(self, token, p_scope, p_ref, p_mode):
         me = self._me(token)["id"]
-        if p_scope not in ("part", "day", "stop", "mine") or p_mode not in ("in", "out", "none"): raise RpcError(400, "bad join")
+        if p_scope not in ("part", "day", "stop", "mine", "follow") or p_mode not in ("in", "out", "none"): raise RpcError(400, "bad join")
+        if p_scope == "follow":
+            import re
+            t, _, d = str(p_ref).partition(":")
+            if (not re.fullmatch(r"[0-9a-f-]{36}", t) or (d and not re.fullmatch(r"\d{1,2}", d)) or ":" in d
+                    or t == me or t not in self.members): raise RpcError(400, "bad join")
         self.joins = [j for j in self.joins if not (j["member"] == me and j["scope"] == p_scope and j["ref"] == str(p_ref))]
         if p_mode != "none": self.joins.append({"member": me, "scope": p_scope, "ref": str(p_ref), "mode": p_mode})
         return True

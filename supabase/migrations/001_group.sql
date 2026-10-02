@@ -164,10 +164,18 @@ begin
     'now', now());
 end $$;
 
+-- «ехать вместе с»: follow another member's plan — ref '<member id>' (whole trip) or '<member id>:<day>'
+alter table public.joins drop constraint if exists joins_scope_check;
+alter table public.joins add constraint joins_scope_check check (scope in ('part','day','stop','mine','follow'));
+
 create or replace function public.set_join(p_scope text, p_ref text, p_mode text) returns boolean language plpgsql security definer
 set search_path = public, extensions as $$
-declare m public.members := public._me();
+declare m public.members := public._me(); t text := split_part(coalesce(p_ref, ''), ':', 1); d text := split_part(coalesce(p_ref, ''), ':', 2);
 begin
+  if p_scope = 'follow' then
+    if t !~ '^[0-9a-f-]{36}$' or (d <> '' and d !~ '^[0-9]{1,2}$') or p_ref ~ ':.*:' then raise exception 'bad join' using errcode = 'P0001'; end if;
+    if t::uuid = m.id or not exists (select 1 from public.members where id = t::uuid and trip = m.trip) then raise exception 'bad join' using errcode = 'P0001'; end if;
+  end if;
   if p_mode = 'none' then delete from public.joins where member = m.id and scope = p_scope and ref = p_ref; return true; end if;
   insert into public.joins values (m.id, p_scope, p_ref, p_mode) on conflict (member, scope, ref) do update set mode = excluded.mode;
   return true;

@@ -5,28 +5,56 @@ const Group = (() => {
   const roleOf = (st, id) => (byId(st.members, id) || {}).role;
   const allStops = plan => plan.days.flatMap(d => d.ev.map(e => ({ id: e.id, n: d.n })));
 
-  /* stop > day > part; nothing → out; hosts default in. Returns the Set of group stop ids the member is in. */
-  function effectiveIn(plan, st, mid) {
+  /* «ехать вместе с»: whom the member follows on day n — a day's own choice beats the whole trip; null if nobody */
+  function followOn(st, mid, n) {
+    const fs = (st.joins || []).filter(j => j.member === mid && j.scope === 'follow');
+    const day = fs.find(j => j.ref.endsWith(':' + n)), all = fs.find(j => !j.ref.includes(':'));
+    const j = day || all;
+    if (!j || j.mode !== 'in') return null;
+    const t = j.ref.split(':')[0];
+    return t !== mid && byId(st.members, t) ? t : null;
+  }
+
+  /* stop > day > following someone > part; nothing → out; hosts default in. The Set of group stop ids the member is in. */
+  function effectiveIn(plan, st, mid, seen) {
+    seen = seen || new Set(); seen.add(mid);
     const js = (st.joins || []).filter(j => j.member === mid);
     const host = roleOf(st, mid) === 'host';
     const rule = (scope, ref) => { const j = js.find(x => x.scope === scope && x.ref === String(ref)); return j ? j.mode : null; };
     const partsOf = (id, n) => (st.parts || []).filter(p => p.stops ? p.stops.includes(id) : p.days.includes(n)).map(p => p.id);
     const partRule = (id, n) => { const ms = partsOf(id, n).map(p => rule('part', p)).filter(Boolean);
       return ms.includes('in') ? 'in' : ms.includes('out') ? 'out' : null; };
+    const theirs = new Map();                                // a followed person's own set, worked out once (cycles stop)
+    const followRule = (id, n) => {
+      const t = followOn(st, mid, n); if (!t || seen.has(t)) return null;
+      if (!theirs.has(t)) theirs.set(t, effectiveIn(plan, st, t, new Set(seen)));
+      return theirs.get(t).has(id) ? 'in' : 'out';
+    };
     const out = new Set();
     allStops(plan).forEach(({ id, n }) => {
-      const m = rule('stop', id) || rule('day', n) || partRule(id, n) || (host ? 'in' : null);
+      const m = rule('stop', id) || rule('day', n) || followRule(id, n) || partRule(id, n) || (host ? 'in' : null);
       if (m === 'in') out.add(id);
     });
     return out;
   }
 
+  /* is someone's own stop in my plan: mine, joined by me, or brought by the person I follow that day (unless I said no) */
+  function mineIn(st, mid, s, seen) {
+    if (s.member === mid) return true;
+    if (!s.shared) return false;
+    const j = (st.joins || []).find(x => x.member === mid && x.scope === 'mine' && x.ref === s.id);
+    if (j) return j.mode === 'in';
+    seen = seen || new Set(); seen.add(mid);
+    const t = followOn(st, mid, s.day);
+    return !!t && !seen.has(t) && mineIn(st, t, s, seen);
+  }
+
   function personalTrip(plan, st, mid) {
     const inSet = effectiveIn(plan, st, mid);
     const names = new Map((st.members || []).map(m => [m.id, m.name]));
-    const who = id => (st.members || []).filter(m => effectiveIn(plan, st, m.id).has(id)).map(m => m.id);
-    const joinedMine = new Set((st.joins || []).filter(j => j.member === mid && j.scope === 'mine' && j.mode === 'in').map(j => j.ref));
-    const mine = (st.my_stops || []).filter(s => s.member === mid || (s.shared && joinedMine.has(s.id)));
+    const sets = new Map((st.members || []).map(m => [m.id, effectiveIn(plan, st, m.id)]));
+    const who = id => (st.members || []).filter(m => sets.get(m.id).has(id)).map(m => m.id);
+    const mine = (st.my_stops || []).filter(s => mineIn(st, mid, s));
     const days = plan.days.map(d => {
       const g = d.ev.filter(e => inSet.has(e.id)).map(e => ({ ...e, from: 'group', who: who(e.id) }));
       const m = mine.filter(s => s.day === d.n).map(s => ({ st: 'planned', cat: 'activity', ...s.ev, id: s.id, from: 'mine',
@@ -91,5 +119,5 @@ const Group = (() => {
     return { site: hit ? hit[1] : host.replace(/^www\./, ''), host };
   }
 
-  return { effective: effectiveIn, personalTrip, groupTrip, overlaps, tasks, siteOf };
+  return { effective: effectiveIn, followOn, mineIn, personalTrip, groupTrip, overlaps, tasks, siteOf };
 })();
