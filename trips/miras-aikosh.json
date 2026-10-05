@@ -44,9 +44,9 @@
     2
    ],
    "t": "Автобус Fujikyu: Кавагутико → Мисима",
-   "when": "18.10 · 17:00 → 18:40",
-   "st": "input",
-   "cost": 2700
+   "when": "18.10 · 17:00 → 18:30 · рейс 0122, до Северного выхода",
+   "st": "fixed",
+   "cost": 2500
   },
   {
    "id": "shin18",
@@ -671,21 +671,21 @@
      "lat": 35.126,
      "lng": 138.911,
      "s": "17:00",
-     "e": "18:40",
+     "e": "18:30",
      "t": "Кавагутико → Мисима",
      "place": "mishima",
      "cat": "transport",
-     "st": "input",
+     "st": "fixed",
      "mode": "Автобус Fujikyu",
      "frm": "Kawaguchiko Sta.",
-     "to": "Mishima Sta.",
+     "to": "Mishima Sta. North Exit",
      "ride": 25,
      "walk": 5,
      "buf": 15,
-     "cost": 2700,
+     "cost": 2500,
      "bk": "bus_mishima",
      "link": "https://bus.fujikyu.co.jp/en/highway/mishima/",
-     "note": "Нужно купить билет. От Oishi Park до станции — ретро-автобус ~25 мин.",
+     "note": "Куплено: рейс 0122, до Северного выхода Мисимы. Билет — на странице брони Fujiyama Connect (сохраните скриншот). От Oishi Park до станции — ретро-автобус ~25 мин.",
      "loc": "三島駅",
      "locLang": "ja"
     },
@@ -2833,5 +2833,5 @@
   }
  ],
  "id": "miras-aikosh",
- "updated": "2026-10-01T15:38+05:00"
+ "updated": "2026-10-05T22:28+05:00"
 }
