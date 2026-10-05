@@ -36,6 +36,13 @@ export function messages(ev, D, now) {
     out.push({ to: guests, title: 'План поездки обновился', body: 'Откройте «Мой план» — там уже новая версия.', url: url('tab=day'), tag: 'plan' });
   } else if (ev.type === 'deadlines') {
     const today = almaty(now).slice(0, 10), in3 = almaty(now + 3 * 864e5).slice(0, 10);
+    // tasks due today: to their assignee (everyone when unassigned), unless already ticked
+    for (const t of D.tasks || []) {
+      if (t.due !== today) continue;
+      const done = new Set(D.task_state.filter(x => x.ref === 't:' + t.id && x.done).map(x => x.member));
+      const to = (t.assignee ? [t.assignee] : D.members.map(m => m.id)).filter(m => !done.has(m));
+      if (to.length) out.push({ to, title: 'Сегодня: ' + t.title, body: t.note || 'Задача в «Делах»', url: url('task=t:' + t.id), tag: 'task-' + t.id });
+    }
     for (const r of D.recipes) {
       const b = (doc.bookings || []).find(x => x.id === r.bk); if (!b || b.st === 'fixed') continue;
       const opensToday = r.opens && almaty(Date.parse(r.opens)).slice(0, 10) === today;

@@ -53,3 +53,16 @@ def test_deadlines_three_days_before_and_on_the_day_only_to_who_needs_to_buy():
     m = run({"type": "deadlines"}, "2026-10-10T03:00:00Z")
     sky = next(x for x in m if x["tag"] == "deadline-sky")
     assert sky["title"].startswith("Сегодня открываются продажи") and "20:00 по Алматы" in sky["body"]
+
+
+def test_a_task_due_today_reaches_its_assignee_at_eight():
+    tasks = [{"id": "t-shakhi", "title": "Добавить Шахи в список", "due": "2026-10-07", "note": "", "assignee": H},
+             {"id": "t-all", "title": "Для всех", "due": "2026-10-07", "assignee": None},
+             {"id": "t-later", "title": "Потом", "due": "2026-10-09", "assignee": H}]
+    m = run({"type": "deadlines"}, "2026-10-07T03:00:00Z", tasks=tasks)               # 08:00 in Almaty
+    mine = next(x for x in m if x["tag"] == "task-t-shakhi")
+    assert mine["to"] == [H] and mine["title"] == "Сегодня: Добавить Шахи в список" and mine["url"].endswith("#task=t:t-shakhi")
+    assert sorted(next(x for x in m if x["tag"] == "task-t-all")["to"]) == sorted([H, A, S, M])
+    assert not any(x["tag"] == "task-t-later" for x in m)
+    m = run({"type": "deadlines"}, "2026-10-07T03:00:00Z", tasks=tasks, task_state=[{"member": H, "ref": "t:t-shakhi", "done": True}])
+    assert not any(x["tag"] == "task-t-shakhi" for x in m)                             # ticked: left alone

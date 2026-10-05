@@ -32,6 +32,7 @@ async function load(trip: string) {
     parts: (await rows("parts", x => x.eq("trip", trip))).map((p: any) => p.part),
     joins: await rows("joins", x => x.in("member", ids)),
     recipes: (await rows("recipes", x => x.eq("trip", trip))).map((r: any) => r.r),
+    tasks: (await rows("tasks", x => x.eq("trip", trip))).map((r: any) => ({ ...r.t, id: r.id, assignee: r.assignee })),
     task_state: await rows("task_state", x => x.in("member", ids)),
     subs: await rows("push_subs", x => x.in("member", ids)),
   };
