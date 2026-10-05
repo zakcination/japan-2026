@@ -67,7 +67,7 @@ def test_recipes_are_public_safe_and_complete():
 
 def test_shin20_recipe_reflects_the_moved_departure_time():
     r = next(r for r in T["recipes"] if r["bk"] == "shin20")
-    assert "14:10" in r["what"] and "18:30" not in r["what"]
+    assert "18:30" in r["what"] and "14:10" not in r["what"]          # 06.10: leave Kyoto in the evening
     assert r["price_pp"] == 5900
     assert r["buy_by"] == "2026-10-18"
 
