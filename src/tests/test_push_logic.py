@@ -40,14 +40,15 @@ def test_joins_tell_the_hosts_and_plan_changes_tell_the_guests():
 
 
 def test_deadlines_three_days_before_and_on_the_day_only_to_who_needs_to_buy():
-    joins = [{"member": S, "scope": "part", "ref": "kyoto", "mode": "in"}]              # Сания joins Kyoto, Шахи joins nothing
-    # h_kyoto: buy by 03.10 → three days before is 30.09 (Almaty morning)
-    m = run({"type": "deadlines"}, "2026-09-30T03:00:00Z", joins=joins)
-    k = next(x for x in m if x["tag"] == "deadline-h_kyoto")
-    assert k["title"].startswith("Осталось 3 дня: Отель в Киото") and "выбрать" not in k["title"]
-    assert sorted(k["to"]) == [H, A, S] and k["url"].endswith("#task=bk:h_kyoto")
-    m = run({"type": "deadlines"}, "2026-10-03T03:00:00Z", joins=joins, task_state=[{"member": S, "ref": "bk:h_kyoto", "done": True}])
-    k = next(x for x in m if x["tag"] == "deadline-h_kyoto")
+    joins = [{"member": S, "scope": "part", "ref": "nagoya", "mode": "in"}]             # Сания joins Nagoya, Шахи joins nothing
+    # h_nagoya: book by 06.10 → three days before is 03.10 (Almaty morning)
+    m = run({"type": "deadlines"}, "2026-10-03T03:00:00Z", joins=joins)
+    k = next(x for x in m if x["tag"] == "deadline-h_nagoya")
+    assert k["title"].startswith("Осталось 3 дня: Отель в Нагое") and "выбрать" not in k["title"]
+    assert sorted(k["to"]) == [H, A, S] and k["url"].endswith("#task=bk:h_nagoya")
+    assert not any(x["tag"] == "deadline-h_kyoto" for x in m)                           # booked: no reminders
+    m = run({"type": "deadlines"}, "2026-10-06T03:00:00Z", joins=joins, task_state=[{"member": S, "ref": "bk:h_nagoya", "done": True}])
+    k = next(x for x in m if x["tag"] == "deadline-h_nagoya")
     assert k["title"].startswith("Сегодня последний день") and S not in k["to"]          # ticked «Куплено»: left alone
     # Shibuya Sky: sales open 11.10 00:00 JST = 10.10 20:00 Almaty → that morning
     m = run({"type": "deadlines"}, "2026-10-10T03:00:00Z")

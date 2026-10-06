@@ -135,12 +135,12 @@ def test_capsule_says_what_opens_and_opens_the_tickets(app):
 
 def test_hotel_tasks_say_book_not_buy(app):
     a = home(app)
-    assert "Забронировать: отель в Киото, 18.10 → 20.10 (2 ночи)" in a.page.inner_text("#tcFirst b")
+    assert "Забронировать: отель в Нагое, 20.10 → 22.10 (2 ночи)" in a.page.inner_text("#tcFirst b")      # Kyoto is booked (06.10)
 
 
 def test_overdue_task_color_is_readable(app):
-    a = home(app, now="2026-10-05T12:00:00+09:00")                       # Kyoto hotel due 03.10 — already overdue
-    assert "срок был 03.10" in a.page.inner_text("#tcFirst")
+    a = home(app, now="2026-10-08T12:00:00+09:00")                       # Nagoya hotel due 06.10 — already overdue
+    assert "срок был 06.10" in a.page.inner_text("#tcFirst")
     color = a.page.eval_on_selector(".tc-late", "el => getComputedStyle(el).color")
     assert color == "rgb(215, 0, 21)"
 

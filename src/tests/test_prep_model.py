@@ -29,7 +29,7 @@ def test_groups_count_and_auto_ticks(core):
 def test_first_picks_the_nearest_doable_deadline(core):
     pg = core(("core.js", "flights.js", "prep.js"))
     f = P(pg, f"return Prep.first(I, Date.UTC(2026, 8, 30, 3), {DEP});")
-    assert f["item"]["due"] == "2026-10-03" and f["rest"] > 5   # bk:h_kyoto — earliest doable buy_by, not the 10.10 items
+    assert f["item"]["due"] == "2026-10-06" and f["rest"] > 5   # bk:h_nagoya (Kyoto is booked) — earliest doable buy_by, not the 10.10 items
     assert f["item"]["id"] != "bk:sky"                          # Shibuya Sky: sales open 11.10 — not today
     op = P(pg, "return Prep.opening(I, Date.UTC(2026, 9, 9, 16));")   # 10.10 01:00 Tokyo → sales in < 48 h
     assert op and op["id"] == "bk:sky"
