@@ -16,6 +16,21 @@ const Exp = (() => {
   const SYM = { JPY: '¥', KZT: '₸', USD: '$' };
   const round = (v, d = 0) => { const k = 10 ** d; return Math.round(v * k) / k; };
 
+  const MAX_JPY = 1e8;                                        // the server's limit too
+  const isDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '') && !isNaN(Date.parse(d + 'T00:00:00Z')) && new Date(d + 'T00:00:00Z').toISOString().slice(0, 10) === d;
+  const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+  /* a record from outside (a backup, the server, a partner) rebuilt field by field: numbers are numbers, enums are enums */
+  function clean(e) {
+    if (!e || typeof e !== 'object' || typeof e.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(e.id) || !isDate(e.date)) return null;
+    const jpy = +e.jpy, amount = +e.amount;
+    if (!Number.isFinite(jpy) || jpy < 0 || jpy > MAX_JPY || !Number.isFinite(amount) || amount < 0) return null;
+    return { id: e.id, amount, currency: CURS.includes(e.currency) ? e.currency : 'JPY', jpy, rateKzt: +e.rateKzt || 0, rateUsd: +e.rateUsd || 0,
+             cat: cat(e.cat).code, sub: SUBS.some(s => s[0] === e.sub) ? e.sub : null, city: str(e.city, 40), date: e.date,
+             time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : null, title: str(e.title, 80), note: str(e.note, 300),
+             pay: PAY[e.pay] ? e.pay : 'card', from: str(e.from, 40), to: str(e.to, 40),
+             member: typeof e.member === 'string' && /^[0-9a-f-]{36}$/i.test(e.member) ? e.member : null,
+             createdAt: str(e.createdAt, 40), updatedAt: str(e.updatedAt, 40), deleted: e.deleted === true, synced: e.synced === true };
+  }
   /* the amount in yen, and the rates frozen at the moment of the expense (rates: KZT and USD per 1 yen) */
   function make(input, rates, now) {
     const cur = CURS.includes(input.currency) ? input.currency : 'JPY';
@@ -83,7 +98,9 @@ const Exp = (() => {
   function csv(all, start) {
     const head = ['Date', 'Trip Day', 'City', 'Category', 'Subcategory', 'Description', 'Merchant', 'From', 'To', 'Amount', 'Currency',
                   'Exchange Rate', 'Amount JPY', 'Amount KZT', 'Amount USD', 'Payment Method', 'Comment'];
-    const q = v => { const s = String(v == null ? '' : v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const q = v => { let s = String(v == null ? '' : v);
+      if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;                   // =HYPERLINK(…) stays text in Excel
+      return /[",\n\r;]|^\s|\s$/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const rows = live(all).slice().sort((a, b) => a.date.localeCompare(b.date)).map(e => [
       e.date, Math.round((Date.parse(e.date) - Date.parse(start)) / 864e5) + 1, e.city, cat(e.cat).name, (SUBS.find(s => s[0] === e.sub) || [])[2] || '',
       e.note, e.title, e.from, e.to, e.amount, e.currency, e.currency === 'JPY' ? 1 : e.currency === 'KZT' ? e.rateKzt : e.rateUsd,
@@ -94,7 +111,7 @@ const Exp = (() => {
   /* a backup's expenses merged in: new ids added, known ids kept unless the backup copy is newer */
   function merge(local, incoming) {
     const m = new Map(local.map(e => [e.id, e])); let added = 0, updated = 0;
-    incoming.filter(e => e && typeof e.id === 'string' && Number.isFinite(+e.jpy) && /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).forEach(e => {
+    incoming.slice(0, 5000).map(clean).filter(Boolean).forEach(e => {
       const was = m.get(e.id);
       if (!was) { m.set(e.id, e); added++; } else if (String(e.updatedAt) > String(was.updatedAt)) { m.set(e.id, e); updated++; }
     });
@@ -105,16 +122,16 @@ const Exp = (() => {
   function fromLink(hash) {
     const m = /^#add=([^&]*)(.*)$/.exec(hash || ''); if (!m) return null;
     const q = new URLSearchParams(m[2].replace(/^&/, ''));
-    const raw = decodeURIComponent(m[1] || '');
+    let raw = m[1] || ''; try { raw = decodeURIComponent(raw); } catch (e) {}
     const cur = (q.get('cur') || '').toUpperCase() || (/₸|KZT|тг/i.test(raw) ? 'KZT' : /\$|USD/i.test(raw) ? 'USD' : 'JPY');
     let n = raw.replace(/[^\d.,]/g, '');
     if (/,\d{1,2}$/.test(n) && !/\.\d/.test(n)) n = n.replace(/\./g, '').replace(',', '.'); else n = n.replace(/,/g, '');
-    const amount = Number.isFinite(parseFloat(n)) ? parseFloat(n) : null;
+    const v = parseFloat(n), amount = Number.isFinite(v) && v >= 0 && v <= MAX_JPY ? v : null;
     const c = q.get('cat');
     return { amount, currency: CURS.includes(cur) ? cur : 'JPY', cat: CATS.some(x => x.code === c) ? c : null,
-             title: String(q.get('t') || '').slice(0, 80), pay: PAY[q.get('pay')] ? q.get('pay') : 'card', go: q.get('go') === '1' };
+             title: String(q.get('t') || '').slice(0, 80), pay: PAY[q.get('pay')] ? q.get('pay') : 'card', go: q.get('go') === '1' && amount > 0 };
   }
-  return { CATS, SUBS, PAY, CURS, SYM, cat, make, inCur, fmt, summary, filter, csv, merge, fromLink, addDays, uuid };
+  return { CATS, SUBS, PAY, CURS, SYM, MAX_JPY, clean, cat, make, inCur, fmt, summary, filter, csv, merge, fromLink, addDays, uuid };
 })();
 
 /* ---------- storage: IndexedDB (records), localStorage (small settings only) ---------- */
@@ -133,7 +150,7 @@ const ExpStore = (() => {
     c.onerror = () => res(out);
   }); }).then(xs => { const early = list; list = xs; early.forEach(put);          // saved before the database opened (a link at start)
     ready = true; window.dispatchEvent(new Event('japan2026:exp')); })
-    .catch(() => { ready = true; });                       // private mode: works for this session only
+    .catch(() => { ready = true; window.dispatchEvent(new Event('japan2026:exp')); });   // private mode: this session only
   const put = e => { const i = list.findIndex(x => x.id === e.id); if (i >= 0) list[i] = e; else list.push(e);
     try { if (db) db.transaction('expenses', 'readwrite').objectStore('expenses').put(e); } catch (x) {} };
   const settings = () => { try { return JSON.parse(localStorage.getItem(EXP_SET) || '{}') || {}; } catch (e) { return {}; } };

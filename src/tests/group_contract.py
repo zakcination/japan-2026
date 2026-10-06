@@ -147,6 +147,19 @@ def run_all(c, host_id, host_pin):
     ok(c.rpc(z, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/contract-1", "keys": keys}}))
     ok(c.rpc(host, "save_push", {"p_sub": {"endpoint": "https://web.push.apple.com/contract-1", "keys": keys}}))           # no takeover: silently kept
     ok(c.rpc(z, "delete_push", {"p_endpoint": "https://web.push.apple.com/contract-1"}))
+    # expenses: own rows only, valid dates and times, a far-future clock can't pin a row, the host sees only totals
+    e1 = {"id": "aaaaaaaa-0000-4000-8000-000000000001", "amount": 1500, "currency": "JPY", "jpy": 1500, "cat": "food",
+          "date": "2026-10-19", "updatedAt": "2026-10-19T03:00:00.000Z"}
+    err(c.rpc(z, "save_expense", {"p_e": dict(e1, date="2026-99-99")}), "bad expense")
+    err(c.rpc(z, "save_expense", {"p_e": dict(e1, updatedAt="zzz")}), "bad expense")
+    ok(c.rpc(z, "save_expense", {"p_e": dict(e1, updatedAt="2999-01-01T00:00:00Z")}))
+    ok(c.rpc(z, "save_expense", {"p_e": dict(e1, amount=900, jpy=900, updatedAt="2027-01-01T00:00:00Z")}))   # still editable
+    err(c.rpc(host, "save_expense", {"p_e": dict(e1, amount=1, jpy=1, updatedAt="2999-12-31T00:00:00Z")}), "not yours")
+    zs = ok(c.rpc(z, "group_state", {"p_trip": TRIP}))
+    assert [x for x in zs["expenses"] if x["id"] == e1["id"]][0]["amount"] == 900
+    hs = ok(c.rpc(host, "group_state", {"p_trip": TRIP}))
+    assert not any(x["id"] == e1["id"] for x in hs["expenses"]) and any(t["jpy"] >= 900 for t in hs["spend_totals"])
+    ok(c.rpc(z, "save_expense", {"p_e": dict(e1, deleted=True, updatedAt="2027-01-02T00:00:00Z")}))
     return True
 
 

@@ -23,7 +23,7 @@ const Api = (() => {
   async function http(path, body, auth, method = 'POST', raw = false, ctype) {
     const c = cfg();
     /* a stalled request (bad signal) must not hold the queue forever: give up after 15 s, like no signal */
-    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 15000);
+    const ac = !raw && typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 15000);   // files may be slow: no limit
     let res;
     try {
       res = await fetch(c.url + path, { method, signal: ac ? ac.signal : undefined, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),

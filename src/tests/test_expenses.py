@@ -128,3 +128,27 @@ def test_apple_pay_link_saves_at_once_or_opens_filled(app):
     b = app(state={"prevDay": 3, "prevTime": "12:00"}, now="2026-10-19T12:00:00+09:00", url_suffix="#add=2400&t=Lawson")
     b.page.locator("#exAmt").wait_for(state="visible")
     assert b.page.input_value("#exAmt") == "2400" and b.page.locator("#exSave").is_disabled()   # still needs a category
+
+
+def test_review_fixes_link_csv_backup_and_limits(core):
+    pg = core(("core.js", "expenses.js"))
+    r = ev(pg, """
+      const ok = Exp.make({amount: 500, cat: 'food', title: '=HYPERLINK("http://x")', note: '+1', date: '2026-10-19'}, R);
+      const bad = [{...ok, id: '11111111-1111-4111-8111-111111111111', jpy: '5', currency: 'EVIL', cat: 'nope', amount: 5, extra: 'x'.repeat(9000)},
+                   {...ok, id: '22222222-2222-4222-8222-222222222222', jpy: 1e12},
+                   {...ok, id: '33333333-3333-4333-8333-333333333333', date: '2026-99-99'}, {id: '<img>'}];
+      const m = Exp.merge([], bad);
+      return { link: Exp.fromLink('#add=%&cat=food&go=1'), huge: Exp.fromLink('#add=99999999999&cat=food&go=1'),
+               zero: Exp.fromLink('#add=0&cat=food&go=1').go, csv: Exp.csv([ok], '2026-10-17'), merged: m.list, added: m.added };""")
+    assert r["link"]["amount"] is None and r["link"]["go"] is False                    # a stray % never throws
+    assert r["huge"]["amount"] is None and r["huge"]["go"] is False and r["zero"] is False
+    assert "'=HYPERLINK" in r["csv"] and ",'+1" in r["csv"]                             # formulas stay text
+    assert r["added"] == 1
+    e = r["merged"][0]
+    assert e["jpy"] == 5 and e["currency"] == "JPY" and e["cat"] == "other" and "extra" not in e
+
+
+def test_add_form_refuses_an_absurd_amount(app):
+    a = app(state={"prevDay": 3, "prevTime": "12:00"}, now="2026-10-19T12:00:00+09:00")
+    a.page.click("#tcAdd"); a.page.keyboard.type("999999999"); a.page.click("[data-cat='food']")
+    assert a.page.locator("#exSave").is_disabled() and "Слишком большая" in a.page.inner_text("#exMsg")

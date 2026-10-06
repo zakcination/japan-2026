@@ -80,6 +80,11 @@ class FakeSupabase:
     def _pub(self, m):
         return {"id": m["id"], "name": m["name"], "role": m["role"], "emoji": m.get("emoji"), "partner": m.get("partner")}
 
+    def _pub_for(self, x, me):                                   # a one-sided «вместе с» choice stays private
+        d = self._pub(x)
+        if not (x["id"] == me["id"] or (x.get("partner") == me["id"] and me.get("partner") == x["id"])): d["partner"] = None
+        return d
+
     # ---------- RPCs ----------
     def rpc(self, token, name, a):
         fn = getattr(self, "rpc_" + name, None)
@@ -124,7 +129,7 @@ class FakeSupabase:
         if p_trip != TRIP: raise RpcError(400, "not a member")   # nulls must fail closed, not open
         return copy.deepcopy({
             "me": self._pub(m), "trip": {"id": TRIP, "name": self.plan["doc"]["name"]}, "plan": self.plan,
-            "members": [self._pub(x) for x in self.members.values()], "parts": self.parts, "joins": self.joins,
+            "members": [self._pub_for(x, m) for x in self.members.values()], "parts": self.parts, "joins": self.joins,
             "recipes": [r if m["role"] == "host" or True else r for r in self.recipes.values()],
             "tasks": [t for t in self.tasks if t.get("assignee") in (None, me)],
             "my_stops": [s for s in self.my_stops.values() if s["member"] == me or s["shared"]],
@@ -237,10 +242,15 @@ class FakeSupabase:
         me = self._me(token)["id"]
         if (not re.fullmatch(r"[0-9a-f-]{36}", str(p_e.get("id", ""))) or len(json.dumps(p_e)) > 4000
                 or not re.fullmatch(r"\d+(\.\d+)?", str(p_e.get("jpy", ""))) or float(p_e["jpy"]) > 1e8
-                or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(p_e.get("date", "")))): raise RpcError(400, "bad expense")
+                or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(p_e.get("date", "")))
+                or not re.match(r"\d{4}-\d{2}-\d{2}T", str(p_e.get("updatedAt", "")))): raise RpcError(400, "bad expense")
+        import datetime
+        try: datetime.date.fromisoformat(p_e["date"])
+        except ValueError: raise RpcError(400, "bad expense")
         was = self.expenses.get(p_e["id"])
         if was and was["member"] != me: raise RpcError(400, "not yours")
-        up = str(p_e.get("updatedAt", ""))
+        cap = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.clock() + 86400))
+        up = min(str(p_e.get("updatedAt", "")), cap)
         if was and was["updated_at"] > up: return True
         self.expenses[p_e["id"]] = {"member": me, "e": {k: v for k, v in p_e.items() if k not in ("member", "deleted")},
                                     "deleted": bool(p_e.get("deleted")), "updated_at": up}

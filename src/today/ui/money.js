@@ -28,7 +28,7 @@ function expSync() {
   const me = typeof Api !== 'undefined' && Api.me(); if (!me || !ExpStore.ready()) return;
   const server = (Api.state() || {}).expenses || [], byId = new Map(ExpStore.all().map(e => [e.id, e]));
   let changed = false;
-  server.forEach(s => { const l = byId.get(s.id); if (!l || String(s.updatedAt) > String(l.updatedAt)) { ExpStore.put({ ...s, synced: true }); changed = true; } });
+  server.map(Exp.clean).filter(Boolean).forEach(s => { const l = byId.get(s.id); if (!l || String(s.updatedAt) > String(l.updatedAt)) { ExpStore.put({ ...s, synced: true }); changed = true; } });
   ExpStore.all().filter(e => !e.member || (e.member === me.id && !e.synced)).forEach(e => {
     const mine = { ...e, member: me.id, synced: true }; ExpStore.put(mine);
     const { member, synced, ...out } = mine; Api.call('save_expense', { p_e: out }, null);
@@ -75,8 +75,9 @@ function openAdd(pre) {
     const amt = m.querySelector('#exAmt'), save = m.querySelector('#exSave');
     const val = () => { const v = parseFloat(String(amt.value).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : null; };
     const sync = () => {
-      const v = val();
-      save.disabled = v == null || !catSel || amt.value === '';
+      const v = val(), big = v != null && (curSel === 'JPY' ? v : v / (expRates()[curSel] || 1)) > Exp.MAX_JPY;
+      m.querySelector('#exMsg').textContent = big ? 'Слишком большая сумма' : '';
+      save.disabled = v == null || big || !catSel || amt.value === '';
       save.textContent = v != null && amt.value !== '' ? `Сохранить ${Exp.fmt(v, curSel)}` : 'Сохранить';
       m.querySelector('#exSym').textContent = Exp.SYM[curSel];
       const tr = catSel === 'transport'; m.querySelector('#exSubs').hidden = !tr; m.querySelector('#exRoute').hidden = !tr;
@@ -257,6 +258,7 @@ function openExpSettings() {
       fl.text().then(txt => {
         let j; try { j = JSON.parse(txt); } catch (e) { m.querySelector('#exSetMsg').textContent = 'Это не файл резервной копии.'; return; }
         if (!j || j.kind !== 'expenses' || !Array.isArray(j.expenses)) { m.querySelector('#exSetMsg').textContent = 'В файле нет расходов.'; return; }
+        if (txt.length > 4e6) { m.querySelector('#exSetMsg').textContent = 'Файл слишком большой.'; return; }
         const r2 = Exp.merge(ExpStore.all(), j.expenses);
         r2.list.forEach(e => { const was = ExpStore.all().find(x => x.id === e.id); if (was !== e) expSave({ ...e, synced: false }, true); });
         m.querySelector('#exSetMsg').textContent = `Добавлено ${r2.added}, обновлено ${r2.updated}, дубли пропущены.`;
