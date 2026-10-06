@@ -37,6 +37,7 @@ RENDER.day = (x, root) => {
   root.innerHTML = `<div class="tc-page">
     ${dayStrip(x)}
     ${typeof joinBarHTML === 'function' ? joinBarHTML(x) : ''}
+    <button type="button" class="tc-flline" id="tcDayMap">${icon('map')}<span>Карта дня<small>места, маршрут, «Степной след»</small></span>${icon('arrow')}</button>
     ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e, ov)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
@@ -55,6 +56,7 @@ RENDER.day = (x, root) => {
   if (pv) pv.addEventListener('click', () => { S.preview = true; S.prevDay = x.day.n; S.prevTime = S.prevTime || '09:00'; save(); go('now'); });
   root.querySelector('#tcAdd').addEventListener('click', () => openEditor(x.day, null));
   root.querySelector('#tcDayEdit').addEventListener('click', () => openDayEditor(x.day));
+  const mp = root.querySelector('#tcDayMap'); if (mp) mp.addEventListener('click', () => go('map'));
 };
 
 /* swipe left / right on the list changes the day; listened on the document so a re-render

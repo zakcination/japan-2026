@@ -10,6 +10,12 @@ create table if not exists public.members (
 alter table public.members add column if not exists invite text;
 -- each person's face (one of the app's emoji), shown to the group instead of an initial
 alter table public.members add column if not exists emoji text;
+-- expenses: each person's own; a mutual «считать вместе с» pair sees each other's; the group sees only totals
+alter table public.members add column if not exists partner uuid;
+create table if not exists public.expenses (id uuid primary key, member uuid not null references public.members(id) on delete cascade,
+  e jsonb not null, deleted boolean not null default false, updated_at text not null default '');
+alter table public.expenses enable row level security;
+revoke all on public.expenses from anon, authenticated;
 create table if not exists public.member_devices (
   uid uuid primary key, member uuid not null references public.members(id) on delete cascade, at timestamptz default now());
 create table if not exists public.plan (trip text primary key references public.trips(id), doc jsonb not null, version int not null default 1);
@@ -147,7 +153,12 @@ begin
     'me', jsonb_build_object('id', m.id, 'name', m.name, 'role', m.role),
     'trip', (select to_jsonb(t) from public.trips t where t.id = p_trip),
     'plan', (select jsonb_build_object('doc', doc, 'version', version) from public.plan where trip = p_trip),
-    'members', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'role', role, 'emoji', emoji)) from public.members where trip = p_trip), '[]'),
+    'members', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'role', role, 'emoji', emoji, 'partner', partner)) from public.members where trip = p_trip), '[]'),
+    'expenses', coalesce((select jsonb_agg(x.e || jsonb_build_object('member', x.member, 'deleted', x.deleted)) from public.expenses x
+                          where x.member = m.id or (x.member = m.partner and exists (select 1 from public.members p where p.id = m.partner and p.partner = m.id))), '[]'),
+    'spend_totals', coalesce((select jsonb_agg(jsonb_build_object('member', t.member, 'jpy', t.jpy)) from
+                          (select x.member, round(sum((x.e->>'jpy')::numeric)) as jpy from public.expenses x join public.members y on y.id = x.member
+                           where y.trip = p_trip and not x.deleted group by x.member) t), '[]'),
     'parts', coalesce((select jsonb_agg(part) from public.parts where trip = p_trip), '[]'),
     'joins', coalesce((select jsonb_agg(jsonb_build_object('member', j.member, 'scope', j.scope, 'ref', j.ref, 'mode', j.mode))
                        from public.joins j join public.members x on x.id = j.member where x.trip = p_trip), '[]'),
@@ -352,6 +363,32 @@ begin
   return true;
 end $$;
 
+create or replace function public.save_expense(p_e jsonb) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me(); i uuid; owner uuid;
+begin
+  if coalesce(p_e->>'id', '') !~ '^[0-9a-f-]{36}$' or pg_column_size(p_e) > 4000
+     or coalesce(p_e->>'jpy', '') !~ '^[0-9]+(\.[0-9]+)?$' or (p_e->>'jpy')::numeric > 100000000
+     or coalesce(p_e->>'date', '') !~ '^\d{4}-\d{2}-\d{2}$' then raise exception 'bad expense' using errcode = 'P0001'; end if;
+  i := (p_e->>'id')::uuid;
+  select member into owner from public.expenses where id = i;
+  if owner is not null and owner <> m.id then raise exception 'not yours' using errcode = 'P0001'; end if;
+  insert into public.expenses values (i, m.id, p_e - 'member' - 'deleted', coalesce((p_e->>'deleted')::boolean, false), coalesce(p_e->>'updatedAt', ''))
+    on conflict (id) do update set e = excluded.e, deleted = excluded.deleted, updated_at = excluded.updated_at
+    where public.expenses.updated_at <= excluded.updated_at;               -- last write wins; a late old copy changes nothing
+  return true;
+end $$;
+
+create or replace function public.set_partner(p_member uuid) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if p_member is not null and (p_member = m.id or not exists (select 1 from public.members where id = p_member and trip = m.trip)) then
+    raise exception 'bad partner' using errcode = 'P0001'; end if;
+  update public.members set partner = p_member where id = m.id;
+  return true;
+end $$;
+
 -- ===== stage 2 functions =====
 create or replace function public.propose(p_kind text, p_ref text, p_day int, p_payload jsonb, p_note text) returns uuid language plpgsql security definer
 set search_path = public, extensions as $$
@@ -480,7 +517,7 @@ revoke all on all functions in schema public from public, anon, authenticated;
 grant execute on function public.member_names, public.group_state, public.claim_member(uuid, text, text), public.set_join, public.save_my_stop, public.delete_my_stop,
   public.save_my_booking, public.set_task_state, public.save_attachment, public.delete_attachment, public.save_plan,
   public.save_part, public.save_recipe, public.add_member, public.reset_pin, public.save_task, public.import_tasks, public.invite_link, public.track, public.funnel_counts,
-  public.set_emoji, public.propose, public.withdraw_proposal, public.decide_proposal, public.save_push, public.delete_push,
+  public.set_emoji, public.save_expense, public.set_partner, public.propose, public.withdraw_proposal, public.decide_proposal, public.save_push, public.delete_push,
   public._device_member, public._can_read_ticket to authenticated;
 
 -- storage: private bucket; a member writes only into <member id>/...; reads own files and files of shared attachments

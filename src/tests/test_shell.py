@@ -6,11 +6,13 @@ def at(app, time, **kw):
     return app(state={**DAY2, "prevTime": time}, **kw)
 
 
-def test_five_tabs_and_switching(app):
+def test_four_tabs_with_add_in_the_middle_and_switching(app):
     a = at(app, "13:24")
     tabs = a.page.locator(".tc-tab")
-    assert tabs.count() == 5
-    assert [t.inner_text().strip() for t in tabs.all()] == ["Сейчас", "День", "Дела", "Итоги", "Карта"]
+    assert tabs.count() == 4
+    assert [t.inner_text().strip() for t in tabs.all()] == ["Сейчас", "День", "Дела", "Деньги"]
+    order = a.page.evaluate("[...document.querySelectorAll('#tcTabs > button')].map(b => b.id || b.dataset.tab)")
+    assert order == ["now", "day", "tcAdd", "tix", "stats"]                 # ＋ in the centre
     assert tabs.nth(0).get_attribute("aria-selected") == "true"
     tabs.nth(1).click()
     assert tabs.nth(1).get_attribute("aria-selected") == "true"

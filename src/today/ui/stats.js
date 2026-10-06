@@ -14,14 +14,15 @@ function ringsSVG(parts, center) {
   }).join('') + `<text x="52" y="52" dominant-baseline="central" text-anchor="middle">${center}</text></svg>`;
 }
 
-RENDER.stats = (x, root) => {
+function statsDay(x, root) {
   const day = x.day, evs = x.evs, N = T.days.length;
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
   const live = evs.filter(e => !e.skip && !e.auto && !e.bad);
   const counted = live.filter(e => e.cat !== 'routine');
   const doneN = counted.filter(e => e.done).length;
   const budget = dayBudget(evs);
-  const spent = S.spent[day.n];
+  const dayExp = typeof myExpenses === 'function' ? myExpenses().filter(e => !e.deleted && e.date === dateOf(day)) : [];
+  const spent = dayExp.length ? Math.round(dayExp.reduce((t, e) => t + e.jpy, 0)) : S.spent[day.n];      // expenses win over the old hand-entered total
   const tripP = Math.min(1, (x.cday.n - 1 + Core.dayProgress(x.cevs, x.c.min)) / N);
   const budP = budget ? (spent || 0) / budget : 0;
 
@@ -37,7 +38,7 @@ RENDER.stats = (x, root) => {
   const wx = weatherFor(day);
 
   root.innerHTML = `<div class="tc-page">
-    <div class="tc-title tc-stats-title"><h1>Итоги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
+    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
     <section class="tc-card tc-ringcard">
       ${ringsSVG([{ p: tripP, c: 'var(--ring1)' }, { p: counted.length ? doneN / counted.length : 0, c: 'var(--ring2)' },
                   { p: budP, c: 'var(--ring3)' }], +iso.slice(8))}
@@ -75,4 +76,12 @@ RENDER.stats = (x, root) => {
     });
   };
   keep('#tcWalk', 'walked'); keep('#tcSpent', 'spent');
+};
+
+/* «Деньги»: the expenses dashboard first, then the day's rings and tiles */
+RENDER.stats = (x, root) => {
+  statsDay(x, root);
+  const title = root.querySelector('.tc-stats-title');
+  if (typeof moneyHTML === 'function') { title.insertAdjacentHTML('afterend', moneyHTML()); wireMoney(root); }
+  const ring = root.querySelector('.tc-ringcard'); if (ring) ring.insertAdjacentHTML('beforebegin', '<h2 class="tc-sech">День поездки</h2>');
 };

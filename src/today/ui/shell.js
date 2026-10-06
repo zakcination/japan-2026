@@ -31,7 +31,8 @@ const ICONS = {
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
-const TABS = [['now', 'Сейчас'], ['day', 'День'], ['tix', 'Дела'], ['stats', 'Итоги'], ['map', 'Карта']];
+/* ＋ in the middle adds an expense; the map lives on «День» (a button) */
+const TABS = [['now', 'Сейчас'], ['day', 'День'], ['add', 'Расход'], ['tix', 'Дела'], ['stats', 'Деньги']];
 const RENDER = {};
 let tab = 'now';
 
@@ -110,10 +111,11 @@ function mountShell() {
   root.prepend(head);
   const nav = document.createElement('nav'); nav.className = 'tc-tabs'; nav.id = 'tcTabs';
   nav.setAttribute('role', 'tablist'); nav.setAttribute('aria-label', 'Разделы');
-  nav.innerHTML = TABS.map(([k, l]) =>
-    `<button type="button" role="tab" class="tc-tab" data-tab="${k}" aria-selected="false">${icon(k)}<span>${l}</span></button>`).join('');
+  nav.innerHTML = TABS.map(([k, l]) => k === 'add'
+    ? `<button type="button" class="tc-tab-add" id="tcAdd" aria-label="Добавить расход">${icon('plus')}</button>`
+    : `<button type="button" role="tab" class="tc-tab" data-tab="${k}" aria-selected="false">${icon(k)}<span>${l}</span></button>`).join('');
   root.appendChild(nav);
-  nav.addEventListener('click', ev => { const b = ev.target.closest('.tc-tab'); if (b) go(b.dataset.tab); });
+  nav.addEventListener('click', ev => { if (ev.target.closest('#tcAdd')) { openAddFromDraft(); return; } const b = ev.target.closest('.tc-tab'); if (b) go(b.dataset.tab); });
   head.addEventListener('click', ev => {
     if (ev.target.closest('#tcPvExitTop')) { S.preview = false; viewDay = null; save(); if (tab === 'now') renderShell(); else go('now'); return; }
     const cap = ev.target.closest('#tcCap');

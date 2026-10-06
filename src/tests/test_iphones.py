@@ -22,7 +22,9 @@ def test_tab_bar_clears_the_home_indicator_and_fits(app, name, size, top, bottom
     bar = a.page.locator("#tcTabs").bounding_box()
     assert abs(bar["y"] + bar["height"] - H) < 1 and bar["width"] == W
     tabs = a.page.locator(".tc-tab").all()
-    assert len(tabs) == 5
+    assert len(tabs) == 4                                                    # + the ＋ in the middle
+    plus = a.page.locator("#tcAdd").bounding_box()
+    assert plus["width"] >= 56 and plus["height"] >= 44 and plus["y"] + plus["height"] <= H - max(8, bottom) + 0.5
     for t in tabs:
         b = t.bounding_box()
         assert b["height"] >= 49 and b["width"] >= 64

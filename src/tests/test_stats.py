@@ -16,7 +16,7 @@ def marks(page):
 def test_rings_and_legend(app):
     a = stats(app, state={"done": {"d2e3": True, "d2e4": True}})
     assert a.page.locator("#tcHead").is_hidden()
-    assert "Итоги" in a.page.inner_text(".tc-stats-title")
+    assert "Деньги" in a.page.inner_text(".tc-stats-title")
     assert a.page.locator(".tc-rings circle.fg").count() == 3
     legend = a.page.inner_text(".tc-legend")
     assert "2/11" in legend

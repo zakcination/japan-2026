@@ -29,12 +29,15 @@ function startGroup() {
   if (!asked || INVITE) openLogin();
 }
 startGroup();
-window.addEventListener('japan2026:group', () => { autoSyncPlan(); const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
+window.addEventListener('japan2026:group', () => { autoSyncPlan(); expSync(); const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
 // installed on the Home Screen: ask Safari to keep the tickets and the trip copy
 if (Ios.standalone() && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // '#map' in the link opens straight onto the map (also used by the map tests)
-const DEEP = /^#(tab|prep|task)=/.test(location.hash);          // a deep link always opens the app screen
-if ((S.open === false && !DEEP) || location.hash === '#map') document.getElementById('today').hidden = true; else { renderShell(); handleDeepLink(); }
+const DEEP = /^#(tab|prep|task|add)=/.test(location.hash);          // a deep link always opens the app screen
+if ((S.open === false && !DEEP) || location.hash === '#map') document.getElementById('today').hidden = true; else { renderShell(); if (!expFromLink()) handleDeepLink(); }
+/* expenses: read from the phone's database, then exchanged with the group whenever the group state changes */
+ExpStore.load();
+window.addEventListener('japan2026:exp', () => { expSync(); renderShell(); });
 setInterval(() => {
   const a = document.activeElement;
   if (document.getElementById('today').hidden) return;
@@ -52,4 +55,4 @@ window.addEventListener('japan2026:wx', renderShell);
 window.addEventListener('japan2026:tick', renderShell);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderShell(); clearBadge(); } });
 clearBadge();
-if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings });
+if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings, ExpStore, Exp });

@@ -27,6 +27,7 @@ class FakeSupabase:
         self.files = {}
         self.events = set()         # (member, event) — the activation funnel
         self.proposals, self.push_subs = [], {}
+        self.expenses = {}          # id -> {member, e, deleted, updated_at}
         self.clock = time.time      # tests may replace it
         self.fail_network = False   # tests flip it to simulate no signal
 
@@ -77,7 +78,7 @@ class FakeSupabase:
         return m
 
     def _pub(self, m):
-        return {"id": m["id"], "name": m["name"], "role": m["role"], "emoji": m.get("emoji")}
+        return {"id": m["id"], "name": m["name"], "role": m["role"], "emoji": m.get("emoji"), "partner": m.get("partner")}
 
     # ---------- RPCs ----------
     def rpc(self, token, name, a):
@@ -130,6 +131,9 @@ class FakeSupabase:
             "my_bookings": [b for b in self.my_bookings.values() if b["member"] == me],
             "task_state": [dict(ref=k[1], **v) for k, v in self.task_state.items() if k[0] == me],
             "attachments": [x for x in self.attachments.values() if x["member"] == me or x["shared"]],
+            "expenses": [dict(x["e"], member=x["member"], deleted=x["deleted"]) for x in self.expenses.values()
+                         if x["member"] == me or (x["member"] == m.get("partner") and self.members.get(m.get("partner"), {}).get("partner") == me)],
+            "spend_totals": [{"member": k, "jpy": round(v)} for k, v in self._totals().items()],
             "proposals": [p for p in sorted(self.proposals, key=lambda p: p["at"], reverse=True)
                           if p["member"] == me or m["role"] == "host"],
             "now": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.clock()))})
@@ -221,6 +225,31 @@ class FakeSupabase:
         return {"code": m["invite"]}
 
     FACES = ['😀', '😄', '😎', '🤓', '🥳', '😇', '🤠', '🧐', '😺', '🐼', '🦊', '🐨', '🐯', '🦁', '🐸', '🐵', '🐻', '🐰', '🦄', '🐧', '🐱', '🐶', '🐹', '🐙']
+
+    def _totals(self):
+        t = {}
+        for x in self.expenses.values():
+            if not x["deleted"]: t[x["member"]] = t.get(x["member"], 0) + float(x["e"]["jpy"])
+        return t
+
+    def rpc_save_expense(self, token, p_e):
+        import re
+        me = self._me(token)["id"]
+        if (not re.fullmatch(r"[0-9a-f-]{36}", str(p_e.get("id", ""))) or len(json.dumps(p_e)) > 4000
+                or not re.fullmatch(r"\d+(\.\d+)?", str(p_e.get("jpy", ""))) or float(p_e["jpy"]) > 1e8
+                or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(p_e.get("date", "")))): raise RpcError(400, "bad expense")
+        was = self.expenses.get(p_e["id"])
+        if was and was["member"] != me: raise RpcError(400, "not yours")
+        up = str(p_e.get("updatedAt", ""))
+        if was and was["updated_at"] > up: return True
+        self.expenses[p_e["id"]] = {"member": me, "e": {k: v for k, v in p_e.items() if k not in ("member", "deleted")},
+                                    "deleted": bool(p_e.get("deleted")), "updated_at": up}
+        return True
+
+    def rpc_set_partner(self, token, p_member):
+        m = self._me(token)
+        if p_member is not None and (p_member == m["id"] or p_member not in self.members): raise RpcError(400, "bad partner")
+        m["partner"] = p_member; return True
 
     def rpc_set_emoji(self, token, p_emoji):
         m = self._me(token)

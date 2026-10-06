@@ -22,8 +22,13 @@ const Api = (() => {
 
   async function http(path, body, auth, method = 'POST', raw = false, ctype) {
     const c = cfg();
-    const res = await fetch(c.url + path, { method, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),
-      'Content-Type': ctype || 'application/json' }, body: raw ? body : body == null ? undefined : JSON.stringify(body) });
+    /* a stalled request (bad signal) must not hold the queue forever: give up after 15 s, like no signal */
+    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 15000);
+    let res;
+    try {
+      res = await fetch(c.url + path, { method, signal: ac ? ac.signal : undefined, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),
+        'Content-Type': ctype || 'application/json' }, body: raw ? body : body == null ? undefined : JSON.stringify(body) });
+    } finally { if (tm) clearTimeout(tm); }
     status.online = true;
     if (raw && method === 'GET') { if (!res.ok) throw Object.assign(new Error('HTTP ' + res.status), { status: res.status }); return res.blob(); }
     const j = await res.json().catch(() => null);

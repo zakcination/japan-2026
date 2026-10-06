@@ -1545,6 +1545,72 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-fday > summary small { color: var(--sec); font: 400 min(0.8235rem, 19.6px)/1.2 var(--sf); }
 .tc-fday-all { flex: 0 0 auto; min-width: 52px; min-height: 44px; display: grid; place-items: center; }
 .tc-fday .tc-group { margin: 0 8px 8px; }
+
+/* ＋ in the tab bar: the one big action */
+.tc-tab-add { align-self: start; justify-self: center; margin-top: 4px; width: 56px; height: 44px; border: 0; border-radius: 16px;
+  background: var(--tint); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 14px rgba(228,0,43,.3); }
+.tc-tab-add .tc-ic { width: 28px; height: 28px; stroke-width: 2.6; }
+.tc-tab-add:active { transform: scale(.94); }
+/* quick add */
+.ex-add { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ex-add [hidden], .ex-dash [hidden] { display: none !important; }
+.ex-amount { display: flex; align-items: baseline; gap: 6px; padding: 8px 12px; border-radius: 18px; background: var(--card); }
+.ex-amount b { font: 700 36px/1 var(--rd); color: var(--sec); }
+.ex-amount input { flex: 1; min-width: 0; width: 100%; border: 0; background: none; color: var(--text); font: 700 48px/1.1 var(--rd); font-variant-numeric: tabular-nums; outline: none; }
+.ex-curs button, .ex-pay button, .ex-subs button, .ex-chips button { min-height: 44px; border: 0; border-radius: 10px; background: none; color: var(--text); font: 600 min(0.8824rem, 21px)/1 var(--sf); cursor: pointer; }
+.ex-curs, .ex-pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 12px; background: var(--seg); }
+.ex-curs button[aria-pressed="true"], .ex-pay button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+.ex-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.ex-cat { min-height: 64px; border: 0; border-radius: 14px; background: var(--card); color: var(--text); display: grid; justify-items: center; align-content: center; gap: 4px; padding: 6px 4px; cursor: pointer; }
+.ex-cat i { font: normal 24px/1 "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+.ex-cat span { font: 600 min(0.7647rem, 18px)/1.1 var(--sf); }
+.ex-cat[aria-pressed="true"] { box-shadow: inset 0 0 0 2.5px var(--c); background: color-mix(in srgb, var(--c) 12%, var(--card)); }
+.ex-subs { display: flex; flex-wrap: wrap; gap: 6px; }
+.ex-subs button { padding: 0 12px; background: var(--card); }
+.ex-subs button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--tint); }
+.ex-more[open] { padding-bottom: 14px; }
+.ex-save { min-height: 56px; font-size: 18px; }
+.ex-save:disabled { opacity: .45; }
+.ex-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-b, 0px)); z-index: 3300; display: flex; align-items: center; gap: 14px;
+  max-width: calc(100% - 32px); padding: 12px 16px; border-radius: 16px; background: #1C1C1E; color: #fff; font: 600 15px/1.3 var(--sf); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+.ex-toast[hidden] { display: none; }
+.ex-toast button { min-height: 44px; border: 0; background: none; color: #FFCC00; font: 700 15px/1 var(--sf); cursor: pointer; }
+/* «Деньги» */
+.ex-dash { display: grid; gap: 12px; }
+.ex-budget { display: grid; gap: 10px; }
+.ex-big b { display: block; font: 800 40px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-bar { height: 10px; border-radius: 5px; background: var(--seg); overflow: hidden; }
+.ex-bar i { display: block; height: 100%; border-radius: 5px; background: var(--ok); }
+.ex-budget.warn .ex-bar i { background: #FFB800; } .ex-budget.bad .ex-bar i { background: var(--bad); }
+.ex-row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font: 500 min(0.7647rem, 18px)/1.2 var(--sf); color: var(--sec); }
+.ex-row3 b { display: block; color: var(--text); font: 700 min(0.9412rem, 22px)/1.2 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.ex-tiles .tc-card { display: grid; gap: 4px; }
+.ex-tiles b { font: 700 24px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-tiles small { color: var(--sec); }
+.ex-break { display: grid; gap: 8px; }
+.ex-brow { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; font: 500 min(0.8824rem, 21px)/1.2 var(--sf); }
+.ex-brow span { display: flex; align-items: center; gap: 6px; } .ex-brow i { font-style: normal; }
+.ex-brow b { font-variant-numeric: tabular-nums; }
+.ex-brow em { position: absolute; left: 0; bottom: -3px; height: 3px; border-radius: 2px; background: var(--tint); opacity: .7; }
+.ex-filters { display: grid; gap: 8px; }
+.ex-filters input[type=search] { min-height: 44px; border: 0; border-radius: 12px; padding: 0 14px; background: var(--card); color: var(--text); font: 400 min(1rem, 24px)/1 var(--sf); }
+.ex-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.ex-chips::-webkit-scrollbar { display: none; }
+.ex-chips button { flex: 0 0 auto; padding: 0 14px; background: var(--card); }
+.ex-chips button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.ex-chips select { flex: 0 0 auto; min-height: 44px; border: 0; border-radius: 10px; padding: 0 10px; background: var(--card); color: var(--text); font: 600 min(0.8824rem, 21px)/1 var(--sf); }
+.ex-day { display: flex; justify-content: space-between; margin: 8px 4px 4px; font: 700 min(0.8824rem, 21px)/1.2 var(--sf); color: var(--sec); }
+.ex-item { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px; border: 0; border-top: .5px solid var(--sep); background: none; color: var(--text); text-align: left; cursor: pointer; }
+.ex-item:first-child { border-top: 0; }
+.ex-item > i { flex: 0 0 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 20px; }
+.ex-item > span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ex-item > span b, .ex-item > span small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-item > span small { color: var(--sec); font: 400 min(0.8235rem, 19.6px)/1.2 var(--sf); }
+.ex-item > em { font: 700 min(1rem, 24px)/1.2 var(--rd); font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+.ex-item > em small { display: block; color: var(--sec); font: 500 12px/1.2 var(--sf); }
+.ex-empty { display: grid; gap: 4px; }
+.ex-tools .tc-btn { gap: 6px; }
 </style>
 </head>
 <body>
@@ -3180,6 +3246,149 @@ const Trips = (() => {
   return { list: LIST, id: () => id, asked: () => asked, refresh, switchTo, backToShared, version, nameOf, shareUrl };
 })();
 
+/* ---------- expenses: one record per payment, kept on the phone first (IndexedDB), synced to the group later ----------
+   Pure maths in Exp.* (tested in Node-less Chromium via the core fixture); storage in ExpStore. Base currency: yen. */
+const Exp = (() => {
+  const CATS = [
+    ['food', '🍜', 'Еда', '#FF9500'], ['transport', '🚄', 'Переезды', '#0A84FF'], ['shopping_self', '👕', 'Одежда', '#AF52DE'],
+    ['shopping_gifts', '🎁', 'Подарки', '#FF2D55'], ['accommodation', '🏨', 'Жильё', '#5856D6'], ['attractions', '🏯', 'Места', '#E4002B'],
+    ['coffee', '☕', 'Кофе', '#A2845E'], ['groceries', '🛒', 'Продукты', '#34C759'], ['taxi', '🚕', 'Такси', '#FFCC00'],
+    ['tickets', '🎫', 'Билеты', '#30B0C7'], ['health', '💊', 'Аптека', '#FF3B30'], ['communication', '📱', 'Связь', '#64D2FF'],
+    ['other', '📦', 'Другое', '#8E8E93'],
+  ].map(([code, icon, name, color], i) => ({ code, icon, name, color, sort: i }));
+  const cat = code => CATS.find(c => c.code === code) || CATS[CATS.length - 1];
+  const SUBS = [['shinkansen', '🚄', 'Синкансэн'], ['train', '🚆', 'Поезд'], ['bus', '🚌', 'Автобус'], ['metro', '🚇', 'Метро'],
+                ['taxi', '🚕', 'Такси'], ['flight', '✈️', 'Самолёт'], ['ferry', '⛴️', 'Паром'], ['walking_other', '🚶', 'Другое']];
+  const PAY = { cash: 'Наличные', card: 'Карта', other: 'Другое' };
+  const CURS = ['JPY', 'KZT', 'USD'];
+  const SYM = { JPY: '¥', KZT: '₸', USD: '$' };
+  const round = (v, d = 0) => { const k = 10 ** d; return Math.round(v * k) / k; };
+
+  /* the amount in yen, and the rates frozen at the moment of the expense (rates: KZT and USD per 1 yen) */
+  function make(input, rates, now) {
+    const cur = CURS.includes(input.currency) ? input.currency : 'JPY';
+    const amount = Math.max(0, +input.amount || 0);
+    const r = { KZT: +rates.KZT || 0, USD: +rates.USD || 0 };
+    const jpy = cur === 'JPY' ? amount : r[cur] ? amount / r[cur] : 0;
+    const t = now || new Date().toISOString();
+    return { id: input.id || uuid(), amount, currency: cur, jpy: round(jpy, 2), rateKzt: r.KZT, rateUsd: r.USD,
+             cat: cat(input.cat).code, sub: input.sub || null, city: String(input.city || '').slice(0, 40), date: input.date,
+             time: input.time || null, title: String(input.title || '').slice(0, 80), note: String(input.note || '').slice(0, 300),
+             pay: PAY[input.pay] ? input.pay : 'card', from: String(input.from || '').slice(0, 40), to: String(input.to || '').slice(0, 40),
+             member: input.member || null, createdAt: input.createdAt || t, updatedAt: t, deleted: false };
+  }
+  function uuid() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+  }
+  /* show an expense (or a yen total) in the chosen currency — old expenses keep their own frozen rate */
+  const inCur = (e, cur) => cur === 'JPY' ? e.jpy : cur === 'KZT' ? e.jpy * (e.rateKzt || 0) : e.jpy * (e.rateUsd || 0);
+  function fmt(v, cur) {
+    const n = cur === 'USD' ? round(v, 2) : Math.round(v);
+    const s = n.toLocaleString('ru-RU', cur === 'USD' ? { minimumFractionDigits: 0, maximumFractionDigits: 2 } : {});
+    return cur === 'KZT' ? `${s} ₸` : `${SYM[cur]}${s}`;
+  }
+  const live = xs => xs.filter(e => !e.deleted);
+  const sum = (xs, cur) => xs.reduce((s, e) => s + inCur(e, cur), 0);
+  const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
+  /* everything «Деньги» shows; today = trip-local date; start/end = trip dates */
+  function summary(all, o) {
+    const xs = live(all), cur = o.cur || 'JPY';
+    const total = sum(xs, cur), budget = +o.budget || 0;
+    const budgetCur = budget && cur !== 'JPY' ? budget * (cur === 'KZT' ? o.rates.KZT : o.rates.USD) : budget;
+    const pct = budget ? sum(xs, 'JPY') / budget * 100 : 0;
+    const state = !budget ? 'none' : pct > 90 ? 'bad' : pct >= 70 ? 'warn' : 'ok';
+    const day = d => sum(xs.filter(e => e.date === d), cur);
+    const tripDays = Math.round((Date.parse(o.end) - Date.parse(o.start)) / 864e5) + 1;
+    const started = o.today >= o.start;
+    const elapsed = !started ? 0 : Math.min(tripDays, Math.round((Date.parse(o.today) - Date.parse(o.start)) / 864e5) + 1);
+    const avg = elapsed ? total / elapsed : 0;
+    const forecast = elapsed ? avg * tripDays : null;
+    const by = key => { const m = new Map(); xs.forEach(e => { const k = key(e) || '—'; m.set(k, (m.get(k) || 0) + inCur(e, cur)); });
+      return [...m.entries()].map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v); };
+    const cashSpent = sum(xs.filter(e => e.pay === 'cash'), 'JPY');
+    return { total, budget: budgetCur, left: budgetCur - total, pct, state, over: budget && pct > 100 ? budgetCur - total : 0,
+             today: day(o.today), yesterday: day(addDays(o.today, -1)), avg, forecast, tripDays, elapsed,
+             dayN: started && elapsed <= tripDays ? elapsed : null,
+             cats: by(e => e.cat), cities: by(e => e.city), pays: by(e => e.pay),
+             shopping: { self: sum(xs.filter(e => e.cat === 'shopping_self'), cur), gifts: sum(xs.filter(e => e.cat === 'shopping_gifts'), cur) },
+             cash: o.initialCash ? { left: +o.initialCash - cashSpent, spent: cashSpent } : null, count: xs.length };
+  }
+
+  /* the history: newest first, filtered and searched (offline, plain text) */
+  function filter(all, f, today) {
+    const q = String(f.q || '').trim().toLowerCase();
+    const since = f.period === 'today' ? today : f.period === 'yesterday' ? addDays(today, -1) : f.period === '7d' ? addDays(today, -6) : null;
+    return live(all).filter(e =>
+      (!since || (f.period === 'yesterday' ? e.date === since : e.date >= since && e.date <= today)) &&
+      (!f.cat || e.cat === f.cat) && (!f.city || e.city === f.city) && (!f.pay || e.pay === f.pay) && (!f.cur || e.currency === f.cur) &&
+      (!q || [e.title, e.note, e.city, e.from, e.to, cat(e.cat).name].some(v => String(v || '').toLowerCase().includes(q))))
+      .sort((a, b) => (b.date + (b.time || '') + b.createdAt).localeCompare(a.date + (a.time || '') + a.createdAt));
+  }
+
+  /* CSV (п. 67): one row per expense, comma-separated, quoted, with a BOM so Excel opens Cyrillic right */
+  function csv(all, start) {
+    const head = ['Date', 'Trip Day', 'City', 'Category', 'Subcategory', 'Description', 'Merchant', 'From', 'To', 'Amount', 'Currency',
+                  'Exchange Rate', 'Amount JPY', 'Amount KZT', 'Amount USD', 'Payment Method', 'Comment'];
+    const q = v => { const s = String(v == null ? '' : v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const rows = live(all).slice().sort((a, b) => a.date.localeCompare(b.date)).map(e => [
+      e.date, Math.round((Date.parse(e.date) - Date.parse(start)) / 864e5) + 1, e.city, cat(e.cat).name, (SUBS.find(s => s[0] === e.sub) || [])[2] || '',
+      e.note, e.title, e.from, e.to, e.amount, e.currency, e.currency === 'JPY' ? 1 : e.currency === 'KZT' ? e.rateKzt : e.rateUsd,
+      round(e.jpy, 2), round(inCur(e, 'KZT'), 2), round(inCur(e, 'USD'), 2), PAY[e.pay], e.note].map(q).join(','));
+    return '﻿' + [head.join(',')].concat(rows).join('\n');
+  }
+
+  /* a backup's expenses merged in: new ids added, known ids kept unless the backup copy is newer */
+  function merge(local, incoming) {
+    const m = new Map(local.map(e => [e.id, e])); let added = 0, updated = 0;
+    incoming.filter(e => e && typeof e.id === 'string' && Number.isFinite(+e.jpy) && /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).forEach(e => {
+      const was = m.get(e.id);
+      if (!was) { m.set(e.id, e); added++; } else if (String(e.updatedAt) > String(was.updatedAt)) { m.set(e.id, e); updated++; }
+    });
+    return { list: [...m.values()], added, updated };
+  }
+
+  /* «#add=1500&cur=JPY&cat=food&t=Lawson&pay=card» — from an Apple Pay shortcut. Amounts may come as «¥1,500» or «1 500,00 ₸». */
+  function fromLink(hash) {
+    const m = /^#add=([^&]*)(.*)$/.exec(hash || ''); if (!m) return null;
+    const q = new URLSearchParams(m[2].replace(/^&/, ''));
+    const raw = decodeURIComponent(m[1] || '');
+    const cur = (q.get('cur') || '').toUpperCase() || (/₸|KZT|тг/i.test(raw) ? 'KZT' : /\$|USD/i.test(raw) ? 'USD' : 'JPY');
+    let n = raw.replace(/[^\d.,]/g, '');
+    if (/,\d{1,2}$/.test(n) && !/\.\d/.test(n)) n = n.replace(/\./g, '').replace(',', '.'); else n = n.replace(/,/g, '');
+    const amount = Number.isFinite(parseFloat(n)) ? parseFloat(n) : null;
+    const c = q.get('cat');
+    return { amount, currency: CURS.includes(cur) ? cur : 'JPY', cat: CATS.some(x => x.code === c) ? c : null,
+             title: String(q.get('t') || '').slice(0, 80), pay: PAY[q.get('pay')] ? q.get('pay') : 'card', go: q.get('go') === '1' };
+  }
+  return { CATS, SUBS, PAY, CURS, SYM, cat, make, inCur, fmt, summary, filter, csv, merge, fromLink, addDays, uuid };
+})();
+
+/* ---------- storage: IndexedDB (records), localStorage (small settings only) ---------- */
+const EXP_SET = 'japan2026.exp.v1';
+const ExpStore = (() => {
+  let list = [], ready = false, db = null;
+  const open = () => new Promise((res, rej) => {
+    if (typeof indexedDB === 'undefined') return rej(new Error('no idb'));
+    const r = indexedDB.open('japan2026-expenses', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('expenses', { keyPath: 'id' });
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  const load = () => open().then(d => { db = d; return new Promise(res => {
+    const out = [], c = d.transaction('expenses').objectStore('expenses').openCursor();
+    c.onsuccess = () => { const k = c.result; if (k) { out.push(k.value); k.continue(); } else res(out); };
+    c.onerror = () => res(out);
+  }); }).then(xs => { const early = list; list = xs; early.forEach(put);          // saved before the database opened (a link at start)
+    ready = true; window.dispatchEvent(new Event('japan2026:exp')); })
+    .catch(() => { ready = true; });                       // private mode: works for this session only
+  const put = e => { const i = list.findIndex(x => x.id === e.id); if (i >= 0) list[i] = e; else list.push(e);
+    try { if (db) db.transaction('expenses', 'readwrite').objectStore('expenses').put(e); } catch (x) {} };
+  const settings = () => { try { return JSON.parse(localStorage.getItem(EXP_SET) || '{}') || {}; } catch (e) { return {}; } };
+  const setSettings = s => { try { localStorage.setItem(EXP_SET, JSON.stringify(s)); } catch (e) {} };
+  return { load, all: () => list, ready: () => ready, put, settings, setSettings };
+})();
+
 /* ---------- group model: who is in, the personal schedule, the tasks — pure, no DOM ---------- */
 const Group = (() => {
   const toMin = Core.toMin;
@@ -3371,8 +3580,13 @@ const Api = (() => {
 
   async function http(path, body, auth, method = 'POST', raw = false, ctype) {
     const c = cfg();
-    const res = await fetch(c.url + path, { method, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),
-      'Content-Type': ctype || 'application/json' }, body: raw ? body : body == null ? undefined : JSON.stringify(body) });
+    /* a stalled request (bad signal) must not hold the queue forever: give up after 15 s, like no signal */
+    const ac = typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 15000);
+    let res;
+    try {
+      res = await fetch(c.url + path, { method, signal: ac ? ac.signal : undefined, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),
+        'Content-Type': ctype || 'application/json' }, body: raw ? body : body == null ? undefined : JSON.stringify(body) });
+    } finally { if (tm) clearTimeout(tm); }
     status.online = true;
     if (raw && method === 'GET') { if (!res.ok) throw Object.assign(new Error('HTTP ' + res.status), { status: res.status }); return res.blob(); }
     const j = await res.json().catch(() => null);
@@ -3657,7 +3871,8 @@ const ICONS = {
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
-const TABS = [['now', 'Сейчас'], ['day', 'День'], ['tix', 'Дела'], ['stats', 'Итоги'], ['map', 'Карта']];
+/* ＋ in the middle adds an expense; the map lives on «День» (a button) */
+const TABS = [['now', 'Сейчас'], ['day', 'День'], ['add', 'Расход'], ['tix', 'Дела'], ['stats', 'Деньги']];
 const RENDER = {};
 let tab = 'now';
 
@@ -3736,10 +3951,11 @@ function mountShell() {
   root.prepend(head);
   const nav = document.createElement('nav'); nav.className = 'tc-tabs'; nav.id = 'tcTabs';
   nav.setAttribute('role', 'tablist'); nav.setAttribute('aria-label', 'Разделы');
-  nav.innerHTML = TABS.map(([k, l]) =>
-    `<button type="button" role="tab" class="tc-tab" data-tab="${k}" aria-selected="false">${icon(k)}<span>${l}</span></button>`).join('');
+  nav.innerHTML = TABS.map(([k, l]) => k === 'add'
+    ? `<button type="button" class="tc-tab-add" id="tcAdd" aria-label="Добавить расход">${icon('plus')}</button>`
+    : `<button type="button" role="tab" class="tc-tab" data-tab="${k}" aria-selected="false">${icon(k)}<span>${l}</span></button>`).join('');
   root.appendChild(nav);
-  nav.addEventListener('click', ev => { const b = ev.target.closest('.tc-tab'); if (b) go(b.dataset.tab); });
+  nav.addEventListener('click', ev => { if (ev.target.closest('#tcAdd')) { openAddFromDraft(); return; } const b = ev.target.closest('.tc-tab'); if (b) go(b.dataset.tab); });
   head.addEventListener('click', ev => {
     if (ev.target.closest('#tcPvExitTop')) { S.preview = false; viewDay = null; save(); if (tab === 'now') renderShell(); else go('now'); return; }
     const cap = ev.target.closest('#tcCap');
@@ -4357,6 +4573,7 @@ RENDER.day = (x, root) => {
   root.innerHTML = `<div class="tc-page">
     ${dayStrip(x)}
     ${typeof joinBarHTML === 'function' ? joinBarHTML(x) : ''}
+    <button type="button" class="tc-flline" id="tcDayMap">${icon('map')}<span>Карта дня<small>места, маршрут, «Степной след»</small></span>${icon('arrow')}</button>
     ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e, ov)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
@@ -4375,6 +4592,7 @@ RENDER.day = (x, root) => {
   if (pv) pv.addEventListener('click', () => { S.preview = true; S.prevDay = x.day.n; S.prevTime = S.prevTime || '09:00'; save(); go('now'); });
   root.querySelector('#tcAdd').addEventListener('click', () => openEditor(x.day, null));
   root.querySelector('#tcDayEdit').addEventListener('click', () => openDayEditor(x.day));
+  const mp = root.querySelector('#tcDayMap'); if (mp) mp.addEventListener('click', () => go('map'));
 };
 
 /* swipe left / right on the list changes the day; listened on the document so a re-render
@@ -4625,14 +4843,15 @@ function ringsSVG(parts, center) {
   }).join('') + `<text x="52" y="52" dominant-baseline="central" text-anchor="middle">${center}</text></svg>`;
 }
 
-RENDER.stats = (x, root) => {
+function statsDay(x, root) {
   const day = x.day, evs = x.evs, N = T.days.length;
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
   const live = evs.filter(e => !e.skip && !e.auto && !e.bad);
   const counted = live.filter(e => e.cat !== 'routine');
   const doneN = counted.filter(e => e.done).length;
   const budget = dayBudget(evs);
-  const spent = S.spent[day.n];
+  const dayExp = typeof myExpenses === 'function' ? myExpenses().filter(e => !e.deleted && e.date === dateOf(day)) : [];
+  const spent = dayExp.length ? Math.round(dayExp.reduce((t, e) => t + e.jpy, 0)) : S.spent[day.n];      // expenses win over the old hand-entered total
   const tripP = Math.min(1, (x.cday.n - 1 + Core.dayProgress(x.cevs, x.c.min)) / N);
   const budP = budget ? (spent || 0) / budget : 0;
 
@@ -4648,7 +4867,7 @@ RENDER.stats = (x, root) => {
   const wx = weatherFor(day);
 
   root.innerHTML = `<div class="tc-page">
-    <div class="tc-title tc-stats-title"><h1>Итоги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
+    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
     <section class="tc-card tc-ringcard">
       ${ringsSVG([{ p: tripP, c: 'var(--ring1)' }, { p: counted.length ? doneN / counted.length : 0, c: 'var(--ring2)' },
                   { p: budP, c: 'var(--ring3)' }], +iso.slice(8))}
@@ -4687,6 +4906,294 @@ RENDER.stats = (x, root) => {
   };
   keep('#tcWalk', 'walked'); keep('#tcSpent', 'spent');
 };
+
+/* «Деньги»: the expenses dashboard first, then the day's rings and tiles */
+RENDER.stats = (x, root) => {
+  statsDay(x, root);
+  const title = root.querySelector('.tc-stats-title');
+  if (typeof moneyHTML === 'function') { title.insertAdjacentHTML('afterend', moneyHTML()); wireMoney(root); }
+  const ring = root.querySelector('.tc-ringcard'); if (ring) ring.insertAdjacentHTML('beforebegin', '<h2 class="tc-sech">День поездки</h2>');
+};
+
+/* ---------- «Деньги»: quick add (＋ → amount → category → save), budget, history, statistics, settings ---------- */
+const expSet = () => ExpStore.settings();
+const expPut = patch => ExpStore.setSettings({ ...expSet(), ...patch });
+function expRates() {
+  const r = expSet().rates || {};
+  const kzt = +r.KZT || (SET.cur === 'KZT' ? +SET.rate : 0) || CUR.KZT.rate, usd = +r.USD || (SET.cur === 'USD' ? +SET.rate : 0) || CUR.USD.rate;
+  return { KZT: kzt, USD: usd };
+}
+const tripStart = () => dateOf(T.days[0]), tripEnd = () => dateOf(T.days[T.days.length - 1]);
+const tripToday = () => japanNow().date;
+function cityOn(date) {
+  const d = T.days.find(x => dateOf(x) === date) || T.days.find(x => dateOf(x) === tripToday());
+  return d ? String(d.city || '').split('→').pop().trim() : '';
+}
+/* whose expenses: mine (or this phone's before signing in), plus my partner's when we chose each other */
+function partnerOf() {
+  const me = typeof Api !== 'undefined' && Api.me(); if (!me) return null;
+  const ms = (Api.state() || {}).members || [], a = ms.find(m => m.id === me.id), b = a && ms.find(m => m.id === a.partner);
+  return b && b.partner === me.id ? b : null;
+}
+function myExpenses() {
+  const me = typeof Api !== 'undefined' && Api.me(), p = partnerOf();
+  return ExpStore.all().filter(e => !me ? true : !e.member || e.member === me.id || (p && e.member === p.id));
+}
+
+/* signed in: send what this phone has, take what the server has that is newer (another phone, the partner) */
+function expSync() {
+  const me = typeof Api !== 'undefined' && Api.me(); if (!me || !ExpStore.ready()) return;
+  const server = (Api.state() || {}).expenses || [], byId = new Map(ExpStore.all().map(e => [e.id, e]));
+  let changed = false;
+  server.forEach(s => { const l = byId.get(s.id); if (!l || String(s.updatedAt) > String(l.updatedAt)) { ExpStore.put({ ...s, synced: true }); changed = true; } });
+  ExpStore.all().filter(e => !e.member || (e.member === me.id && !e.synced)).forEach(e => {
+    const mine = { ...e, member: me.id, synced: true }; ExpStore.put(mine);
+    const { member, synced, ...out } = mine; Api.call('save_expense', { p_e: out }, null);
+  });
+  if (changed) renderShell();
+}
+function expSave(e, quiet) {
+  const me = typeof Api !== 'undefined' && Api.me();
+  const rec = { ...e, member: me ? (e.member || me.id) : e.member || null, synced: !!me };
+  ExpStore.put(rec);
+  if (me && rec.member === me.id) { const { member, synced, ...out } = rec; Api.call('save_expense', { p_e: out }, null); }
+  if (!quiet) renderShell();
+  return rec;
+}
+
+/* ---------- quick add ---------- */
+function openAdd(pre) {
+  pre = pre || {};
+  const s = expSet(), cur0 = pre.currency || s.lastCur || 'JPY';
+  const recent = (s.recent || []).filter(c => Exp.CATS.some(x => x.code === c));
+  const order = recent.concat(Exp.CATS.map(c => c.code).filter(c => !recent.includes(c)));
+  const date0 = pre.date || (tripToday() >= tripStart() && tripToday() <= tripEnd() ? tripToday() : tripToday());
+  let curSel = cur0, catSel = pre.cat || null, subSel = pre.sub || null;
+  sheet(pre.id ? 'Расход' : 'Новый расход', `<div class="ex-add" id="exAdd">
+    <label class="ex-amount" for="exAmt"><span class="tc-vh">Сколько?</span><b id="exSym">${Exp.SYM[curSel]}</b>
+      <input id="exAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="${pre.amount != null ? esc(String(pre.amount)) : ''}" aria-label="Сколько?"></label>
+    <div class="tc-seg3s ex-curs" role="radiogroup" aria-label="Валюта">${Exp.CURS.map(c => `<button type="button" data-cur="${c}" aria-pressed="${c === curSel}">${Exp.SYM[c]} ${c}</button>`).join('')}</div>
+    <div class="ex-cats" role="radiogroup" aria-label="Категория">${order.map(code => { const c = Exp.cat(code);
+      return `<button type="button" class="ex-cat" data-cat="${c.code}" aria-pressed="${c.code === catSel}" style="--c:${c.color}"><i>${c.icon}</i><span>${esc(c.name)}</span></button>`; }).join('')}</div>
+    <details class="tc-more ex-more"${pre.id || pre.title || pre.note ? ' open' : ''}><summary>Добавить детали</summary>
+      <div class="ex-subs" id="exSubs" ${catSel === 'transport' ? '' : 'hidden'}>${Exp.SUBS.map(([k, i, n]) => `<button type="button" data-sub="${k}" aria-pressed="${k === subSel}">${i} ${esc(n)}</button>`).join('')}</div>
+      <div class="tc-form2" id="exRoute" ${catSel === 'transport' ? '' : 'hidden'}>${fld('exFrom', 'Откуда', pre.from || '')}${fld('exTo', 'Куда', pre.to || '')}</div>
+      ${fld('exTitle', 'Что / где (магазин, кафе)', pre.title || '', 'text', 'maxlength="80"')}
+      <div class="tc-form2">${fld('exDate', 'Дата', date0, 'date')}${fld('exCity', 'Город', pre.city || cityOn(date0), 'text', 'maxlength="40" list="exCities"')}</div>
+      <datalist id="exCities">${['Токио', 'Киото', 'Нагоя', 'Осака', 'Фудзи', 'Шанхай'].map(c => `<option value="${c}">`).join('')}</datalist>
+      <div class="tc-seg3s ex-pay" role="radiogroup" aria-label="Оплата">${Object.entries(Exp.PAY).map(([k, n]) =>
+        `<button type="button" data-pay="${k}" aria-pressed="${k === (pre.pay || s.lastPay || 'card')}">${n}</button>`).join('')}</div>
+      <label class="tc-f" for="exNote"><span>Комментарий</span><textarea id="exNote" rows="2" maxlength="300">${esc(pre.note || '')}</textarea></label>
+    </details>
+    <p class="tc-warn" id="exMsg" role="status"></p>
+    <button type="button" class="tc-btn primary wide ex-save" id="exSave" disabled>Сохранить</button>
+    ${pre.id ? `<div class="tc-actions two"><button type="button" class="tc-btn" id="exDup">Дублировать</button><button type="button" class="tc-btn" id="exDel">Удалить</button></div>` : ''}
+  </div>`, m => {
+    const amt = m.querySelector('#exAmt'), save = m.querySelector('#exSave');
+    const val = () => { const v = parseFloat(String(amt.value).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : null; };
+    const sync = () => {
+      const v = val();
+      save.disabled = v == null || !catSel || amt.value === '';
+      save.textContent = v != null && amt.value !== '' ? `Сохранить ${Exp.fmt(v, curSel)}` : 'Сохранить';
+      m.querySelector('#exSym').textContent = Exp.SYM[curSel];
+      const tr = catSel === 'transport'; m.querySelector('#exSubs').hidden = !tr; m.querySelector('#exRoute').hidden = !tr;
+    };
+    amt.addEventListener('input', sync);
+    amt.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !save.disabled) save.click(); });
+    const pick = (sel, attr, fn) => m.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => {
+      m.querySelectorAll(sel).forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.getAttribute(attr)); sync(); }));
+    pick('[data-cur]', 'data-cur', v => { curSel = v; });
+    pick('[data-cat]', 'data-cat', v => { catSel = v; });
+    pick('[data-sub]', 'data-sub', v => { subSel = v; });
+    pick('[data-pay]', 'data-pay', () => {});
+    const read = () => {
+      const g = id => (m.querySelector('#' + id) || { value: '' }).value.trim(), pay = m.querySelector('[data-pay][aria-pressed="true"]');
+      return { id: pre.id, createdAt: pre.createdAt, member: pre.member, amount: val(), currency: curSel, cat: catSel, sub: catSel === 'transport' ? subSel : null,
+               date: /^\d{4}-\d{2}-\d{2}$/.test(g('exDate')) ? g('exDate') : date0, city: g('exCity'), title: g('exTitle'), note: g('exNote'),
+               pay: pay ? pay.dataset.pay : 'card', from: g('exFrom'), to: g('exTo') };
+    };
+    save.addEventListener('click', () => {
+      const e = Exp.make(read(), expRates());
+      expSave(e);
+      const st = expSet();
+      expPut({ lastCur: curSel, lastPay: e.pay, recent: [e.cat].concat((st.recent || []).filter(c => c !== e.cat)).slice(0, 4) });
+      try { localStorage.removeItem('japan2026.exp.draft'); } catch (x) {}
+      closeSheet();
+      expToast(`✓ ${Exp.fmt(e.amount, e.currency)} · ${Exp.cat(e.cat).name}${pre.id ? ' — изменено' : ' добавлено'}`, pre.id ? null : e.id);
+      if (navigator.vibrate) try { navigator.vibrate(10); } catch (x) {}
+    });
+    const dup = m.querySelector('#exDup'); if (dup) dup.addEventListener('click', () => { const x = read(); closeSheet(); openAdd({ ...x, id: null, createdAt: null, member: null, date: tripToday() }); });
+    const del = m.querySelector('#exDel'); if (del) del.addEventListener('click', () => {
+      const e = ExpStore.all().find(x => x.id === pre.id); if (!e) return;
+      expSave({ ...e, deleted: true, updatedAt: new Date().toISOString() }); closeSheet();
+      expToast(`Расход удалён`, null, e);
+    });
+    /* an unfinished amount survives an accidental close */
+    amt.addEventListener('input', () => { try { if (!pre.id) localStorage.setItem('japan2026.exp.draft', amt.value); } catch (x) {} });
+    sync();
+    amt.focus();
+  });
+}
+function openAddFromDraft() {
+  let d = ''; try { d = localStorage.getItem('japan2026.exp.draft') || ''; } catch (e) {}
+  openAdd(d ? { amount: d } : null);
+}
+
+/* a toast with «Отменить»: undo an add (soft delete) or a delete (restore) */
+function expToast(text, addedId, deleted) {
+  let t = document.getElementById('exToast');
+  if (!t) { t = document.createElement('div'); t.id = 'exToast'; t.className = 'ex-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.innerHTML = `<span>${esc(text)}</span>${addedId || deleted ? '<button type="button" id="exUndo">Отменить</button>' : ''}`;
+  t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 4000);
+  const u = t.querySelector('#exUndo'); if (u) u.addEventListener('click', () => {
+    const now = new Date().toISOString();
+    if (addedId) { const e = ExpStore.all().find(x => x.id === addedId); if (e) expSave({ ...e, deleted: true, updatedAt: now }); }
+    if (deleted) expSave({ ...deleted, deleted: false, updatedAt: now });
+    t.hidden = true;
+  });
+}
+
+/* ---------- «Деньги» ---------- */
+let expFilter = { period: 'all', q: '', cat: '', city: '', pay: '' };
+function moneyHTML() {
+  const s = expSet(), cur = s.cur || 'JPY', rates = expRates();
+  const all = myExpenses(), p = partnerOf();
+  const S2 = Exp.summary(all, { cur, budget: s.budget, rates, today: tripToday(), start: tripStart(), end: tripEnd(), initialCash: s.cash });
+  const f = v => Exp.fmt(v, cur);
+  const bar = Math.min(100, S2.pct);
+  const list = Exp.filter(all, expFilter, tripToday());
+  const days = [...new Set(list.map(e => e.date))];
+  const label = d => d === tripToday() ? 'Сегодня' : d === Exp.addDays(tripToday(), -1) ? 'Вчера' : Core.ddmmyyyy(d).slice(0, 5);
+  const totals = ((typeof Api !== 'undefined' && Api.me() && Api.state()) || {}).spend_totals || [];
+  const cities = [...new Set(all.filter(e => !e.deleted).map(e => e.city).filter(Boolean))];
+  return `<section class="ex-dash" id="exDash">
+    <div class="tc-seg3s ex-curs" id="exCur" role="radiogroup" aria-label="Показывать в">${Exp.CURS.map(c => `<button type="button" data-showcur="${c}" aria-pressed="${c === cur}">${c}</button>`).join('')}</div>
+    <div class="tc-card ex-budget ${S2.state}">
+      <div class="ex-big"><span class="tc-lbl">Потрачено${p ? ` · вы и ${esc(p.name)}` : ''}</span><b>${f(S2.total)}</b></div>
+      ${S2.budget ? `<div class="ex-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(S2.pct)}"><i style="width:${bar}%"></i></div>
+      <div class="ex-row3"><span>Бюджет<b>${f(S2.budget)}</b></span><span>${S2.left >= 0 ? 'Осталось' : 'Сверх бюджета'}<b>${f(Math.abs(S2.left))}</b></span><span>Использовано<b>${Math.round(S2.pct * 10) / 10}%</b></span></div>
+      ${S2.over ? `<p class="tc-warn">Бюджет превышен на ${f(-S2.over)}</p>` : ''}`
+      : `<button type="button" class="tc-link" data-exset>Задать бюджет поездки ›</button>`}
+    </div>
+    <div class="ex-tiles">
+      <div class="tc-card"><span class="tc-lbl">Сегодня${S2.dayN ? ` · день ${S2.dayN}` : ''}</span><b>${f(S2.today)}</b><small>вчера ${f(S2.yesterday)}</small></div>
+      <div class="tc-card"><span class="tc-lbl">В среднем за день</span><b>${S2.elapsed ? f(S2.avg) : '—'}</b><small>${S2.forecast != null ? 'к концу ~' + f(S2.forecast) : `поездка ${S2.tripDays} дн.`}</small></div>
+      ${S2.cash ? `<div class="tc-card"><span class="tc-lbl">Наличные осталось</span><b>${Exp.fmt(S2.cash.left, 'JPY')}</b><small>из ${Exp.fmt(+s.cash, 'JPY')}</small></div>` : ''}
+    </div>
+    ${S2.count ? `<div class="tc-card ex-break"><span class="tc-lbl">По категориям</span>${S2.cats.slice(0, 6).map(r => { const c = Exp.cat(r.k);
+        return `<div class="ex-brow"><span><i>${c.icon}</i>${esc(c.name)}</span><b>${f(r.v)}</b><em style="width:${Math.round(r.v / S2.cats[0].v * 100)}%;background:${c.color}"></em></div>`; }).join('')}
+      ${S2.shopping.self || S2.shopping.gifts ? `<p class="tc-sub">Шопинг: для себя ${f(S2.shopping.self)} · подарки ${f(S2.shopping.gifts)}</p>` : ''}</div>
+    <div class="tc-card ex-break"><span class="tc-lbl">По городам</span>${S2.cities.slice(0, 5).map(r =>
+        `<div class="ex-brow"><span>${esc(r.k)}</span><b>${f(r.v)}</b><em style="width:${Math.round(r.v / S2.cities[0].v * 100)}%"></em></div>`).join('')}
+      ${S2.pays.length > 1 ? `<p class="tc-sub">${S2.pays.map(r => `${esc(Exp.PAY[r.k] || r.k)} ${f(r.v)}`).join(' · ')}</p>` : ''}</div>` : ''}
+    ${totals.length > 1 ? `<div class="tc-card ex-break" id="exGroup"><span class="tc-lbl">Группа · только итоги</span>${totals.slice().sort((a, b) => b.jpy - a.jpy).map(t => { const m = memberOf(t.member) || {};
+        return `<div class="ex-brow"><span>${faceHTML(m)} ${esc(m.name || '')}</span><b>${Exp.fmt(t.jpy, 'JPY')}</b></div>`; }).join('')}</div>` : ''}
+    <h2 class="tc-sech">Расходы</h2>
+    <div class="ex-filters">
+      <input id="exQ" type="search" placeholder="Поиск: магазин, город, маршрут" value="${esc(expFilter.q)}" aria-label="Поиск по расходам">
+      <div class="ex-chips">${[['all', 'Всё'], ['today', 'Сегодня'], ['yesterday', 'Вчера'], ['7d', '7 дней']].map(([k, n]) =>
+        `<button type="button" data-period="${k}" aria-pressed="${expFilter.period === k}">${n}</button>`).join('')}
+        <select id="exFCat" aria-label="Категория"><option value="">Все категории</option>${Exp.CATS.map(c => `<option value="${c.code}"${expFilter.cat === c.code ? ' selected' : ''}>${c.icon} ${esc(c.name)}</option>`).join('')}</select>
+        ${cities.length > 1 ? `<select id="exFCity" aria-label="Город"><option value="">Все города</option>${cities.map(c => `<option${expFilter.city === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}
+        <select id="exFPay" aria-label="Оплата"><option value="">Любая оплата</option>${Object.entries(Exp.PAY).map(([k, n]) => `<option value="${k}"${expFilter.pay === k ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+    </div>
+    <div id="exList">${!all.some(e => !e.deleted) ? `<div class="tc-card ex-empty"><b>Добавьте первый расход</b><span class="tc-sub">Кнопка ＋ внизу: сумма → категория → сохранить.</span></div>`
+      : !list.length ? '<p class="tc-empty">Ничего не нашлось.</p>'
+      : days.map(d => { const xs = list.filter(e => e.date === d);
+        return `<h3 class="ex-day">${label(d)}<span>${f(xs.reduce((s, e) => s + Exp.inCur(e, cur), 0))}</span></h3><div class="tc-group">${xs.map(e => { const c = Exp.cat(e.cat);
+          const second = e.cat === 'transport' && (e.from || e.to) ? `${e.from || '…'} → ${e.to || '…'}` : e.title;
+          return `<button type="button" class="ex-item" data-exid="${esc(e.id)}"><i style="background:${c.color}22">${c.icon}</i>
+            <span><b>${esc(second || c.name)}</b><small>${esc([second ? c.name : '', e.city, Exp.PAY[e.pay], partnerOf() && e.member && e.member !== Api.me().id ? (memberOf(e.member) || {}).name : ''].filter(Boolean).join(' · '))}</small></span>
+            <em>${esc(Exp.fmt(e.amount, e.currency))}${e.currency !== cur ? `<small>${esc(f(Exp.inCur(e, cur)))}</small>` : ''}</em></button>`; }).join('')}</div>`; }).join('')}</div>
+    <div class="tc-actions two ex-tools"><button type="button" class="tc-btn" data-exset>${icon('gear')}Бюджет и курсы</button><button type="button" class="tc-btn" id="exExport">${icon('share')}Экспорт CSV</button></div>
+  </section>`;
+}
+function wireMoney(root) {
+  root.querySelectorAll('[data-showcur]').forEach(b => b.addEventListener('click', () => { expPut({ cur: b.dataset.showcur }); renderShell(); }));
+  root.querySelectorAll('[data-exset]').forEach(b => b.addEventListener('click', openExpSettings));
+  root.querySelectorAll('[data-period]').forEach(b => b.addEventListener('click', () => { expFilter.period = b.dataset.period; renderShell(); }));
+  const sel = (id, k) => { const x = root.querySelector(id); if (x) x.addEventListener('change', () => { expFilter[k] = x.value; renderShell(); }); };
+  sel('#exFCat', 'cat'); sel('#exFCity', 'city'); sel('#exFPay', 'pay');
+  const q = root.querySelector('#exQ'); if (q) q.addEventListener('input', () => {
+    expFilter.q = q.value; const box = root.querySelector('#exList'), tmp = document.createElement('div'); tmp.innerHTML = moneyHTML();
+    box.innerHTML = tmp.querySelector('#exList').innerHTML; wireItems(root);
+  });
+  wireItems(root);
+  const ex = root.querySelector('#exExport'); if (ex) ex.addEventListener('click', () => expFile(Exp.csv(myExpenses(), tripStart()), 'expenses.csv', 'text/csv'));
+}
+const wireItems = root => root.querySelectorAll('[data-exid]').forEach(b => b.addEventListener('click', () => {
+  const e = ExpStore.all().find(x => x.id === b.dataset.exid); if (!e) return;
+  const me = typeof Api !== 'undefined' && Api.me();
+  if (me && e.member && e.member !== me.id) { expToast('Это расход ' + ((memberOf(e.member) || {}).name || 'партнёра') + ' — правит он сам'); return; }
+  openAdd(e);
+}));
+function expFile(text, name, type) {
+  const file = new File([text], name, { type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: name }).catch(() => {}); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ---------- settings: budget, cash, rates, «считать вместе с», backup ---------- */
+function openExpSettings() {
+  const s = expSet(), r = expRates(), me = typeof Api !== 'undefined' && Api.me();
+  const ms = me ? ((Api.state() || {}).members || []).filter(m => m.id !== me.id) : [];
+  const mine = me && ((Api.state() || {}).members || []).find(m => m.id === me.id);
+  const p = partnerOf();
+  sheet('Бюджет и курсы', `<div class="tc-form">
+      ${fld('exBudget', 'Бюджет поездки, ¥', s.budget || '', 'number', 'inputmode="numeric" min="0" step="1000"')}
+      ${fld('exCash', 'Наличные на старте, ¥', s.cash || '', 'number', 'inputmode="numeric" min="0" step="1000"')}
+      <div class="tc-form2">${fld('exKzt', '1 ¥ = ₸', r.KZT, 'number', 'inputmode="decimal" min="0" step="0.01"')}${fld('exUsd', '1 ¥ = $', r.USD, 'number', 'inputmode="decimal" min="0" step="0.0001"')}</div>
+      <p class="tc-foot">Курс сохраняется в каждом расходе: старые суммы не пересчитываются.</p></div>
+    ${me ? `<span class="tc-sech">Считать вместе с</span>
+      <div class="tc-group"><label class="tc-act"><span>Только я</span><input type="radio" name="exPartner" value=""${!mine || !mine.partner ? ' checked' : ''}></label>
+      ${ms.map(m => `<label class="tc-act">${faceHTML(m, true)}<span>${esc(m.name)}<small>${m.partner === me.id ? 'выбрал(а) вас' : ''}</small></span>
+        <input type="radio" name="exPartner" value="${esc(m.id)}"${mine && mine.partner === m.id ? ' checked' : ''}></label>`).join('')}</div>
+      <p class="tc-foot">${p ? `Вы и ${esc(p.name)} видите расходы друг друга и общий бюджет.` : 'Общие расходы и бюджет — когда вы выбрали друг друга. Группа видит только итоги.'}</p>` : ''}
+    <span class="tc-sech">Данные</span>
+    <div class="tc-group"><button type="button" class="tc-act" id="exBackup">${icon('share')}<span>Резервная копия<small>файл со всеми расходами (JSON)</small></span></button>
+      <label class="tc-act">${icon('clip')}<span>Восстановить из копии<small>дубли не создаются</small></span><input type="file" id="exRestore" accept="application/json,.json" hidden></label></div>
+    <p class="tc-foot" id="exSetMsg" role="status"></p>
+    <button type="button" class="tc-btn primary wide" id="exSetSave">Сохранить</button>`, m => {
+    const v = id => parseFloat(String(m.querySelector('#' + id).value).replace(',', '.'));
+    m.querySelector('#exSetSave').addEventListener('click', () => {
+      const ok = x => Number.isFinite(x) && x > 0;
+      expPut({ budget: ok(v('exBudget')) ? v('exBudget') : 0, cash: ok(v('exCash')) ? v('exCash') : 0,
+               rates: { KZT: ok(v('exKzt')) ? v('exKzt') : r.KZT, USD: ok(v('exUsd')) ? v('exUsd') : r.USD } });
+      const pr = m.querySelector('input[name="exPartner"]:checked');
+      if (me && pr && (pr.value || null) !== ((mine && mine.partner) || null)) {
+        const next = pr.value || null;
+        Api.call('set_partner', { p_member: next }, st => { const x = (st.members || []).find(y => y.id === me.id); if (x) x.partner = next; });
+      }
+      closeSheet(); renderShell();
+    });
+    m.querySelector('#exBackup').addEventListener('click', () => expFile(JSON.stringify({ app: 'japan2026', kind: 'expenses', trip: T.id || '',
+      at: new Date().toISOString(), settings: expSet(), expenses: myExpenses() }, null, 1), 'expenses-backup.json', 'application/json'));
+    m.querySelector('#exRestore').addEventListener('change', ev => {
+      const fl = ev.target.files && ev.target.files[0]; if (!fl) return;
+      fl.text().then(txt => {
+        let j; try { j = JSON.parse(txt); } catch (e) { m.querySelector('#exSetMsg').textContent = 'Это не файл резервной копии.'; return; }
+        if (!j || j.kind !== 'expenses' || !Array.isArray(j.expenses)) { m.querySelector('#exSetMsg').textContent = 'В файле нет расходов.'; return; }
+        const r2 = Exp.merge(ExpStore.all(), j.expenses);
+        r2.list.forEach(e => { const was = ExpStore.all().find(x => x.id === e.id); if (was !== e) expSave({ ...e, synced: false }, true); });
+        m.querySelector('#exSetMsg').textContent = `Добавлено ${r2.added}, обновлено ${r2.updated}, дубли пропущены.`;
+        renderShell();
+      });
+    });
+  });
+}
+
+/* «#add=…» from an Apple Pay shortcut: complete → saved at once; otherwise quick add opens filled in */
+function expFromLink() {
+  const L = Exp.fromLink(location.hash); if (!L) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (L.go && L.amount != null && L.cat) {
+    const e = Exp.make({ amount: L.amount, currency: L.currency, cat: L.cat, title: L.title, pay: L.pay, date: tripToday(), city: cityOn(tripToday()) }, expRates());
+    expSave(e); go('stats');
+    expToast(`✓ ${Exp.fmt(e.amount, e.currency)} · ${Exp.cat(e.cat).name} добавлено`, e.id);
+  } else openAdd({ amount: L.amount, currency: L.currency, cat: L.cat, title: L.title, pay: L.pay });
+  return true;
+}
 
 /* ---------- ⚙ «Моя поездка» and the editors, as bottom sheets ---------- */
 const CAT = { transport: 'Транспорт', activity: 'Место', event: 'Событие', food: 'Еда',
@@ -7951,12 +8458,15 @@ function startGroup() {
   if (!asked || INVITE) openLogin();
 }
 startGroup();
-window.addEventListener('japan2026:group', () => { autoSyncPlan(); const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
+window.addEventListener('japan2026:group', () => { autoSyncPlan(); expSync(); const sh = document.getElementById('tcSheet'); if (!sh || sh.hidden) renderShell(); });
 // installed on the Home Screen: ask Safari to keep the tickets and the trip copy
 if (Ios.standalone() && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // '#map' in the link opens straight onto the map (also used by the map tests)
-const DEEP = /^#(tab|prep|task)=/.test(location.hash);          // a deep link always opens the app screen
-if ((S.open === false && !DEEP) || location.hash === '#map') document.getElementById('today').hidden = true; else { renderShell(); handleDeepLink(); }
+const DEEP = /^#(tab|prep|task|add)=/.test(location.hash);          // a deep link always opens the app screen
+if ((S.open === false && !DEEP) || location.hash === '#map') document.getElementById('today').hidden = true; else { renderShell(); if (!expFromLink()) handleDeepLink(); }
+/* expenses: read from the phone's database, then exchanged with the group whenever the group state changes */
+ExpStore.load();
+window.addEventListener('japan2026:exp', () => { expSync(); renderShell(); });
 setInterval(() => {
   const a = document.activeElement;
   if (document.getElementById('today').hidden) return;
@@ -7974,7 +8484,7 @@ window.addEventListener('japan2026:wx', renderShell);
 window.addEventListener('japan2026:tick', renderShell);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderShell(); clearBadge(); } });
 clearBadge();
-if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings });
+if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings, ExpStore, Exp });
 
 })();</script>
 </body>

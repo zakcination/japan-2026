@@ -510,3 +510,69 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-fday > summary small { color: var(--sec); font: 400 min(0.8235rem, 19.6px)/1.2 var(--sf); }
 .tc-fday-all { flex: 0 0 auto; min-width: 52px; min-height: 44px; display: grid; place-items: center; }
 .tc-fday .tc-group { margin: 0 8px 8px; }
+
+/* ＋ in the tab bar: the one big action */
+.tc-tab-add { align-self: start; justify-self: center; margin-top: 4px; width: 56px; height: 44px; border: 0; border-radius: 16px;
+  background: var(--tint); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 14px rgba(228,0,43,.3); }
+.tc-tab-add .tc-ic { width: 28px; height: 28px; stroke-width: 2.6; }
+.tc-tab-add:active { transform: scale(.94); }
+/* quick add */
+.ex-add { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ex-add [hidden], .ex-dash [hidden] { display: none !important; }
+.ex-amount { display: flex; align-items: baseline; gap: 6px; padding: 8px 12px; border-radius: 18px; background: var(--card); }
+.ex-amount b { font: 700 36px/1 var(--rd); color: var(--sec); }
+.ex-amount input { flex: 1; min-width: 0; width: 100%; border: 0; background: none; color: var(--text); font: 700 48px/1.1 var(--rd); font-variant-numeric: tabular-nums; outline: none; }
+.ex-curs button, .ex-pay button, .ex-subs button, .ex-chips button { min-height: 44px; border: 0; border-radius: 10px; background: none; color: var(--text); font: 600 min(0.8824rem, 21px)/1 var(--sf); cursor: pointer; }
+.ex-curs, .ex-pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 12px; background: var(--seg); }
+.ex-curs button[aria-pressed="true"], .ex-pay button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+.ex-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.ex-cat { min-height: 64px; border: 0; border-radius: 14px; background: var(--card); color: var(--text); display: grid; justify-items: center; align-content: center; gap: 4px; padding: 6px 4px; cursor: pointer; }
+.ex-cat i { font: normal 24px/1 "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+.ex-cat span { font: 600 min(0.7647rem, 18px)/1.1 var(--sf); }
+.ex-cat[aria-pressed="true"] { box-shadow: inset 0 0 0 2.5px var(--c); background: color-mix(in srgb, var(--c) 12%, var(--card)); }
+.ex-subs { display: flex; flex-wrap: wrap; gap: 6px; }
+.ex-subs button { padding: 0 12px; background: var(--card); }
+.ex-subs button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--tint); }
+.ex-more[open] { padding-bottom: 14px; }
+.ex-save { min-height: 56px; font-size: 18px; }
+.ex-save:disabled { opacity: .45; }
+.ex-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-b, 0px)); z-index: 3300; display: flex; align-items: center; gap: 14px;
+  max-width: calc(100% - 32px); padding: 12px 16px; border-radius: 16px; background: #1C1C1E; color: #fff; font: 600 15px/1.3 var(--sf); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+.ex-toast[hidden] { display: none; }
+.ex-toast button { min-height: 44px; border: 0; background: none; color: #FFCC00; font: 700 15px/1 var(--sf); cursor: pointer; }
+/* «Деньги» */
+.ex-dash { display: grid; gap: 12px; }
+.ex-budget { display: grid; gap: 10px; }
+.ex-big b { display: block; font: 800 40px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-bar { height: 10px; border-radius: 5px; background: var(--seg); overflow: hidden; }
+.ex-bar i { display: block; height: 100%; border-radius: 5px; background: var(--ok); }
+.ex-budget.warn .ex-bar i { background: #FFB800; } .ex-budget.bad .ex-bar i { background: var(--bad); }
+.ex-row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font: 500 min(0.7647rem, 18px)/1.2 var(--sf); color: var(--sec); }
+.ex-row3 b { display: block; color: var(--text); font: 700 min(0.9412rem, 22px)/1.2 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.ex-tiles .tc-card { display: grid; gap: 4px; }
+.ex-tiles b { font: 700 24px/1.1 var(--rd); font-variant-numeric: tabular-nums; }
+.ex-tiles small { color: var(--sec); }
+.ex-break { display: grid; gap: 8px; }
+.ex-brow { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; font: 500 min(0.8824rem, 21px)/1.2 var(--sf); }
+.ex-brow span { display: flex; align-items: center; gap: 6px; } .ex-brow i { font-style: normal; }
+.ex-brow b { font-variant-numeric: tabular-nums; }
+.ex-brow em { position: absolute; left: 0; bottom: -3px; height: 3px; border-radius: 2px; background: var(--tint); opacity: .7; }
+.ex-filters { display: grid; gap: 8px; }
+.ex-filters input[type=search] { min-height: 44px; border: 0; border-radius: 12px; padding: 0 14px; background: var(--card); color: var(--text); font: 400 min(1rem, 24px)/1 var(--sf); }
+.ex-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.ex-chips::-webkit-scrollbar { display: none; }
+.ex-chips button { flex: 0 0 auto; padding: 0 14px; background: var(--card); }
+.ex-chips button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.ex-chips select { flex: 0 0 auto; min-height: 44px; border: 0; border-radius: 10px; padding: 0 10px; background: var(--card); color: var(--text); font: 600 min(0.8824rem, 21px)/1 var(--sf); }
+.ex-day { display: flex; justify-content: space-between; margin: 8px 4px 4px; font: 700 min(0.8824rem, 21px)/1.2 var(--sf); color: var(--sec); }
+.ex-item { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px; border: 0; border-top: .5px solid var(--sep); background: none; color: var(--text); text-align: left; cursor: pointer; }
+.ex-item:first-child { border-top: 0; }
+.ex-item > i { flex: 0 0 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 20px; }
+.ex-item > span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ex-item > span b, .ex-item > span small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-item > span small { color: var(--sec); font: 400 min(0.8235rem, 19.6px)/1.2 var(--sf); }
+.ex-item > em { font: 700 min(1rem, 24px)/1.2 var(--rd); font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+.ex-item > em small { display: block; color: var(--sec); font: 500 12px/1.2 var(--sf); }
+.ex-empty { display: grid; gap: 4px; }
+.ex-tools .tc-btn { gap: 6px; }
