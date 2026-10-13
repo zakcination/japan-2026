@@ -201,6 +201,7 @@
      "to": "Ханэда T3",
      "bk": "flight_in",
      "note": "Сразу: наличные в банкомате 7-Bank, настроить Suica в Wallet.",
+     "kzKey": "Haneda Airport (HND)",
      "loc": "羽田空港",
      "locLang": "ja",
      "walk": 0,
@@ -519,6 +520,7 @@
      "mode": null,
      "bk": "h_kyoto",
      "note": "Отель ещё не выбран. Предупредить о позднем заезде.",
+     "kzKey": "Kyoto hotel area – Kyoto Station",
      "buf": 0
     },
     {
@@ -533,6 +535,7 @@
      "st": "flex",
      "cost": 750,
      "note": "",
+     "kzKey": "Kyoto hotel area – Kyoto Station",
      "walk": 0,
      "ride": 0,
      "buf": 0
@@ -569,6 +572,7 @@
      "to": "Сага-Арасияма",
      "walk": 10,
      "cost": 240,
+     "kzKey": "Arashiyama Bamboo Grove",
      "loc": "嵐山 竹林の小径",
      "locLang": "ja",
      "ride": 0,
@@ -587,6 +591,7 @@
      "walk": 10,
      "km": 1.5,
      "note": "Восход ~06:05 — до 8:00 в роще почти никого.",
+     "kzKey": "Arashiyama Bamboo Grove",
      "loc": "嵐山 竹林の小径",
      "locLang": "ja",
      "ride": 0,
@@ -606,6 +611,7 @@
      "cost": 750,
      "km": 0.8,
      "note": "Кафе в это время почти закрыты — завтрак из конбини на набережной.",
+     "kzKey": "Togetsukyo Bridge",
      "loc": "渡月橋",
      "locLang": "ja",
      "ride": 0,
@@ -713,6 +719,7 @@
      "ride": 15,
      "mode": "Метро / такси",
      "note": "Ранний подъём — час отдыха перед вечером.",
+     "kzKey": "Kyoto hotel area – Kyoto Station",
      "walk": 0,
      "buf": 0
     },
@@ -729,6 +736,7 @@
      "ride": 15,
      "walk": 10,
      "km": 2.0,
+     "kzKey": "Gion / Hanamikoji",
      "loc": "祇園・花見小路",
      "locLang": "ja",
      "buf": 0
@@ -744,6 +752,7 @@
      "cat": "food",
      "st": "planned",
      "cost": 4000,
+     "kzKey": "Gion / Hanamikoji",
      "loc": "祇園・花見小路",
      "locLang": "ja",
      "walk": 0,
@@ -763,6 +772,7 @@
      "walk": 5,
      "mode": "Метро / такси",
      "cost": 250,
+     "kzKey": "Kyoto hotel area – Kyoto Station",
      "ride": 0,
      "buf": 0
     }
@@ -809,6 +819,7 @@
      "to": "Инари",
      "walk": 10,
      "cost": 150,
+     "kzKey": "Fushimi Inari Taisha",
      "loc": "伏見稲荷大社",
      "locLang": "ja",
      "ride": 0,
@@ -826,6 +837,7 @@
      "st": "planned",
      "km": 4.0,
      "note": "Подъём до вершины и обратно ~2 ч. Можно повернуть на полпути у смотровой Ёцуцудзи.",
+     "kzKey": "Fushimi Inari Taisha",
      "loc": "伏見稲荷大社",
      "locLang": "ja",
      "walk": 0,
@@ -843,6 +855,7 @@
      "cat": "food",
      "st": "planned",
      "cost": 1000,
+     "kzKey": "Fushimi Inari Taisha",
      "loc": "伏見稲荷大社",
      "locLang": "ja",
      "walk": 0,
@@ -865,6 +878,7 @@
      "cost": 1250,
      "km": 1.5,
      "note": "Вход ¥500 на человека.",
+     "kzKey": "Kiyomizu-dera",
      "loc": "清水寺",
      "locLang": "ja",
      "buf": 0
@@ -882,6 +896,7 @@
      "walk": 5,
      "cost": 750,
      "km": 1.0,
+     "kzKey": "Sannenzaka / Ninenzaka",
      "loc": "産寧坂（三年坂）・二寧坂",
      "locLang": "ja",
      "ride": 0,
@@ -899,6 +914,7 @@
      "st": "planned",
      "walk": 10,
      "cost": 1500,
+     "kzKey": "Gion / Hanamikoji",
      "loc": "祇園・花見小路",
      "locLang": "ja",
      "ride": 0,
@@ -937,6 +953,7 @@
      "ride": 25,
      "mode": "Такси",
      "note": "",
+     "kzKey": "Kyoto hotel area – Kyoto Station",
      "walk": 0,
      "buf": 0
     },
@@ -1295,6 +1312,7 @@
      "cost": 200,
      "bk": "h_tokyo",
      "note": "Уэно / Окатимати или Асакуса — отель ещё не выбран.",
+     "kzKey": "Tokyo hotel area – Asakusa",
      "buf": 0
     },
     {
@@ -1308,6 +1326,7 @@
      "cat": "konbini",
      "st": "flex",
      "cost": 750,
+     "kzKey": "Tokyo hotel area – Asakusa",
      "walk": 0,
      "ride": 0,
      "buf": 0
@@ -1341,6 +1360,7 @@
      "st": "planned",
      "walk": 10,
      "km": 1.5,
+     "kzKey": "Senso-ji / Asakusa",
      "loc": "浅草寺",
      "locLang": "ja",
      "ride": 0,
@@ -1357,6 +1377,7 @@
      "cat": "food",
      "st": "planned",
      "cost": 1000,
+     "kzKey": "Senso-ji / Asakusa",
      "loc": "浅草寺",
      "locLang": "ja",
      "walk": 0,
@@ -1378,6 +1399,7 @@
      "mode": "Метро Гиндза",
      "cost": 200,
      "km": 2.5,
+     "kzKey": "Ueno / Ameyoko",
      "loc": "アメ横",
      "locLang": "ja",
      "buf": 0
@@ -1393,6 +1415,7 @@
      "cat": "food",
      "st": "planned",
      "cost": 1250,
+     "kzKey": "Ueno / Ameyoko",
      "loc": "アメ横",
      "locLang": "ja",
      "walk": 0,
@@ -1446,6 +1469,7 @@
      "st": "planned",
      "ride": 10,
      "cost": 2000,
+     "kzKey": "Tokyo hotel area – Asakusa",
      "walk": 0,
      "buf": 0
     }
@@ -1535,6 +1559,7 @@
      "walk": 10,
      "mode": "JR",
      "cost": 450,
+     "kzKey": "Tokyo hotel area – Asakusa",
      "ride": 0,
      "buf": 0
     }
@@ -1570,6 +1595,7 @@
      "mode": "Метро / JR",
      "cost": 250,
      "km": 2.0,
+     "kzKey": "Meiji Jingu",
      "loc": "明治神宮",
      "locLang": "ja",
      "buf": 0
@@ -1586,6 +1612,7 @@
      "st": "planned",
      "walk": 10,
      "km": 2.0,
+     "kzKey": "Harajuku / Cat Street",
      "loc": "原宿・キャットストリート",
      "locLang": "ja",
      "ride": 0,
@@ -1647,6 +1674,7 @@
      "cost": 3400,
      "bk": "sky",
      "note": "Продажа открывается 10.10 в 20:00 по Алматы. Закат ~16:50.",
+     "kzKey": "Shibuya Sky",
      "loc": "渋谷スカイ（渋谷スクランブルスクエア）",
      "locLang": "ja"
     },
@@ -1662,6 +1690,7 @@
      "st": "planned",
      "walk": 10,
      "cost": 2000,
+     "kzKey": "Shibuya Sky",
      "loc": "渋谷スカイ（渋谷スクランブルスクエア）",
      "locLang": "ja",
      "ride": 0,
@@ -1774,6 +1803,7 @@
      "mode": "Метро",
      "km": 1.5,
      "note": "Tax-free от ¥5 000 в один чек, паспорт.",
+     "kzKey": "UNIQLO TOKYO — Ginza",
      "loc": "ユニクロ 銀座",
      "locLang": "ja",
      "buf": 0
@@ -1807,6 +1837,7 @@
      "st": "planned",
      "ride": 20,
      "cost": 2000,
+     "kzKey": "Tokyo hotel area – Asakusa",
      "walk": 0,
      "buf": 0
     }
@@ -1849,6 +1880,7 @@
      "place": "tokyo_h",
      "cat": "hotel",
      "st": "planned",
+     "kzKey": "Tokyo hotel area – Asakusa",
      "walk": 0,
      "ride": 0,
      "buf": 0
@@ -1865,6 +1897,7 @@
      "st": "flex",
      "walk": 10,
      "km": 2.0,
+     "kzKey": "Senso-ji / Asakusa",
      "loc": "浅草寺",
      "locLang": "ja",
      "ride": 0,
@@ -1881,6 +1914,7 @@
      "cat": "food",
      "st": "planned",
      "cost": 1500,
+     "kzKey": "Senso-ji / Asakusa",
      "loc": "浅草寺",
      "locLang": "ja",
      "walk": 0,
@@ -1915,6 +1949,7 @@
      "cat": "hotel",
      "st": "planned",
      "ride": 10,
+     "kzKey": "Tokyo hotel area – Asakusa",
      "walk": 0,
      "buf": 0
     },
@@ -1934,6 +1969,7 @@
      "walk": 5,
      "buf": 15,
      "cost": 600,
+     "kzKey": "Haneda Airport (HND)",
      "loc": "羽田空港",
      "locLang": "ja",
      "ride": 0
@@ -1948,6 +1984,7 @@
      "place": "hnd",
      "cat": "routine",
      "st": "planned",
+     "kzKey": "Haneda Airport (HND)",
      "loc": "羽田空港",
      "locLang": "ja",
      "walk": 0,
@@ -1970,6 +2007,7 @@
      "to": "—",
      "bk": "flight_out",
      "note": "Впишите свой рейс и время.",
+     "kzKey": "Haneda Airport (HND)",
      "loc": "羽田空港",
      "locLang": "ja",
      "walk": 0,
@@ -2097,5 +2135,5 @@
   }
  ],
  "id": "template",
- "updated": "2026-10-06T17:31+05:00"
+ "updated": "2026-10-14T00:00+05:00"
 }

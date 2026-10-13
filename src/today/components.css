@@ -576,3 +576,36 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .ex-item > em small { display: block; color: var(--sec); font: 500 12px/1.2 var(--sf); }
 .ex-empty { display: grid; gap: 4px; }
 .ex-tools .tc-btn { gap: 6px; }
+
+/* ---------- «Степной след» in the stop sheet ---------- */
+.tc-sheet-bg { --kz-bg: #EEF7F1; --kz-line: #CBE4D6; --kz-fg: #17663F; }
+.tc-sheet-bg[data-th="dark"] { --kz-bg: #10201A; --kz-line: #204034; --kz-fg: #7FD3A6; }
+.tc-kz summary { list-style: none; display: flex; align-items: center; min-height: 54px; padding: 8px 16px; cursor: pointer;
+  font: 600 min(0.9412rem, 22.4px)/1.25 var(--sf); color: var(--kz-fg); }
+.tc-kz summary::-webkit-details-marker { display: none; }
+.tc-kz summary::after { content: "›"; margin-left: auto; font-size: 1.4em; color: var(--sec); transition: transform .15s; }
+.tc-kz[open] summary::after { transform: rotate(90deg); }
+.tc-kzbody { display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 16px; border-top: 1px solid var(--sep); }
+.tc-kzimg { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 14px; margin-top: 12px; }
+.tc-kzi b, .tc-kzgt { display: block; font: 650 min(0.9412rem, 22.4px)/1.25 var(--sf); color: var(--text); margin-top: 6px; }
+.tc-kzi p, .tc-kzg p { margin: 4px 0 0; font: 400 min(0.8824rem, 21px)/1.45 var(--sf); color: var(--text); }
+.tc-kzlvl { display: inline-block; font: 650 min(0.7059rem, 16.8px)/1 var(--sf); padding: 4px 8px; border-radius: 999px;
+  background: var(--kz-bg); color: var(--kz-fg); border: 1px solid var(--kz-line); }
+.tc-kzlvl.joke { background: var(--note); color: var(--text); border-color: transparent; }
+.tc-kzlvl.note { background: var(--note); color: var(--late); border-color: transparent; }
+.tc-kzsrc { display: inline-flex; align-items: center; min-height: 44px; font: 600 min(0.8235rem, 19.6px)/1 var(--sf); color: var(--tint); text-decoration: none; }
+.tc-kzg { background: var(--kz-bg); border: 1px dashed var(--kz-line); border-radius: 14px; padding: 12px 14px; }
+.tc-kzg .tc-kzgt { margin-top: 0; font-size: min(0.8235rem, 19.6px); color: var(--kz-fg); }
+.tc-kzopts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.tc-kzab { flex: 1 1 100%; font: 400 min(0.8824rem, 21px)/1.4 var(--sf); }
+.tc-kzbtn { min-height: 44px; padding: 8px 16px; border: 1px solid var(--kz-line); border-radius: 12px; background: var(--card);
+  color: var(--text); font: 600 min(0.8824rem, 21px)/1.2 var(--sf); cursor: pointer; text-align: left; }
+.tc-kzbtn.pick { background: var(--kz-fg); color: var(--kz-bg); border-color: var(--kz-fg); }
+.tc-kzbtn:disabled { cursor: default; }
+.tc-kzbtn:disabled:not(.pick) { opacity: .55; }
+.tc-kzrev { padding-top: 8px; border-top: 1px solid var(--kz-line); }
+.tc-kzrev[hidden] { display: none; }
+.tc-kzrev.good { color: var(--kz-fg); }
+.tc-kzspot { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 6px; cursor: pointer;
+  font: 600 min(0.8824rem, 21px)/1.2 var(--sf); }
+.tc-kzspot input { width: 26px; height: 26px; accent-color: var(--kz-fg); }

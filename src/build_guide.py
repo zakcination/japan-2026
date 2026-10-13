@@ -1694,6 +1694,9 @@ map.on('popupopen', e => {
   if (e.popup._adjustPan) e.popup._adjustPan();
 });
 
+/* the TODAY app ticks the same tasks (same key); it tells the map to re-read them */
+window.addEventListener('kzdone-changed', () => { kzLoadDone(); renderBingo(); });
+
 function boot() {
   map.invalidateSize({ animate: false });
   kzLoadDone();
@@ -1715,7 +1718,7 @@ window.addEventListener('orientationchange', () => setTimeout(boot, 250));
 """
 
 # The TODAY screen ships as modules under src/today/, glued into one closure in this order.
-TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "expenses.js", "group/model.js", "group/proposals.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js",
+TODAY_MODULES = ["core.js", "flights.js", "prep.js", "store.js", "trips.js", "expenses.js", "group/model.js", "group/proposals.js", "group/api.js", "ios.js", "ui/shell.js", "ui/flights.js", "ui/weather.js", "ui/prep.js", "ui/now.js", "ui/day.js", "ui/kz.js",
                  "ui/bookings.js", "ui/stats.js", "ui/money.js", "ui/settings.js", "group/faces.js", "group/ui_login.js", "group/ui_join.js", "group/ui_tasks.js", "group/ui_propose.js", "group/ui_attach.js", "group/ui_push.js", "vendor/qrcode.js", "group/ui_invite.js", "boot.js"]
 TODAY_STYLES = ["theme.css", "components.css"]
 

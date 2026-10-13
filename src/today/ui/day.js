@@ -107,7 +107,8 @@ function openStop(day, id) {
       ${e.delay ? `<button type="button" class="tc-tile" data-delay="0">${icon('clock')}сброс</button>` : ''}
       ${canEdit ? `<button type="button" class="tc-tile" data-edit>${icon('edit')}Изменить</button>` : ''}
     </div>
-    <div class="tc-group">${act('cal', 'Весь день — в Календарь', 'с напоминаниями «пора выходить»', 'data-cal')}</div>`,
+    <div class="tc-group">${act('cal', 'Весь день — в Календарь', 'с напоминаниями «пора выходить»', 'data-cal')}</div>
+    ${kzCardHTML(e)}`,
   m => {
     m.querySelectorAll('[data-delay]').forEach(b => b.addEventListener('click', () => {
       const by = +b.dataset.delay;
@@ -118,6 +119,7 @@ function openStop(day, id) {
     if (sk) sk.addEventListener('click', () => { if (S.skip[id]) delete S.skip[id]; else S.skip[id] = true; save(); closeSheet(); renderShell(); });
     const ed = m.querySelector('[data-edit]'); if (ed) ed.addEventListener('click', () => { closeSheet(); openEditor(day, id); });
     if (typeof wireStopJoin === 'function') wireStopJoin(m, day, e);
+    kzWire(m, e);
     const lc = m.querySelector('[data-local]'); if (lc) lc.addEventListener('click', () => { closeSheet(); showLocal(e); });
     const tk = m.querySelector('[data-ticket]'); if (tk) tk.addEventListener('click', () => { closeSheet(); showTicket(tk.dataset.ticket); });
     m.querySelector('[data-cal]').addEventListener('click', () => Ios.calendarForDay(day));

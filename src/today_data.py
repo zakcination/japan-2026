@@ -37,6 +37,19 @@ def resolve(x, personal):
     if isinstance(x, (list, tuple)):
         return type(x)(resolve(v, personal) for v in x) if isinstance(x, list) else tuple(resolve(v, personal) for v in x)
     return x
+# «Степной след»: the stop carries the map label of its place when src/kz_facts.json has facts for
+# it; the facts themselves (and the illustration) stay in the map payload, DATA.places, once.
+_KZ_EMOJI = ("📍", "🏟", "💴", "🏪", "🚌", "🌿", "🍜", "🛍", "🏨", "✈️", "🍺", "🍶")
+
+
+def _kz_label(name):
+    for e in _KZ_EMOJI:
+        name = name.replace(e, "")
+    return name.strip()
+
+
+_KZ_PLACES = {_kz_label(k) for k, v in json.loads((pathlib.Path(__file__).resolve().parent / "kz_facts.json")
+                                                  .read_text(encoding="utf-8"))["places"].items() if v.get("facts")}
 DATES = {n: f"2026-10-{16 + n}" for n in range(1, 13)}       # day 12 (28.10, Shanghai) is our trip only
 
 # place -> (lat, lng, map stop name or None, map category)
@@ -546,6 +559,8 @@ def trip(personal):
             ev = {k: v for k, v in ev.items() if k != "only"}
             lat, lng, stop, mcat = PL[ev["place"]]
             x = dict(id=f'd{d["n"]}e{len(evs)}', lat=lat, lng=lng, **ev)
+            if stop and _kz_label(stop) in _KZ_PLACES:
+                x["kzKey"] = _kz_label(stop)
             if ev["place"] in LOC and ev.get("cat") != "hotel":   # hotels: the address is in the booking
                 v = LOC[ev["place"]]; x["loc"], x["locLang"] = (v, "ja") if isinstance(v, str) else v
             x.setdefault("walk", 0); x.setdefault("ride", 0); x.setdefault("buf", 0)
