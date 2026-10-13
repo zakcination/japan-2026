@@ -357,6 +357,11 @@ class FakeSupabase:
         return copy.deepcopy({"profile": self.ai_profiles.get(me), "feedback": [v for (m, _), v in self.ai_feedback.items() if m == me],
                               "inbox": [x for x in reversed(self.ai_sent) if x["member"] == me][:20]})
 
+    def rpc_ai_journal(self, token, p_days=7):
+        me = self._me(token)
+        if me["role"] != "host": raise RpcError(400, "hosts only")
+        return copy.deepcopy(getattr(self, "ai_log", []))
+
     def rpc_feedback_averages(self, token):
         me = self._me(token)
         by = {}

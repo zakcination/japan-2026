@@ -81,7 +81,7 @@ export const SYSTEM = `Ты — помощник группы из пяти че
 - Формат — простой текст с переносами строк, без Markdown-разметки (никаких **, #, таблиц).
 - Будь честен: если не уверен (часы работы, цены, погода), так и скажи и предложи проверить. Не выдумывай.
 - Время — японское (JST), кроме пунктов с пометкой «время Шанхая».
-- Ничего не меняй сам. Чтобы изменить план или добавить расход, вызови propose_* — у человека появится карточка «Применить / Не надо». Не пиши, что изменение сделано: пиши, что предложил и что нужно нажать «Применить».
+- Ничего не меняй сам. Чтобы изменить план (время, название, заметку, место), отметить дело или бронь сделанной или добавить расход, вызови propose_* — у человека появится карточка «Применить / Не надо». Не пиши, что изменение сделано: пиши, что предложил и что нужно нажать «Применить».
 - Если гость меняет пункт плана группы, это станет предложением хозяевам — скажи об этом. Свои пункты человек меняет сам. Чужой личный пункт изменить нельзя — можно только не идти.
 - Перед переносом убедись, что новое время не пересекается с соседними пунктами (get_day), и учитывай дорогу.
 - Никогда не раскрывай номера билетов, коды бронирования, точный адрес и инструкции заезда в частный дом в Киото — их в твоих данных нет, говори, что они в «Делах» у брони.
@@ -157,11 +157,11 @@ export function tripIndex(st) {
   }
   const parts = (st.parts || []).filter(p => (st.joins || []).some(j => j.member === me.id && j.scope === 'part' && j.ref === p.id && j.mode === 'in')).map(p => str(p.title, 60));
   const done = new Set((st.task_state || []).filter(t => t.done).map(t => t.ref));
-  const bookings = (doc.bookings || []).map(b => ({ id: str(b.id, 40), t: str(b.t, 120), when: cut(redact(b.when), 120), status: b.st === 'fixed' || done.has('bk:' + b.id) ? 'куплено' : 'надо купить',
+  const bookings = (doc.bookings || []).map(b => ({ id: str(b.id, 40), ref: 'bk:' + str(b.id, 40), fixed: b.st === 'fixed', t: str(b.t, 120), when: cut(redact(b.when), 120), status: b.st === 'fixed' || done.has('bk:' + b.id) ? 'куплено' : 'надо купить',
     days: (b.days || []).map(Number).filter(Number.isFinite) }));
   const recipes = (st.recipes || []).map(r => ({ bk: str(r.bk, 40), what: str(r.what, 160), buy_by: str(r.buy_by, 10), opens: str(r.opens_note || r.opens, 60), site: str(r.site, 40),
     price_pp: Number.isFinite(+r.price_pp) ? +r.price_pp : null, tips: cut(redact(r.tips), 240) }));
-  const tasks = (st.tasks || []).map(t => ({ title: str(t.title, 120), due: str(t.due, 10), done: done.has('t:' + t.id) }));
+  const tasks = (st.tasks || []).map(t => ({ ref: 't:' + str(t.id, 60), title: str(t.title, 120), due: str(t.due, 10), done: done.has('t:' + t.id) }));
   return { me: { id: me.id, name: str(me.name, 40), role: me.role === 'host' ? 'host' : 'guest' }, start, days, stops, parts, bookings, recipes, tasks,
            members: (st.members || []).map(m => ({ name: str(m.name, 40), role: m.role === 'host' ? 'хозяин' : 'гость' })) };
 }
@@ -269,6 +269,10 @@ export const TOOLS = [
   { name: 'propose_add_stop', description: 'Предложить новый пункт: по умолчанию в личный план; target "group" — в план группы (у гостя станет предложением хозяевам).',
     input_schema: S({ day_n: { type: 'integer' }, start: T_, end: T_, title: { type: 'string' }, place_name: { type: 'string' },
       lat: { type: 'number' }, lng: { type: 'number' }, note: { type: 'string' }, target: { type: 'string', enum: ['mine', 'group'] } }, ['day_n', 'start', 'end', 'title', 'place_name', 'note']) },
+  { name: 'propose_task_status', description: 'Предложить отметить дело или бронь сделанной (done=true) или вернуть в несделанные (false). ref — из get_bookings: t:… или bk:…. Ничего не меняет до «Применить».',
+    input_schema: S({ ref: { type: 'string' }, done: { type: 'boolean' }, reason: { type: 'string' } }, ['ref', 'done', 'reason']) },
+  { name: 'propose_edit_stop', description: 'Предложить изменить название, заметку или место пункта (время — propose_move_stop). Укажи только то, что меняется. Ничего не меняет до «Применить».',
+    input_schema: S({ stop_id: { type: 'string' }, title: { type: 'string' }, note: { type: 'string' }, place_name: { type: 'string' }, reason: { type: 'string' } }, ['stop_id', 'reason']) },
   { name: 'propose_add_expense', description: 'Предложить записать расход; человек проверит и сохранит его в окне расхода.',
     input_schema: S({ amount: { type: 'number' }, currency: { type: 'string', enum: CURS }, category: { type: 'string', enum: CATS }, title: { type: 'string' } }, ['amount', 'currency', 'category', 'title']) },
 ];
@@ -380,6 +384,32 @@ export function validate(name, input, idx) {
     return { action: { kind: 'add', day_n: n, start: a.start, end: a.end, title: title.v, place: place.v, lat, lng, note: note.v, scope,
       how: scope === 'mine' ? 'save' : role === 'host' ? 'plan' : 'propose' } };
   }
+  if (name === 'propose_task_status') {
+    const ref = String(a.ref || ''), done = a.done;
+    if (typeof done !== 'boolean') return bad('done — true или false.');
+    const t = idx.tasks.find(x => x.ref === ref), b = idx.bookings.find(x => x.ref === ref);
+    if (!t && !b) return bad('Нет такого дела. Возьми ref из get_bookings (t:… или bk:…).');
+    if (b && b.fixed && !done) return bad('Эта бронь уже куплена хозяевами — снять отметку нельзя.');
+    const cur = t ? t.done : b.status === 'куплено';
+    if (cur === done) return bad(done ? 'Это уже отмечено.' : 'Это и так не отмечено.');
+    const reason = text(a.reason, 300, 'reason', false); if (reason.error) return reason;
+    return { action: { kind: 'task', ref, title: t ? t.title : b.t, done, reason: reason.v } };
+  }
+  if (name === 'propose_edit_stop') {
+    const x = idx.stops.get(String(a.stop_id || ''));
+    if (!x) return bad('Нет такого пункта. Возьми id из get_day или find_stops.');
+    if (x.from === 'mine' && !x.own) return bad(`Это личный пункт ${x.owner}: менять может только автор.`);
+    const title = text(a.title, 120, 'title', false), note = text(a.note, 500, 'note', false), place = text(a.place_name, 120, 'place_name', false);
+    const reason = text(a.reason, 300, 'reason', false);
+    const e = title.error || note.error || place.error || reason.error; if (e) return bad(e);
+    const ch = {};
+    if (title.v && title.v !== x.t) ch.t = title.v;
+    if (note.v && note.v !== x.note) ch.note = note.v;
+    if (place.v && place.v !== x.place) ch.pname = place.v;
+    if (!Object.keys(ch).length) return bad('Ничего не меняется — укажи новое название, заметку или место.');
+    return { action: { kind: 'edit', stop_id: x.id, day_n: x.day, title: x.t, changes: ch, reason: reason.v,
+      scope: x.from === 'group' ? 'group' : 'mine', how: x.from !== 'group' ? 'save' : role === 'host' ? 'plan' : 'propose' } };
+  }
   if (name === 'propose_add_expense') {
     if (!CURS.includes(a.currency)) return bad('Валюта — JPY, KZT или USD.');
     if (!CATS.includes(a.category)) return bad('Категория — одна из: ' + CATS.join(', ') + '.');
@@ -428,9 +458,9 @@ export function runTool(name, input, idx, out, extra) {
     return { content: hits.length ? hits.map(x => `День ${x.day}:` + stopLine(x)).join('\n') : 'Ничего не нашлось.' };
   }
   if (name === 'get_bookings') {
-    const b = idx.bookings.map(x => `- ${x.t} · ${x.when} · ${x.status}${x.days.length ? ' · дни ' + x.days.join(',') : ''}`).join('\n');
+    const b = idx.bookings.map(x => `- [${x.ref}] ${x.t} · ${x.when} · ${x.status}${x.days.length ? ' · дни ' + x.days.join(',') : ''}`).join('\n');
     const r = idx.recipes.map(x => `- ${x.what}${x.buy_by ? ' · купить до ' + x.buy_by : ''}${x.opens ? ' · продажи: ' + x.opens : ''}${x.site ? ' · ' + x.site : ''}${x.price_pp ? ' · ¥' + x.price_pp + '/чел' : ''}${x.tips ? ' · ' + x.tips : ''}`).join('\n');
-    const t = idx.tasks.map(x => `- ${x.title}${x.due ? ' · до ' + x.due : ''}${x.done ? ' · сделано' : ''}`).join('\n');
+    const t = idx.tasks.map(x => `- [${x.ref}] ${x.title}${x.due ? ' · до ' + x.due : ''}${x.done ? ' · сделано' : ''}`).join('\n');
     return { content: `Брони:\n${b || '—'}\nКак купить:\n${r || '—'}\nЗадачи:\n${t || '—'}\n(Коды броней и билеты — только в «Делах» у брони.)` };
   }
   if (name === 'app_help') return { content: appHelp(a.topic) };

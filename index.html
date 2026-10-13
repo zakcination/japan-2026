@@ -8939,10 +8939,11 @@ function openAssistant() {
   askRender();
 }
 function askRender() {
-  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Спутник';
-  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : chatHTML()}</div>`, m => {
+  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал вопросов' : 'Спутник';
+  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : chatHTML()}</div>`, m => {
     fullSheet(m);
     m.querySelector('.tc-sheet').classList.toggle('as-chat', ASK.view === 'chat');
+    if (ASK.view === 'journal') { wireJournal(m); return; }
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -9042,6 +9043,28 @@ function chatHeadHTML() {
     <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
     ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
 }
+/* hosts: what people ask (last 7 days) — the hot questions and the tokens, read from ai_journal */
+function journalHTML() {
+  const J = ASK.journal;
+  if (!J) return '<p class="tc-sub" id="asJ">Загружаю…</p><button type="button" class="tc-btn" id="asJBack">Назад к чату</button>';
+  if (J.error) return `<p class="as-note bad">${esc(J.error)}</p><button type="button" class="tc-btn" id="asJBack">Назад к чату</button>`;
+  const rows = J.rows || [], by = {}, words = {};
+  let tin = 0, tout = 0;
+  rows.forEach(r => { by[r.who] = (by[r.who] || 0) + 1; tin += +r.in || 0; tout += +r.out || 0;
+    String(r.q || '').toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, ' ').split(/\s+/).filter(w => w.length > 4).forEach(w => { words[w] = (words[w] || 0) + 1; }); });
+  const top = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  return `<div class="tc-card"><span class="tc-lbl">За 7 дней</span><b>${rows.length} вопрос${rows.length % 10 === 1 && rows.length % 100 !== 11 ? '' : 'ов'} · токены ${tin.toLocaleString('ru-RU')} → ${tout.toLocaleString('ru-RU')}</b>
+      <span class="tc-sub">${Object.entries(by).map(([k, v]) => `${esc(k)} — ${v}`).join(' · ') || 'пока пусто'}</span>
+      ${top.length ? `<span class="tc-sub">Частые слова: ${top.map(([w, n]) => `${esc(w)} (${n})`).join(', ')}</span>` : ''}</div>
+    <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 16).replace('T', ' '))} UTC · ${esc(r.kind || '')}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
+    <button type="button" class="tc-btn" id="asJBack">Назад к чату</button>`;
+}
+function wireJournal(m) {
+  m.querySelector('#asJBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+  if (ASK.journal) return;
+  Api.run('ai_journal', { p_days: 7 }).then(r => { ASK.journal = { rows: Array.isArray(r) ? r : [] }; if (ASK.view === 'journal') askRender(); })
+    .catch(e => { ASK.journal = { error: 'Журнал недоступен' + (e && e.status ? ` (${e.status})` : '') + ' — выполните обновлённую миграцию в Supabase.' }; if (ASK.view === 'journal') askRender(); });
+}
 function chatHTML() {
   return `${chatHeadHTML()}
     <div id="asRate">${rateHTML()}</div>
@@ -9064,7 +9087,8 @@ function logHTML() {
   if (!ASK.turns.length) { const h = new Date(Date.now() + 9 * 3600e3).getUTCHours(), p = askProfile() || {};
     const hi = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер', who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
     return `<div class="as-hello"><b>${hi}${who ? ', ' + esc(who) : ''}</b><span class="tc-sub">Спросите про план, места, еду, дорогу или деньги — подскажу и, если нужно, предложу правку плана. Ничего не меняется без «Применить».</span>
-      <span class="as-fine">Номера карт, паспорта и коды не пишите.</span></div>`; }
+      <span class="as-fine">Номера карт, паспорта и коды не пишите. Вопросы сохраняются в журнал — его видят хозяева.</span>
+      ${(Api.me() || {}).role === 'host' ? '<button type="button" class="tc-link as-jbtn" id="asJournal">Журнал вопросов за неделю ›</button>' : ''}</div>`; }
   return ASK.turns.map((t, ti) => {
     if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}</p>`;
     if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
@@ -9092,6 +9116,11 @@ function actionText(a) {
   if (a.kind === 'add') { const note = String(a.note || '').trim(), short = note.length > 140 ? note.slice(0, 139) + '…' : note;
     return [`Добавить ${dmOf(a.day_n)} ${a.start}–${a.end}: «${a.title}»${a.place ? ' · ' + a.place : ''}${short ? ' — ' + short : ''}${a.lat != null ? ' · с точкой на карте' : ''}`,
       a.scope === 'mine' ? 'в ваш план' : a.how === 'propose' ? 'предложение хозяевам в план группы' : 'в план группы для всех']; }
+  if (a.kind === 'task') return [`${a.done ? 'Отметить сделанным' : 'Вернуть в несделанные'}: «${a.title}»`, 'в «Делах», только у вас'];
+  if (a.kind === 'edit') { const c = a.changes || {}, parts = [];
+    if (c.t) parts.push(`название → «${c.t}»`); if (c.pname) parts.push(`место → ${c.pname}`); if (c.note) parts.push(`заметка → ${c.note.length > 120 ? c.note.slice(0, 119) + '…' : c.note}`);
+    return [`Изменить «${a.title}» (${dmOf(a.day_n)}): ${parts.join('; ')}`,
+      a.how === 'propose' ? 'станет предложением хозяевам' : a.how === 'plan' ? 'изменит план группы для всех' : 'в вашем плане']; }
   if (a.kind === 'expense') { const c = Exp.cat(a.category);
     return [`Расход: ${Exp.fmt(a.amount, a.currency)} · ${c.icon} ${c.name}${a.title ? ' · ' + a.title : ''}`, 'откроется окно расхода — проверите и сохраните']; }
   return ['Неизвестное действие', ''];
@@ -9117,6 +9146,7 @@ function wireChat(m) {
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
+  const jb = m.querySelector('#asJournal'); if (jb) jb.addEventListener('click', () => { ASK.view = 'journal'; ASK.journal = null; askRender(); });
   m.querySelector('#asEx').addEventListener('click', e => { const ex = e.target.closest('[data-ex]'); if (ex) askSend(ex.dataset.ex); });
   m.querySelector('#asLog').addEventListener('click', e => {
     const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
@@ -9202,6 +9232,12 @@ function askDo(a) {
     ASK.turns.push({ role: 'note', text: 'Открыл расход — проверьте и нажмите «Сохранить».' });
     return '';
   }
+  if (a.kind === 'task') {
+    const ref = String(a.ref || ''), done = a.done === true;
+    if (!/^(t|bk):[\w.-]{1,80}$/.test(ref)) throw new Error('Дело не найдено.');
+    Api.call('set_task_state', { p_ref: ref, p_done: done }, st => { st.task_state = (st.task_state || []).filter(x => x.ref !== ref).concat([{ ref, done }]); });
+    return done ? `Отметил: «${a.title}».` : `Вернул в несделанные: «${a.title}».`;
+  }
   const own = a.stop_id ? (s.my_stops || []).find(x => x.id === a.stop_id) : null;
   const G = s.plan, hit = a.stop_id && G ? Proposals.findEv(G.doc, a.stop_id) : null;
   if (a.kind === 'move') {
@@ -9220,6 +9256,31 @@ function askDo(a) {
     }
     askPropose('time', a.stop_id, hit.d.n, { s: a.start, e: a.end }, a.reason);
     return `Отправил хозяевам предложение: «${hit.e.t}» на ${a.start}–${a.end}. Ответ — в «Делах».`;
+  }
+  if (a.kind === 'edit') {
+    const c = a.changes || {}, ch = {};
+    if (typeof c.t === 'string' && c.t.trim()) ch.t = c.t.trim().slice(0, 120);
+    if (typeof c.note === 'string' && c.note.trim()) ch.note = c.note.trim().slice(0, 500);
+    if (typeof c.pname === 'string' && c.pname.trim()) ch.pname = c.pname.trim().slice(0, 120);
+    if (!Object.keys(ch).length) throw new Error('Нечего менять.');
+    if (own) {
+      if (own.member !== me.id) throw new Error('Это чужой пункт — его меняет автор.');
+      const next = { id: own.id, day: own.day, ev: { ...own.ev, ...ch }, shared: !!own.shared };
+      Api.call('save_my_stop', { p_stop: next }, st => { st.my_stops = (st.my_stops || []).filter(q => q.id !== next.id).concat([{ ...next, member: me.id }]); });
+      return `Изменил «${own.ev.t}».`;
+    }
+    if (!hit) throw new Error('Пункт не найден — план уже изменился.');
+    if (me.role === 'host') {
+      const doc = JSON.parse(JSON.stringify(G.doc)), v = G.version;
+      const e = (doc.days.find(d => d.n === hit.d.n) || { ev: [] }).ev.find(x => String(x.id) === String(a.stop_id));
+      if (!e) throw new Error('Пункт не найден — план уже изменился.');
+      Object.assign(e, ch);
+      Api.call('save_plan', { p_doc: doc, p_version: v }, st => { st.plan = { doc, version: v + 1 }; });
+      return `Изменил «${hit.e.t}» в плане группы.`;
+    }
+    const say = [ch.t && `название: «${ch.t}»`, ch.pname && `место: ${ch.pname}`, ch.note && `заметка: ${ch.note}`].filter(Boolean).join('; ');
+    askPropose('comment', a.stop_id, hit.d.n, {}, (say + (a.reason ? ' — ' + a.reason : '')).slice(0, 500));
+    return `Отправил хозяевам предложение изменить «${hit.e.t}». Ответ — в «Делах».`;
   }
   if (a.kind === 'skip') {
     if (own && own.member === me.id) { S.skip[own.id] = true; save(); return `«${own.ev.t}» пропущен — вернуть можно в пункте.`; }
@@ -9344,7 +9405,7 @@ const RATE_CATS = ['activity', 'food', 'event'];
 ASK.ai = (() => { try { return JSON.parse(localStorage.getItem(ASK_FB) || 'null') || { fb: {}, inbox: [] }; } catch (e) { return { fb: {}, inbox: [] }; } })();
 const putAi = () => { try { localStorage.setItem(ASK_FB, JSON.stringify(ASK.ai)); } catch (e) {} };
 /* P1 (scheduled messages, ratings) waits for the owner's design approval: off unless this phone turns it on */
-const askP1 = () => { try { return localStorage.getItem('japan2026.assistant.p1') === '1'; } catch (e) { return false; } };
+const askP1 = () => { try { return localStorage.getItem('japan2026.assistant.p1') !== '0'; } catch (e) { return true; } };   // on since 14.10; '0' turns it off on a phone
 function askSyncProfile() {
   if (!askP1()) return;
   const p = askProfile(), me = Api.me && Api.me();

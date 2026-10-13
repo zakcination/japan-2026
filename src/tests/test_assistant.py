@@ -211,9 +211,9 @@ def test_dictation_without_speech_recognition_points_to_the_keyboard(app):
 P1 = "localStorage.setItem('japan2026.assistant.p1', '1')"
 
 
-def test_ratings_and_messages_stay_off_without_the_flag(app):
+def test_ratings_and_messages_stay_off_when_a_phone_turns_them_off(app):
     fake = FakeSupabase.seeded(); a, san = guest(app, fake, now="2026-10-19T10:00:00+09:00"); pg = a.page
-    pg.evaluate("renderShell()")
+    pg.evaluate("localStorage.setItem('japan2026.assistant.p1', '0'); renderShell()")
     assert pg.locator("#tcAsk .as-dot").count() == 0
     pg.click("#tcAsk")
     assert pg.inner_text("#asRate") == "" and pg.locator("[data-notify]").count() == 0
@@ -279,3 +279,26 @@ def test_every_member_gets_the_chat_and_no_camera_when_photos_are_off(app):
     a.page.click("#tcAsk")                                                                     # Сания: the in-app chat
     assert a.page.locator("#asText").is_visible() and a.page.locator("#asPhoto").count() == 0  # DeepSeek: no photos
     assert not a.errors
+
+
+def test_tools_mark_a_task_done_and_edit_a_stop_and_the_journal_is_for_hosts(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake); pg = a.page
+    fake.assistant_reply = {"reply": "Готово к применению.", "actions": [
+        {"id": "a1", "kind": "task", "ref": "bk:sky", "title": "Shibuya Sky", "done": True},
+        {"id": "a2", "kind": "edit", "stop_id": "d3e3", "day_n": 3, "title": "Тэнрю-дзи, сад дзен", "changes": {"note": "Взять зонт"}, "how": "propose", "scope": "group"}]}
+    pg.click("#tcAsk"); ask(pg, "Отметь билет и добавь заметку")
+    assert "Отметить сделанным" in pg.inner_text("[data-act='1:a1']") and "заметка → Взять зонт" in pg.inner_text("[data-act='1:a2']")
+    pg.click("[data-apply='1:a1']"); pg.click("[data-apply='1:a2']")
+    until(pg, "Api.status().pending === 0")
+    assert fake.task_state[(san, "bk:sky")]["done"] is True
+    p = fake.proposals[-1]
+    assert p["kind"] == "comment" and p["ref"] == "d3e3" and "Взять зонт" in p["note"]
+    assert pg.locator("#asJournal").count() == 0                                   # a guest has no journal
+    h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    fake.ai_log = [{"at": "2026-10-19T01:00:00Z", "who": "Сания", "q": "где поесть халяль в Гионе", "kind": "chat", "model": "deepseek", "in": 3000, "out": 200, "ok": True}]
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', 'all'); renderShell()")
+    h.page.click("#tcAsk"); h.page.click("#asJournal")
+    until(h.page, "!!document.querySelector('#asWrap .tc-group')")
+    txt = h.page.inner_text("#asWrap")
+    assert "1 вопрос" in txt and "Сания — 1" in txt and "где поесть халяль в Гионе" in txt and "халяль (1)" in txt
+    assert not a.errors and not h.errors

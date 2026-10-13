@@ -80,6 +80,13 @@ function claudeError(e: any): string {
   return "Claude вернул ошибку " + st + (msg ? ": " + msg.replace(/sk-ant-[\w-]+/g, "…").slice(0, 160) : "") + ".";
 }
 
+/* one journal row per answer (question text ≤ 300, tokens, ok) — best effort, never blocks the reply */
+function note(auth: string, apikey: string, q: string, kind: string, usage: any, ok: boolean) {
+  const body = { p_q: String(q || "").slice(0, 300), p_kind: kind, p_model: PROVIDER, p_in: (usage && +usage.input_tokens) || 0, p_out: (usage && +usage.output_tokens) || 0, p_ok: ok };
+  return fetch(env("SUPABASE_URL") + "/rest/v1/rpc/ai_note", { method: "POST", headers: { apikey, Authorization: auth, "Content-Type": "application/json" },
+    body: JSON.stringify(body) }).catch(() => null);
+}
+
 const same = (a: string, b: string) => { const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b); return x.length === y.length && timingSafeEqual(x, y); };
 
 /* the cron tick: who is due a morning / place / evening message now; write it to ai_sent (the in-app inbox), push via notify */
@@ -145,20 +152,26 @@ Deno.serve(async (req) => {
   if (!PROVIDER) return json(req, 503, { error: "Ассистент ещё не настроен: нет ключа модели в секретах Supabase." });
   if (!(await bump(auth, req.headers.get("apikey") || env("SUPABASE_ANON_KEY")))) return json(req, 429, { error: "На сегодня вопросов достаточно — продолжим завтра." });
 
+  const key = req.headers.get("apikey") || env("SUPABASE_ANON_KEY");
+  const lastQ = tr ? tr.text : (() => { const l = [...messages].reverse().find((m: any) => m.role === "user"); const c = l && l.content;
+    return typeof c === "string" ? c : Array.isArray(c) ? c.filter((b: any) => b.type === "text").map((b: any) => b.text).join(" ") : ""; })();
   try {
     if (tr) {
       const res: any = await llm(buildTranslateRequest(tr));
       const text = translationOf(res);
+      await note(auth, key, lastQ, "translate", res.usage, !!text);
       return text ? json(req, 200, { text, usage: res.usage }) : json(req, 200, { text: null, error: "Не получилось перевести." });
     }
     const idx = tripIndex(st);
     const viewDay = Number.isInteger(body.view_day) ? body.view_day : null;
     const system = buildSystem(contextText(idx, Date.now(), viewDay) + "\n" + profileText(body.profile, body.rates));
     const out = await runAgent({ create: (b: any, ms: number) => llm(b, ms), system, messages, idx, rates: normaliseRates(body.rates) });
+    await note(auth, key, lastQ, "chat" + ((out as any).actions && (out as any).actions.length ? "+act" : ""), (out as any).usage, true);
     return json(req, 200, out);
   } catch (e: any) {
     const status = e && typeof e.status === "number" ? e.status : 0;
     console.error("assistant", status, e && e.message);
+    await note(auth, key, lastQ, "error-" + (status || 0), null, false);
     return json(req, status === 429 || status === 529 ? 503 : 502, { error: claudeError(e), code: status || null });
   }
 });

@@ -628,6 +628,32 @@ end $$;
 revoke all on function public.ai_bump() from public, anon, authenticated;
 grant execute on function public.ai_bump() to authenticated;
 
+-- the assistant's journal: each question (first 300 characters), who asked, the model and its tokens — so the hosts see the
+-- hot questions and the burn rate. Written by the Edge Function with the asker's own token; read only by hosts (ai_journal).
+create table if not exists public.ai_log (id bigint generated always as identity primary key, member uuid references public.members(id) on delete cascade,
+  at timestamptz not null default now(), q text, kind text, model text, tin int, tout int, ok boolean);
+alter table public.ai_log enable row level security;
+revoke all on public.ai_log from anon, authenticated;
+create or replace function public.ai_note(p_q text, p_kind text, p_model text, p_in int, p_out int, p_ok boolean) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  insert into public.ai_log (member, q, kind, model, tin, tout, ok)
+  values (m.id, left(coalesce(p_q, ''), 300), left(coalesce(p_kind, ''), 20), left(coalesce(p_model, ''), 40),
+          least(greatest(coalesce(p_in, 0), 0), 10000000), least(greatest(coalesce(p_out, 0), 0), 10000000), coalesce(p_ok, false));
+  return true;
+end $$;
+create or replace function public.ai_journal(p_days int default 7) returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if m.role <> 'host' then raise exception 'hosts only' using errcode = 'P0001'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('at', l.at, 'who', x.name, 'q', l.q, 'kind', l.kind, 'model', l.model, 'in', l.tin, 'out', l.tout, 'ok', l.ok) order by l.at desc)
+    from public.ai_log l join public.members x on x.id = l.member where x.trip = m.trip and l.at > now() - make_interval(days => least(greatest(coalesce(p_days, 7), 1), 60))), '[]');
+end $$;
+revoke all on function public.ai_note(text, text, text, int, int, boolean), public.ai_journal(int) from public, anon, authenticated;
+grant execute on function public.ai_note(text, text, text, int, int, boolean), public.ai_journal(int) to authenticated;
+
 -- the cron tick: the same notify secret, the assistant's cron deployment next to notify (…/functions/v1/assistant-cron)
 create or replace function public._ai_tick() returns void language plpgsql security definer
 set search_path = public, extensions as $$
@@ -636,14 +662,16 @@ begin
   select * into h from public._hook where id = 1;
   if h.url is null then return; end if;
   begin
-    perform net.http_post(url := replace(h.url, '/functions/v1/notify', '/functions/v1/assistant-cron'), body := '{"type":"tick"}'::jsonb,
+    perform net.http_post(url := replace(h.url, '/functions/v1/notify', '/functions/v1/clever-handler'), body := '{"type":"tick"}'::jsonb,
       headers := jsonb_build_object('Content-Type', 'application/json', 'x-hook-secret', h.secret), timeout_milliseconds := 60000);
   exception when others then null;
   end;
 end $$;
--- NOT scheduled yet: the morning / place / evening messages wait for the owner's approval of the design. To switch them on later:
---   select cron.schedule('ai-messages', '*/10 * * * *', $c$select public._ai_tick()$c$);
--- and to switch them off again: select cron.unschedule('ai-messages');
+-- morning / after-a-place / evening messages, every 10 minutes (owner's go, 14.10). To switch them off: select cron.unschedule('ai-messages');
+do $$ begin
+  perform cron.unschedule('ai-messages') where exists (select 1 from cron.job where jobname = 'ai-messages');
+  perform cron.schedule('ai-messages', '*/10 * * * *', $c$select public._ai_tick()$c$);
+exception when others then raise notice 'pg_cron unavailable: %', sqlerrm; end $$;
 
 revoke all on function public.save_ai_profile(jsonb), public.save_feedback(text, text, int, text, int), public.my_ai(), public.feedback_averages(), public._ai_tick()
   from public, anon, authenticated;

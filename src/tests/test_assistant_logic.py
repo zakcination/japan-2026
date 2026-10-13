@@ -349,7 +349,12 @@ def test_assistant_sql_is_guarded_private_and_idempotent():
         assert f"create table if not exists public.{t}" in block and f"alter table public.{t} enable row level security" in block
     assert "create policy" not in block and "count(*) filter (where f.member <> m.id) >= 2" in block                   # the group sees averages only
     assert "where member = m.id" in block.split("function public.my_ai()")[1].split("$$;")[0]
-    assert "assistant-cron" in block and not re.search(r"^\s*(perform|select) cron\.schedule", block, re.M)   # no cron job until approved
+    assert "/functions/v1/clever-handler" in block and "cron.schedule('ai-messages', '*/10 * * * *'" in block   # on since 14.10, via the deployed function
+    for name in ("ai_note", "ai_journal"):
+        m = re.search(rf"create or replace function public\.{name}\((.*?)\$\$;", block, re.S)
+        assert m and "security definer" in m.group(0) and "public._me()" in m.group(0), name
+    assert "if m.role <> 'host' then raise" in block.split("function public.ai_journal")[1]          # the journal is for hosts only
+    assert "alter table public.ai_log enable row level security" in block and "left(coalesce(p_q, ''), 300)" in block
     assert "public._ai_tick()\n  from public, anon, authenticated" in block                  # the tick is not callable from the app
 
 
