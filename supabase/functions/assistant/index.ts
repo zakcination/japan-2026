@@ -3,8 +3,15 @@
 // small trip context, runs a short tool loop and returns { reply, actions, sources, usage }. It never changes anything:
 // actions are proposals the traveller applies in the app. Pure parts live in logic.mjs (tested with Node).
 // Secret (Edge Functions → Secrets): ANTHROPIC_API_KEY. SUPABASE_URL / SUPABASE_ANON_KEY are provided by Supabase.
-// Deploy with «Verify JWT» ON (the default).
+// Deploy as «assistant» with «Verify JWT» ON (the default) for the chat.
+// The same file deployed again as «assistant-cron» with «Verify JWT» OFF serves the database's cron tick (scheduled
+// morning / after-a-place / evening messages, digest.mjs): that path needs x-hook-secret = HOOK_SECRET (the notify secret),
+// reads the trip with the service role (it acts for nobody in particular) and sends pushes through «notify». The chat path
+// stays membership-checked through group_state on either deployment.
 import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { timingSafeEqual } from "node:crypto";
+import { appUrl, digestRequest, digestText, dueMessages, fallbackText } from "./digest.mjs";
 import { buildSystem, buildTranslateRequest, contextText, normaliseHistory, normaliseRates, normaliseTranslate, profileText, runAgent, translationOf,
   tripIndex } from "./logic.mjs";
 
@@ -32,9 +39,52 @@ async function groupState(auth: string, apikey: string, trip: string) {
   return s && s.me && s.plan ? s : null;
 }
 
+const same = (a: string, b: string) => { const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b); return x.length === y.length && timingSafeEqual(x, y); };
+
+/* the cron tick: who is due a morning / place / evening message now; write it to ai_sent (the in-app inbox), push via notify */
+async function tick(req: Request) {
+  if (!env("HOOK_SECRET") || !same(req.headers.get("x-hook-secret") ?? "", env("HOOK_SECRET"))) return new Response("forbidden", { status: 403 });
+  const db = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+  const rows = async (t: string, q: (x: any) => any) => (await q(db.from(t).select("*"))).data ?? [];
+  let written = 0, pushed = 0;
+  for (const { id: trip } of (await db.from("trips").select("id")).data ?? []) {
+    const members = (await db.from("members").select("id, name, role").eq("trip", trip)).data ?? [];
+    const ids = members.map((m: any) => m.id);
+    if (!ids.length) continue;
+    const since = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10);
+    const D = {
+      members, plan: (await db.from("plan").select("doc").eq("trip", trip).single()).data ?? {},
+      parts: (await rows("parts", (x) => x.eq("trip", trip))).map((p: any) => p.part),
+      joins: await rows("joins", (x) => x.in("member", ids)),
+      my_stops: (await rows("my_stops", (x) => x.in("member", ids))).map((r: any) => ({ ...r.s, id: r.id, member: r.member, shared: r.shared })),
+      profiles: Object.fromEntries((await rows("ai_profiles", (x) => x.in("member", ids))).map((r: any) => [r.member, r.p])),
+      sent: await rows("ai_sent", (x) => x.in("member", ids).gte("day", since)),
+    };
+    const out: any[] = [];
+    for (const m of dueMessages(D, Date.now())) {
+      let text = fallbackText(m);
+      if (m.kind !== "place" && env("ANTHROPIC_API_KEY")) {
+        try { text = digestText(await client.beta.messages.create(digestRequest(m) as any), m); } catch (e: any) { console.error("digest", e && e.message); }
+      }
+      const { error } = await db.from("ai_sent").insert({ member: m.member, key: m.key, day: m.date, kind: m.kind, ref: m.stop ? m.stop.id : "day:" + m.day,
+        title: text.title, body: text.body, pushed: m.push });
+      if (error) continue;                                  // already written by an overlapping tick
+      written++;
+      if (m.push) out.push({ to: [m.member], title: text.title, body: text.body, url: appUrl(trip, m), tag: "ai-" + m.key });
+    }
+    if (out.length) {
+      const r = await fetch(env("SUPABASE_URL") + "/functions/v1/notify", { method: "POST",
+        headers: { "Content-Type": "application/json", "x-hook-secret": env("HOOK_SECRET") }, body: JSON.stringify({ type: "direct", trip, messages: out }) }).catch(() => null);
+      if (r && r.ok) pushed += out.length;
+    }
+  }
+  return new Response(JSON.stringify({ written, pushed }), { headers: { "Content-Type": "application/json" } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
   if (req.method !== "POST") return json(req, 405, { error: "POST only" });
+  if (req.headers.has("x-hook-secret")) return tick(req);
   const auth = req.headers.get("authorization") ?? "";
   if (!/^Bearer [\w.-]+$/.test(auth)) return json(req, 401, { error: "Войдите в группу." });
   const raw = await req.text();

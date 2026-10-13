@@ -16,8 +16,11 @@ def _module(d, name, seen, out):
     src = (d / name).read_text(encoding="utf-8")
     for dep in LOCAL_IMPORT_SQ.findall(src) + LOCAL_IMPORT.findall(src):
         _module(d, dep, seen, out)
+    names = [a or b for a, b in re.findall(r'^export (?:async )?function (\w+)|^export const (\w+)', src, re.M)]
     body = EXPORT.sub("", LOCAL_IMPORT.sub("", LOCAL_IMPORT_SQ.sub("", src)))
-    out.append(f"// ---- {name} (inlined so the dashboard editor needs one file) ----\n{body.rstrip()}\n// ---- end {name} ----\n")
+    # each module in its own scope (modules may share private helper names), its exports lifted out
+    out.append(f"// ---- {name} (inlined so the dashboard editor needs one file) ----\n"
+               f"const {{ {', '.join(names)} }} = (() => {{\n{body.rstrip()}\nreturn {{ {', '.join(names)} }};\n}})();\n// ---- end {name} ----\n")
 
 
 def bundle(fn):

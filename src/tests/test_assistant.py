@@ -203,3 +203,49 @@ def test_dictation_without_speech_recognition_points_to_the_keyboard(app):
     pg.evaluate("delete window.webkitSpeechRecognition; delete window.SpeechRecognition")
     pg.click("#tcAsk"); pg.click("#asMic")
     assert "клавиатуре iPhone" in pg.inner_text("#asLog")
+
+
+# ---------- P1 behind its flag: profile on the server, ratings, the assistant's messages, #rate= / #briefing links ----------
+P1 = "localStorage.setItem('japan2026.assistant.p1', '1')"
+
+
+def test_ratings_and_messages_stay_off_without_the_flag(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake, now="2026-10-19T10:00:00+09:00"); pg = a.page
+    pg.evaluate("renderShell()")
+    assert pg.locator("#tcAsk .as-dot").count() == 0
+    pg.click("#tcAsk")
+    assert pg.inner_text("#asRate") == "" and pg.locator("[data-notify]").count() == 0
+    until(pg, "Api.status().pending === 0")
+    assert not fake.ai_profiles                                                     # nothing goes to the server either
+
+
+def test_with_the_flag_places_that_ended_are_rated_privately_and_the_profile_syncs(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake, now="2026-10-19T10:00:00+09:00"); pg = a.page
+    fake.ai_sent.append({"member": san, "key": "morning:2026-10-19", "day": "2026-10-19", "kind": "morning", "ref": "day:3",
+                         "title": "Доброе утро, <Саня>!", "body": "Сегодня Киото"})
+    pg.evaluate(P1); pg.evaluate("renderShell()")
+    assert pg.inner_text("#tcAsk .as-dot") == "3"                                   # d3e1, d3e2, d3e3 have ended by 10:00
+    pg.click("#tcAsk")
+    until(pg, "Api.status().pending === 0 && /Доброе утро/.test(document.getElementById('asRate').textContent)")
+    assert fake.ai_profiles[san]["name"] == "Саня" and fake.ai_profiles[san]["food"] == "халяль"
+    assert "Доброе утро, <Саня>!" in pg.inner_text("#asRate")                       # the inbox is text, not markup
+    card = pg.locator("[data-rate='d3e3']")
+    assert "Тэнрю-дзи" in card.inner_text() and card.locator("[data-rate-save]").is_disabled()
+    card.locator("[data-star='4']").click()
+    card.locator("input").fill("Тихо и красиво")
+    card.locator("[data-rate-save]").click()
+    until(pg, "Api.status().pending === 0")
+    assert fake.ai_feedback[(san, "d3e3")] == {"ref": "d3e3", "kind": "place", "day": 3, "stars": 4, "comment": "Тихо и красиво"}
+    assert pg.locator("[data-rate='d3e3']").count() == 0 and "видите только вы" in pg.inner_text("#asLog")
+    assert pg.evaluate("Api.run('feedback_averages', {})") == []                   # one rating is never shown to the group
+
+
+def test_a_rate_link_opens_the_assistant_on_that_place(app):
+    fake = FakeSupabase.seeded()
+    a, san = guest(app, fake, now="2026-10-19T10:00:00+09:00", url_suffix="#rate=d3e9")
+    pg = a.page
+    pg.evaluate(P1)
+    until(pg, "!!document.querySelector('#asWrap')")                               # opened by the link once signed in
+    if pg.locator("#asProfLater").count(): pg.click("#asProfLater")                # a first run asks the profile first
+    until(pg, "!!document.querySelector('#asRate [data-rate=\"d3e9\"]')")
+    assert "Гион" in pg.inner_text("[data-rate='d3e9']") and "#rate" not in pg.url

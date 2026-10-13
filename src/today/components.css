@@ -627,3 +627,12 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-seg button[aria-checked="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
 .as-trout { display: flex; flex-direction: column; gap: 10px; }
 .as-trout .as-msg.me { align-self: flex-start; }
+.tc-askfab { overflow: visible; }
+.as-dot { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px;
+  background: var(--tint); color: #fff; font: 700 12px/20px var(--sf); text-align: center; }
+.as-inbox { gap: 4px; }
+.as-inbox b { font-weight: 700; }
+.as-stars { display: flex; gap: 4px; }
+.as-stars button { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--seg); font: 400 26px/1 var(--sf); cursor: pointer; }
+.as-stars button.on { color: var(--alert); }
+.as-rate input { min-height: 44px; box-sizing: border-box; border: 0; border-radius: 12px; padding: 0 12px; background: var(--card); color: var(--text); font: 400 min(1rem, 23.8px) var(--sf); }

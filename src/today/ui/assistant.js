@@ -11,7 +11,8 @@ ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
 
 const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => askOn() && tab !== 'stats' ? `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент">${icon('spark')}</button>` : '';
+const askHTML = () => { if (!askOn() || tab === 'stats') return ''; const n = askPending().length;
+  return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
 document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
 
 function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
@@ -22,6 +23,7 @@ const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: 
 
 function openAssistant() {
   if (!askOn()) return;
+  askSyncProfile(); askLoadAi();
   ASK.view = askProfile() ? (ASK.view === 'profile' ? 'chat' : ASK.view) : 'profile';
   askRender();
 }
@@ -45,8 +47,8 @@ function profileHTML() {
     <span class="tc-lbl">Энергия</span>${seg('energy', p.energy || 'mid', [['low', 'Бережно'], ['mid', 'Средне'], ['high', 'На максимум']])}
     ${fld('asInterests', 'Что интересно (храмы, еда, шопинг, фото…)', p.interests || '', 'text', 'maxlength="200"')}
     ${fld('asFood', 'Еда: ограничения (халяль, без свинины, аллергия…)', p.food || '', 'text', 'maxlength="200"')}
-    <span class="tc-sech">Сообщения от ассистента</span>
-    <div class="tc-group">${sw('morning', 'Утром', 'настрой и первые пункты дня')}${sw('place', 'После каждого места', 'оценка в пять звёзд')}${sw('evening', 'Вечером', 'как прошёл день')}</div>
+    ${askP1() ? `<span class="tc-sech">Сообщения от ассистента</span>
+    <div class="tc-group">${sw('morning', 'Утром', 'настрой и первые пункты дня')}${sw('place', 'После каждого места', 'оценка в пять звёзд')}${sw('evening', 'Вечером', 'как прошёл день')}</div>` : ''}
     <div class="tc-actions two"><button type="button" class="tc-btn primary" id="asProfSave">Сохранить</button>
       <button type="button" class="tc-btn" id="asProfLater">${askProfile() ? 'Отмена' : 'Позже'}</button></div>`;
 }
@@ -58,7 +60,8 @@ function wireProfile(m) {
   const segVal = k => (m.querySelector(`[data-seg="${k}"] [aria-checked="true"]`) || {}).dataset.v;
   m.querySelector('#asProfSave').addEventListener('click', () => {
     const v = id => m.querySelector('#' + id).value.trim(), notify = {};
-    m.querySelectorAll('[data-notify]').forEach(i => { notify[i.dataset.notify] = i.checked; });
+    const was = (askProfile() || {}).notify || {};
+    Object.assign(notify, was); m.querySelectorAll('[data-notify]').forEach(i => { notify[i.dataset.notify] = i.checked; });
     putProfile({ name: v('asName').slice(0, 40), lang: segVal('lang') || 'ru', tone: segVal('tone') || 'calm', energy: segVal('energy') || 'mid',
                  interests: v('asInterests').slice(0, 200), food: v('asFood').slice(0, 200), notify, at: Date.now() });
     if (typeof askSyncProfile === 'function') askSyncProfile();
@@ -73,11 +76,12 @@ const EXAMPLES = ['Что у меня сегодня?', 'Идёт дождь —
 function chatHTML() {
   return `<div class="as-bar"><button type="button" class="tc-btn" id="asToTr">${icon('speak')}Переводчик</button>
       <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
+    <div id="asRate">${rateHTML()}</div>
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
     <form class="as-form" id="asForm">
-      <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" capture="environment" hidden></label>
-      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите что угодно" aria-label="Вопрос ассистенту"></textarea>
+      <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>
+      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите — или 🎤 на клавиатуре" aria-label="Вопрос ассистенту"></textarea>
       <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
       <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
     </form>
@@ -131,6 +135,7 @@ function askLogRefresh() {
   const last = log.lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest' });
 }
 function wireChat(m) {
+  wireRate(m);
   const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
   m.querySelector('#asToTr').addEventListener('click', () => { ASK.view = 'translate'; askRender(); });
   m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
@@ -266,21 +271,31 @@ function askPropose(kind, ref, day, payload, note) {
 }
 
 /* ---------- voice: dictation, speech, the Japanese card ---------- */
-function askListen(lang, done) {
+const DICTATE = 'Нажмите 🎤 на клавиатуре iPhone и говорите — текст появится в поле.';
+const canListen = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !(typeof Ios !== 'undefined' && Ios.standalone());
+function askListen(lang, done, fallback) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { askNote('Диктовка здесь недоступна — нажмите 🎤 на клавиатуре iPhone и говорите.'); const t = document.getElementById('asText') || document.getElementById('trText'); if (t) t.focus(); return; }
+  const hint = () => { if (fallback) fallback(); else { askNote(DICTATE); const t = document.getElementById('asText'); if (t) t.focus(); } };
+  if (!canListen()) { hint(); return; }
   try { if (ASK.rec) ASK.rec.abort(); } catch (e) {}
   const r = new SR(); ASK.rec = r;
   r.lang = LANG_SR[lang] || 'ru-RU'; r.interimResults = false; r.maxAlternatives = 1;
   document.querySelectorAll('[data-listening]').forEach(b => b.removeAttribute('data-listening'));
   r.onresult = e => { const t = Array.from(e.results).map(x => x[0].transcript).join(' ').trim(); if (t) done(t); };
-  r.onerror = e => { if (e && e.error === 'not-allowed') askNote('Разрешите микрофон в настройках браузера или говорите через 🎤 на клавиатуре.', true); };
+  r.onerror = () => hint();
   r.onend = () => { if (ASK.rec === r) ASK.rec = null; };
-  try { r.start(); } catch (e) { askNote('Микрофон не включился — попробуйте ещё раз.', true); }
+  try { r.start(); } catch (e) { hint(); }
 }
 function askSpeak(text, lang) {
   if (!('speechSynthesis' in window) || !text) return false;
-  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = LANG_SR[lang] || 'ja-JP'; u.rate = lang === 'ja' ? 0.9 : 1; speechSynthesis.speak(u); return true; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text), L = LANG_SR[lang] || 'ja-JP';
+    u.lang = L; u.rate = lang === 'ja' ? 0.9 : 1;
+    const v = (speechSynthesis.getVoices ? speechSynthesis.getVoices() : []).find(x => String(x.lang || '').replace('_', '-').toLowerCase().startsWith(L.slice(0, 2).toLowerCase()));
+    if (v) u.voice = v;                        // a Japanese voice when the phone lists one; otherwise the lang is enough
+    speechSynthesis.speak(u); return true;
+  }
   catch (e) { return false; }
 }
 function askShowJa(c) {
@@ -301,7 +316,7 @@ function askShowJa(c) {
 const TR_NAME = { ru: 'Русский', kk: 'Қазақша', en: 'English' };
 function translateHTML() {
   const l = myLang();
-  return `<p class="tc-sub">Скажите фразу — переведу и озвучу по-японски. Потом дайте телефон собеседнику: вторая кнопка — для него.</p>
+  return `<p class="tc-sub">Скажите или напишите фразу (🎤 на клавиатуре) — переведу и озвучу по-японски. Потом дайте телефон собеседнику: вторая кнопка — для него.</p>
     <button type="button" class="tc-btn primary wide" id="trMe">${icon('mic')}Я говорю · ${esc(TR_NAME[l] || 'Русский')}</button>
     <button type="button" class="tc-btn wide" id="trThem" lang="ja">${icon('mic')}日本語で話してください</button>
     <div class="as-form"><textarea id="trText" rows="2" maxlength="500" placeholder="Или напишите фразу" aria-label="Фраза для перевода"></textarea>
@@ -327,8 +342,96 @@ function wireTranslate(m) {
       askSpeak(t, to);
     } catch (e) { out.innerHTML = `<p class="as-note bad">${!e.status ? 'Нет связи — повторите.' : 'Не получилось перевести — попробуйте сказать иначе.'}</p>`; }
   };
-  m.querySelector('#trMe').addEventListener('click', () => askListen(my, t => run(t, my, 'ja')));
-  m.querySelector('#trThem').addEventListener('click', () => askListen('ja', t => run(t, 'ja', my)));
-  m.querySelector('#trGo').addEventListener('click', () => run(m.querySelector('#trText').value, my, 'ja'));
+  const ta = m.querySelector('#trText'), dir = d => { ASK.trDir = d; ta.lang = d === 'ja' ? 'ja' : '';
+    ta.placeholder = d === 'ja' ? '日本語で入力してください（キーボードの🎤）' : 'Или напишите фразу (🎤 на клавиатуре)'; };
+  dir(ASK.trDir || 'me');
+  const typed = d => () => { dir(d); out.innerHTML = `<p class="as-note">${d === 'ja' ? 'キーボードの🎤を押して話してください。' : esc(DICTATE)}</p>`; ta.focus(); };
+  m.querySelector('#trMe').addEventListener('click', () => { dir('me'); askListen(my, t => run(t, my, 'ja'), typed('me')); });
+  m.querySelector('#trThem').addEventListener('click', () => { dir('ja'); askListen('ja', t => run(t, 'ja', my), typed('ja')); });
+  m.querySelector('#trGo').addEventListener('click', () => ASK.trDir === 'ja' ? run(ta.value, 'ja', my) : run(ta.value, my, 'ja'));
   m.querySelector('#trBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+}
+
+/* ---------- profile on the server (for the scheduled messages), ratings, the assistant's messages ---------- */
+const ASK_FB = 'japan2026.assistant.fb.v1';
+const RATE_CATS = ['activity', 'food', 'event'];
+ASK.ai = (() => { try { return JSON.parse(localStorage.getItem(ASK_FB) || 'null') || { fb: {}, inbox: [] }; } catch (e) { return { fb: {}, inbox: [] }; } })();
+const putAi = () => { try { localStorage.setItem(ASK_FB, JSON.stringify(ASK.ai)); } catch (e) {} };
+/* P1 (scheduled messages, ratings) waits for the owner's design approval: off unless this phone turns it on */
+const askP1 = () => { try { return localStorage.getItem('japan2026.assistant.p1') === '1'; } catch (e) { return false; } };
+function askSyncProfile() {
+  if (!askP1()) return;
+  const p = askProfile(), me = Api.me && Api.me();
+  if (!p || p.skipped || !me || p.synced === me.id + ':' + p.at) return;
+  const { name, lang, tone, energy, interests, food, notify } = p;
+  Api.call('save_ai_profile', { p_p: { name: name || '', lang: lang || 'ru', tone: tone || 'calm', energy: energy || 'mid', interests: interests || '', food: food || '', notify: notify || {} } }, null);
+  putProfile({ ...p, synced: me.id + ':' + p.at });
+}
+let aiLoading = null;
+function askLoadAi() {
+  if (!askP1() || aiLoading || !navigator.onLine || !Api.me()) return;
+  aiLoading = Api.run('my_ai', {}).then(r => {
+    if (!r) return;
+    const fb = {}; (r.feedback || []).forEach(f => { fb[f.ref] = f.stars; });
+    ASK.ai = { fb: { ...ASK.ai.fb, ...fb }, inbox: Array.isArray(r.inbox) ? r.inbox.slice(0, 20) : [] }; putAi();
+    const box = document.getElementById('asRate'); if (box) { box.innerHTML = rateHTML(); }
+  }).catch(() => {}).finally(() => { aiLoading = null; });
+}
+/* what to rate now: today's places that have ended (my own plan), and after 21:00 the day; a link (#rate=…) adds its own */
+function askPending() {
+  if (!askOn() || !askP1()) return [];
+  let x; try { x = ctx(); } catch (e) { return []; }
+  if (!x.c.live && !ASK.focus) return [];
+  const out = [], fb = ASK.ai.fb || {};
+  if (x.c.live) {
+    x.cevs.filter(e => RATE_CATS.includes(e.cat) && !e.skip && !e.auto && !e.bad && e.ne <= x.c.min && !fb[e.id]).slice(-3)
+      .forEach(e => out.push({ ref: String(e.id), kind: 'place', day: x.cday.n, title: e.t }));
+    if (x.c.min >= 21 * 60 && !fb['day:' + x.cday.n]) out.push({ ref: 'day:' + x.cday.n, kind: 'day', day: x.cday.n, title: x.cday.label || 'день' });
+  }
+  const f = ASK.focus;
+  if (f && !fb[f] && !out.some(o => o.ref === f)) {
+    const m = /^day:(\d+)$/.exec(f), V = TV();
+    if (m) { const d = V.days.find(z => z.n === +m[1]); if (d) out.unshift({ ref: f, kind: 'day', day: d.n, title: d.label || 'день' }); }
+    else for (const d of V.days) { const e = d.ev.find(z => String(z.id) === f); if (e) { out.unshift({ ref: f, kind: 'place', day: d.n, title: e.t }); break; } }
+  }
+  return out;
+}
+const INBOX_LBL = { morning: 'Утро', evening: 'Вечер', place: 'После места' };
+function rateHTML() {
+  if (!askP1()) return '';
+  const today = japanNow().date, inbox = (ASK.ai.inbox || []).filter(m => String(m.day) === today && m.kind !== 'place').slice(0, 2);
+  const items = askPending();
+  return inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(m.body || '')}</p></div>`).join('')
+    + items.map(it => `<div class="as-card as-rate" data-rate="${esc(it.ref)}" data-kind="${it.kind}" data-day="${it.day}">
+      <b>${it.kind === 'day' ? 'Как прошёл день: ' + esc(it.title) + '?' : 'Как вам «' + esc(it.title) + '»?'}</b>
+      <div class="as-stars" role="radiogroup" aria-label="Оценка">${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="false" data-star="${n}" aria-label="${n} из 5">★</button>`).join('')}</div>
+      <input type="text" maxlength="${it.kind === 'day' ? 300 : 120}" placeholder="${it.kind === 'day' ? 'Пара слов о дне (по желанию)' : 'Одной строкой (по желанию)'}" aria-label="Комментарий">
+      <button type="button" class="tc-btn primary" data-rate-save disabled>Сохранить</button></div>`).join('');
+}
+function wireRate(m) {
+  const box = m.querySelector('#asRate'); if (!box) return;
+  box.addEventListener('click', e => {
+    const st = e.target.closest('[data-star]'), card = e.target.closest('[data-rate]'); if (!card) return;
+    if (st) { const n = +st.dataset.star; card.dataset.stars = n;
+      card.querySelectorAll('[data-star]').forEach(b => { b.setAttribute('aria-checked', String(+b.dataset.star === n)); b.classList.toggle('on', +b.dataset.star <= n); });
+      card.querySelector('[data-rate-save]').disabled = false; return; }
+    if (e.target.closest('[data-rate-save]') && card.dataset.stars) {
+      const ref = card.dataset.rate, stars = +card.dataset.stars, comment = card.querySelector('input').value.trim();
+      Api.call('save_feedback', { p_ref: ref, p_kind: card.dataset.kind, p_stars: stars, p_comment: comment, p_day: +card.dataset.day || null }, null);
+      ASK.ai.fb = { ...(ASK.ai.fb || {}), [ref]: stars }; putAi();
+      if (ASK.focus === ref) ASK.focus = null;
+      box.innerHTML = rateHTML(); askNote('Спасибо! Оценка сохранена — её видите только вы, группе видно лишь среднее.');
+      renderShell();
+    }
+  });
+}
+/* a push opens the app: #briefing (morning, evening) or #rate=<stop id> / #rate=day:<n>; called from handleDeepLink */
+function askDeepLink(hash) {
+  const m = /^#(?:rate=([A-Za-z0-9:_-]{1,80})|briefing)$/.exec(hash || '');
+  if (!m) return false;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  ASK.focus = m[1] || null; ASK.view = 'chat';
+  const go = () => { if (!askOn()) return false; const sh = document.getElementById('tcSheet'); if (sh && !sh.hidden) return false; openAssistant(); return true; };
+  if (!go()) { const h = () => { if (go()) window.removeEventListener('japan2026:group', h); }; window.addEventListener('japan2026:group', h); }
+  return true;
 }

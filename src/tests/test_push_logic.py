@@ -67,3 +67,13 @@ def test_a_task_due_today_reaches_its_assignee_at_eight():
     assert not any(x["tag"] == "task-t-later" for x in m)
     m = run({"type": "deadlines"}, "2026-10-07T03:00:00Z", tasks=tasks, task_state=[{"member": H, "ref": "t:t-shakhi", "done": True}])
     assert not any(x["tag"] == "task-t-shakhi" for x in m)                             # ticked: left alone
+
+
+def test_direct_messages_from_the_assistant_go_only_to_this_trips_members_with_this_trips_link():
+    base = "https://zakcination.github.io/japan-2026/?trip=miras-aikosh#"
+    ev = {"type": "direct", "trip": "miras-aikosh", "messages": [
+        {"to": [S, "stranger"], "title": "Доброе утро", "body": "Сегодня Киото", "url": base + "ask", "tag": "ai-morning:2026-10-19"},
+        {"to": [S], "title": "x", "body": "y", "url": "https://evil.example/#ask", "tag": "t"},
+        {"to": [H], "title": "z" * 300, "body": "b", "url": base + "rate=d3e3", "tag": "ai-place:d3e3"}]}
+    m = run(ev, "2026-10-19T00:00:00Z")
+    assert [x["to"] for x in m] == [[S], [H]] and m[0]["url"] == base + "ask" and len(m[1]["title"]) == 120

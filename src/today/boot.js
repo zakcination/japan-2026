@@ -33,7 +33,7 @@ window.addEventListener('japan2026:group', () => { autoSyncPlan(); expSync(); co
 // installed on the Home Screen: ask Safari to keep the tickets and the trip copy
 if (Ios.standalone() && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // '#map' in the link opens straight onto the map (also used by the map tests)
-const DEEP = /^#(tab|prep|task|add)=/.test(location.hash);          // a deep link always opens the app screen
+const DEEP = /^#(tab|prep|task|add|rate)=|^#briefing$/.test(location.hash);          // a deep link always opens the app screen
 if ((S.open === false && !DEEP) || location.hash === '#map') document.getElementById('today').hidden = true; else { renderShell(); if (!expFromLink()) handleDeepLink(); }
 /* expenses: read from the phone's database, then exchanged with the group whenever the group state changes */
 ExpStore.load();

@@ -32,6 +32,7 @@ class FakeSupabase:
         self.fail_network = False   # tests flip it to simulate no signal
         self.assistant_reply = {"reply": "Готово.", "actions": [], "cards": []}   # dict, or callable(body) -> (status, dict)
         self.assistant_requests = []   # what the app sent to the Edge Function «assistant»
+        self.ai_profiles, self.ai_feedback, self.ai_sent = {}, {}, []   # member -> profile; (member, ref) -> rating; cron-written messages
 
     # ---------- seed ----------
     @classmethod
@@ -332,6 +333,35 @@ class FakeSupabase:
         me = self._me(token)["id"]
         if self.push_subs.get(p_endpoint, {}).get("member") == me: del self.push_subs[p_endpoint]
         return True
+
+    def rpc_save_ai_profile(self, token, p_p):
+        me = self._me(token)["id"]
+        if not isinstance(p_p, dict) or len(json.dumps(p_p)) > 2000: raise RpcError(400, "bad profile")
+        p = {k: v for k, v in p_p.items() if k in ("name", "lang", "tone", "energy", "interests", "food", "notify")}
+        if (p.get("lang", "ru") not in ("ru", "kk", "en") or p.get("tone", "calm") not in ("calm", "fun", "strict") or p.get("energy", "mid") not in ("low", "mid", "high")
+                or len(p.get("name") or "") > 40 or len(p.get("interests") or "") > 200 or len(p.get("food") or "") > 200): raise RpcError(400, "bad profile")
+        self.ai_profiles[me] = p
+        return True
+
+    def rpc_save_feedback(self, token, p_ref, p_kind, p_stars, p_comment, p_day):
+        import re
+        me = self._me(token)["id"]
+        if (not re.fullmatch(r"[A-Za-z0-9:_-]{1,80}", str(p_ref or "")) or p_kind not in ("place", "day") or not isinstance(p_stars, int)
+                or not 1 <= p_stars <= 5 or len(p_comment or "") > 300 or (p_day is not None and not 1 <= p_day <= 60)): raise RpcError(400, "bad feedback")
+        self.ai_feedback[(me, p_ref)] = {"ref": p_ref, "kind": p_kind, "day": p_day, "stars": p_stars, "comment": (p_comment or "").strip() or None}
+        return True
+
+    def rpc_my_ai(self, token):
+        me = self._me(token)["id"]
+        return copy.deepcopy({"profile": self.ai_profiles.get(me), "feedback": [v for (m, _), v in self.ai_feedback.items() if m == me],
+                              "inbox": [x for x in reversed(self.ai_sent) if x["member"] == me][:20]})
+
+    def rpc_feedback_averages(self, token):
+        me = self._me(token)
+        by = {}
+        for (m, ref), v in self.ai_feedback.items():
+            if m in self.members: by.setdefault(ref, []).append(v["stars"])
+        return [{"ref": r, "avg": round(sum(x) / len(x), 1), "n": len(x)} for r, x in by.items() if len(x) >= 2]
 
     def rpc_save_task(self, token, p_task):
         self._me(token, need_host=True)

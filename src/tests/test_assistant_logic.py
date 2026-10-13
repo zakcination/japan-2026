@@ -214,15 +214,19 @@ def test_agent_refusal_max_tokens_and_the_iteration_cap():
 def test_one_file_bundle_is_current_and_runs_end_to_end(tmp_path):
     sys.path.insert(0, str(ROOT / "supabase" / "functions"))
     import bundle
-    assert (FN / "one_file.ts").read_text(encoding="utf-8") == bundle.bundle("assistant"), "run: python3 supabase/functions/bundle.py assistant"
+    for fn in ("assistant", "notify"):
+        assert (ROOT / "supabase" / "functions" / fn / "one_file.ts").read_text(encoding="utf-8") == bundle.bundle(fn), f"run: python3 supabase/functions/bundle.py {fn}"
     src = (FN / "one_file.ts").read_text(encoding="utf-8")
-    assert "from \"./" not in src and "\nexport " not in src and "ANTHROPIC_API_KEY" in src and "service_role" not in src.lower().replace("never use the service role", "")
+    assert "from \"./" not in src and "from './" not in src and "\nexport " not in src and "ANTHROPIC_API_KEY" in src
+    chat = src.split("Deno.serve", 1)[1].split("return tick(req);", 1)[1]
+    assert "SERVICE_ROLE" not in chat                                                        # the chat path never uses the service role
     stub = """(globalThis as any).Deno = { env: { get: (k: string) => ({ SUPABASE_URL: 'https://p.supabase.co', SUPABASE_ANON_KEY: 'anon', ANTHROPIC_API_KEY: 'k' } as any)[k] }, serve: (f: any) => { (globalThis as any).__h = f; } };
 (globalThis as any).__calls = [];
 const Anthropic: any = class { beta = { messages: { create: async (b: any) => { (globalThis as any).__calls.push(b);
   return b.messages.length === 1 && typeof b.messages[0].content === 'string' && !b.tools ? { stop_reason: 'end_turn', content: [{ type: 'text', text: 'トイレ' }], usage: {} }
     : { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Привет' }], usage: { input_tokens: 1, output_tokens: 1 } }; } } }; };"""
     code = re.sub(r'^import Anthropic from "npm:@anthropic-ai/sdk@[\d.]+";', lambda m: stub, src, flags=re.M)
+    code = re.sub(r'^import \{ createClient \} from "npm:@supabase/supabase-js@[\d.]+";', "const createClient: any = () => { throw new Error('no db in tests'); };", code, flags=re.M)
     (tmp_path / "fn.mts").write_text(code, encoding="utf-8")
     st = state()
     driver = f"""
@@ -257,3 +261,88 @@ console.log(JSON.stringify({{ pre: [pre.status, pre.headers.get('access-control-
     c = r["call"]
     assert c["model"] == "claude-opus-5-5" and c["effort"] == "low" and c["thinking"] is None
     assert "Сания" in c["sys"] and "обращаться «Саня»" in c["sys"] and "На экране сейчас день 3" in c["sys"]
+
+
+# ---------- P1: scheduled messages (digest.mjs) and the SQL behind them ----------
+def digest(js, st=None, **over):
+    st = st or state()
+    D = {"members": st["members"], "plan": st["plan"], "parts": st["parts"], "joins": st["joins"], "my_stops": st["my_stops"], "profiles": {}, "sent": []}
+    D.update(over)
+    code = (f"import * as G from '{(FN / 'digest.mjs').as_uri()}';\nconst D = {json.dumps(D)};\n"
+            f"const out = await (async () => {{ {js} }})(); console.log(JSON.stringify(out));")
+    r = subprocess.run([NODE, "--input-type=module"], input=code, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    return json.loads(r.stdout)
+
+
+def jst(s):
+    return f"Date.parse('{s}+09:00')"
+
+
+def test_morning_place_and_evening_come_from_each_persons_own_day():
+    r = digest(f"""return {{ m: G.dueMessages(D, {jst('2026-10-19T08:05:00')}), p: G.dueMessages(D, {jst('2026-10-19T09:40:00')}),
+      e: G.dueMessages(D, {jst('2026-10-19T22:10:00')}), none: G.dueMessages(D, {jst('2026-10-19T12:00:00')}) }};""")
+    san = [x for x in r["m"] if x["member"] == S]
+    assert len(san) == 1 and san[0]["kind"] == "morning" and san[0]["push"] and san[0]["key"] == "morning:2026-10-19"
+    assert [e["id"] for e in san[0]["stops"]] == ["d3e2", "d3e3", "d3e4"]                       # what is still ahead at 08:00
+    assert {x["member"] for x in r["m"]} == {H, A, S}                                         # hosts are in everything
+    assert [x["key"] for x in r["p"] if x["member"] == S] == ["place:d3e3"]
+    assert [x["kind"] for x in r["e"] if x["member"] == S] == ["evening"]
+    assert not [x for x in r["none"] if x["kind"] in ("morning", "evening")]
+    # a guest who joined nothing gets nothing; a host does
+    st = state(members=state()["members"] + [{"id": "g-2", "name": "Шахи", "role": "guest"}])
+    r2 = digest(f"return G.dueMessages(D, {jst('2026-10-18T08:05:00')});", st=st, members=st["members"])
+    assert not [x for x in r2 if x["member"] == "g-2"] and [x for x in r2 if x["member"] == H]
+
+
+def test_sent_once_capped_quiet_at_night_and_off_when_the_profile_says_so():
+    late = {"id": "m-late", "member": S, "day": 3, "shared": False, "ev": {"s": "22:40", "e": "23:10", "t": "Онсэн", "cat": "activity"}}
+    st = state(my_stops=state()["my_stops"] + [late])
+    sent = [{"member": S, "key": "morning:2026-10-19", "day": "2026-10-19", "pushed": True}]
+    r = digest(f"""return {{ again: G.dueMessages(D, {jst('2026-10-19T08:20:00')}).filter(x => x.member === '{S}'),
+      night: G.dueMessages(D, {jst('2026-10-19T23:15:00')}).filter(x => x.member === '{S}') }};""", st=st, sent=sent)
+    assert not [x for x in r["again"] if x["kind"] == "morning"] and r["night"][0]["key"] == "place:m-late" and r["night"][0]["push"] is False   # written, not pushed
+    many = sent + [{"member": S, "key": f"place:x{i}", "day": "2026-10-19", "pushed": True} for i in range(2)]
+    r = digest(f"return G.dueMessages(D, {jst('2026-10-19T09:40:00')}).filter(x => x.member === '{S}');", sent=many)
+    assert r[0]["key"] == "place:d3e3" and r[0]["push"] is False                               # 3 pushed + the evening's slot = 4
+    r = digest(f"return G.dueMessages(D, {jst('2026-10-19T22:05:00')}).filter(x => x.member === '{S}');", sent=many)
+    assert r[0]["kind"] == "evening" and r[0]["push"] is True
+    r = digest(f"return G.dueMessages(D, {jst('2026-10-19T09:40:00')}).filter(x => x.member === '{S}');", profiles={S: {"notify": {"place": False}}})
+    assert r[0]["push"] is False
+    r = digest("return [G.quiet(Date.parse('2026-10-19T07:00:00+09:00'), 9), G.quiet(Date.parse('2026-10-19T07:45:00+09:00'), 9), G.quiet(Date.parse('2026-10-19T22:45:00+09:00'), 9)];")
+    assert r == [True, False, True]
+
+
+def test_shanghai_day_mornings_are_at_eight_shanghai_time():
+    r = digest("return G.dueMessages(D, Date.parse('2026-10-28T08:05:00+08:00')).filter(x => x.member === 'h-1');")
+    assert r[0]["kind"] == "morning" and r[0]["day"] == 12
+    assert not digest("return G.dueMessages(D, Date.parse('2026-10-28T07:05:00+08:00')).filter(x => x.kind === 'morning');")
+
+
+def test_digest_texts_are_short_profile_only_and_fall_back():
+    r = digest(f"""const m = G.dueMessages(D, {jst('2026-10-19T08:05:00')}).find(x => x.member === '{S}');
+      const req = G.digestRequest(m);
+      return {{ req, ok: G.digestText({{ stop_reason: 'end_turn', content: [{{ type: 'text', text: 'Доброе утро, Саня!\\nСегодня Киото: Тэнрю-дзи в 08:30.' }}] }}, m),
+        refused: G.digestText({{ stop_reason: 'refusal', content: [] }}, m), url: G.appUrl('miras-aikosh', m),
+        place: G.placeText({{ profile: {{ lang: 'en' }}, stop: {{ t: 'Kinkaku-ji' }} }}) }};""", profiles={S: {"name": "Саня", "lang": "ru", "tone": "fun"}})
+    q = r["req"]
+    assert q["model"] == "claude-opus-5-5" and q["output_config"] == {"effort": "low"} and q["max_tokens"] <= 600 and "tools" not in q and "thinking" not in q
+    txt = q["system"] + q["messages"][0]["content"]
+    assert "Саня" in txt and "08:30 Тэнрю-дзи" in txt and "юмором" in txt and "Мирас" not in txt and len(txt) < 1200
+    assert r["ok"] == {"title": "Доброе утро, Саня!", "body": "Сегодня Киото: Тэнрю-дзи в 08:30."}
+    assert r["refused"]["title"] == "Доброе утро!" and r["url"].endswith("#briefing") and r["place"]["title"] == "How was «Kinkaku-ji»?"
+
+
+def test_assistant_sql_is_guarded_private_and_idempotent():
+    sql = (ROOT / "supabase" / "migrations" / "001_group.sql").read_text(encoding="utf-8")
+    block = sql.split("assistant: profile, ratings, scheduled messages", 1)[1]
+    for name in ("save_ai_profile", "save_feedback", "my_ai", "feedback_averages"):
+        m = re.search(rf"create or replace function public\.{name}\((.*?)\$\$;", block, re.S)
+        assert m and "security definer" in m.group(0) and "set search_path = public, extensions" in m.group(0) and "public._me()" in m.group(0), name
+        assert re.search(rf"grant execute on function [^;]*public\.{name}\(", block), name
+    for t in ("ai_profiles", "ai_feedback", "ai_sent"):
+        assert f"create table if not exists public.{t}" in block and f"alter table public.{t} enable row level security" in block
+    assert "create policy" not in block and "having count(*) >= 2" in block                    # the group sees averages only
+    assert "where member = m.id" in block.split("function public.my_ai()")[1].split("$$;")[0]
+    assert "assistant-cron" in block and not re.search(r"^\s*(perform|select) cron\.schedule", block, re.M)   # no cron job until approved
+    assert "public._ai_tick()\n  from public, anon, authenticated" in block                  # the tick is not callable from the app
