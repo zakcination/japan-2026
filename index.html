@@ -1793,6 +1793,12 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-msg.ai { box-shadow: none; }
 .as-dock .as-chip { max-width: 78vw; overflow: hidden; text-overflow: ellipsis; }
 .as-jtxt { width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; padding: 10px 12px; background: var(--inset); color: var(--text); font: 400 min(0.8824rem, 21px)/1.35 var(--sf); }
+
+.as-copy { justify-self: start; border: 0; background: none; padding: 0; min-height: 32px; color: var(--sec); font: 600 min(0.7647rem, 18.2px)/1 var(--sf); cursor: pointer; }
+.as-retry, .as-cancel { min-height: 32px; display: inline; padding: 0 4px; }
+.as-clear { align-self: center; min-height: 32px; color: var(--sec); font-size: min(0.7647rem, 18.2px); }
+.as-newpill { align-self: center; min-height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: var(--text); color: var(--bg); font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
+.as-dock .as-ex[hidden], .as-newpill[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -8894,7 +8900,13 @@ function handleDeepLink() {
    It only proposes: plan changes and expenses come back as cards, and nothing changes until «Применить».
    Also: a profile kept on this phone (how to call me, language, tone…), photos, dictation, a voice translator. */
 const ASK_PROFILE = 'japan2026.assistant.profile.v1';
-const ASK = { turns: [], busy: false, view: 'chat', pics: [], rec: null };
+const ASK_CHAT = 'japan2026.assistant.chat.v1';
+const ASK = { turns: (() => { try { const t = JSON.parse(localStorage.getItem(ASK_CHAT) || '[]'); return Array.isArray(t) ? t.slice(-30) : []; } catch (e) { return []; } })(),
+              busy: false, view: 'chat', pics: [], rec: null, req: 0 };
+/* the conversation stays on this phone (text only, last 30 turns) — reopening the chat continues it */
+function askSaveChat() {
+  try { localStorage.setItem(ASK_CHAT, JSON.stringify(ASK.turns.slice(-30).map(t => ({ ...t, images: null, thumbs: [] })))); } catch (e) {}
+}
 ICONS.spark = '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"/>';
 ICONS.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
 ICONS.cam = '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
@@ -9107,7 +9119,8 @@ function chatHTML() {
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
     <div class="as-dock">
-      <div class="as-ex" id="asEx">${askSuggest().map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <button type="button" class="as-newpill" id="asNew" hidden>Новый ответ ↓</button>
+      <div class="as-ex" id="asEx">${askSuggest().slice(0, 4).map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>
       <form class="as-form" id="asForm">
         <div class="as-field">
           ${!askPhotos() ? '' : `<label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>`}
@@ -9126,15 +9139,15 @@ function logHTML() {
       <span class="as-fine">Номера карт, паспорта и коды не пишите. Вопросы сохраняются в журнал — его видят хозяева.</span>
       <button type="button" class="tc-link as-jbtn" id="asReq">Предложить улучшение приложения ›</button>
       ${(Api.me() || {}).role === 'host' ? '<button type="button" class="tc-link as-jbtn" id="asJournal">Журнал вопросов и заявки ›</button>' : ''}</div>`; }
-  return ASK.turns.map((t, ti) => {
-    if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}</p>`;
+  return '<button type="button" class="tc-link as-clear" id="asClear">Очистить чат</button>' + ASK.turns.map((t, ti) => {
+    if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}${t.retry ? ` <button type="button" class="tc-link as-retry" data-retry="${ti}">Повторить</button>` : ''}</p>`;
     if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
-    return `<div class="as-msg ai"><p>${nl(t.text)}</p>
+    return `<div class="as-msg ai"><p>${nl(t.text)}</p><button type="button" class="as-copy" data-copy="${ti}" aria-label="Скопировать ответ">Копировать</button>
       ${(t.cards || []).map((c, ci) => cardHTML(c, ti, ci)).join('')}
       ${t.sos && typeof openSos === 'function' ? '<button type="button" class="tc-btn primary wide as-sos" data-sos>Открыть SOS: номера и страховка</button>' : ''}
       ${(t.actions || []).map(a => actionHTML(a, ti)).join('')}
       ${(t.sources || []).length ? `<p class="as-src">Источники: ${t.sources.map(s => Core.safeUrl(s.url) ? `<a href="${esc(Core.safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title || 'ссылка')}</a>` : '').filter(Boolean).join(' · ')}</p>` : ''}</div>`;
-  }).join('') + (ASK.busy ? '<p class="as-msg ai as-wait" id="asWait">Думаю…</p>' : '');
+  }).join('') + (ASK.busy ? `<p class="as-msg ai as-wait" id="asWait"><span id="asWaitT">${esc(ASK.waitText || 'Думаю…')}</span>${ASK.slow ? ' <button type="button" class="tc-link as-cancel" id="asCancel">Отменить</button>' : ''}</p>` : '');
 }
 function cardHTML(c, ti, ci) {
   if (c.kind === 'ja') return `<div class="as-card as-ja"><p class="as-ja-t" lang="ja">${esc(c.ja)}</p>${c.reading ? `<p class="tc-sub">${esc(c.reading)}</p>` : ''}<p>${esc(c.meaning)}</p>
@@ -9172,10 +9185,17 @@ function actionHTML(a, ti) {
 }
 function askLogRefresh() {
   const log = document.getElementById('asLog'); if (!log) return;
-  log.innerHTML = logHTML(); log.scrollTop = log.scrollHeight;
+  const near = ASK.atBottom !== false || log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  const keep = log.scrollTop;
+  log.innerHTML = logHTML();
   const s = document.getElementById('asSend'); if (s) s.disabled = ASK.busy;
-  const last = log.lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest' });
+  const pill = document.getElementById('asNew');
+  if (near) { log.scrollTop = log.scrollHeight; ASK.atBottom = false; if (pill) pill.hidden = true; }
+  else { log.scrollTop = keep; if (pill) pill.hidden = false; }
 }
+/* suggestions refresh after every answer and hide while typing */
+function askChips() { const ex = document.getElementById('asEx'); if (!ex) return;
+  ex.innerHTML = askSuggest().slice(0, 4).map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join(''); }
 function wireChat(m) {
   wireRate(m);
   const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
@@ -9183,11 +9203,25 @@ function wireChat(m) {
   m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
-  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
+  const desk = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;   // phones: Enter = new line
+  ta.addEventListener('keydown', e => { if (desk && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
+  const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; m.querySelector('#asEx').hidden = !!ta.value.trim(); };
+  ta.addEventListener('input', grow);
+  const log0 = m.querySelector('#asLog'), pill = m.querySelector('#asNew');
+  log0.addEventListener('scroll', () => { if (log0.scrollHeight - log0.scrollTop - log0.clientHeight < 40) pill.hidden = true; }, { passive: true });
+  pill.addEventListener('click', () => { log0.scrollTop = log0.scrollHeight; pill.hidden = true; });
   const jb = m.querySelector('#asJournal'); if (jb) jb.addEventListener('click', () => { ASK.view = 'journal'; ASK.journal = null; askRender(); });
   const rq = m.querySelector('#asReq'); if (rq) rq.addEventListener('click', () => { ASK.view = 'request'; askRender(); });
   m.querySelector('#asEx').addEventListener('click', e => { const ex = e.target.closest('[data-ex]'); if (ex) askSend(ex.dataset.ex); });
   m.querySelector('#asLog').addEventListener('click', e => {
+    if (e.target.closest('#asCancel')) { ASK.req++; ASK.busy = false; ASK.slow = false; ASK.turns.push({ role: 'note', text: 'Отменено.' }); askSaveChat(); askLogRefresh(); return; }
+    const rt = e.target.closest('[data-retry]');
+    if (rt) { const n = ASK.turns[+rt.dataset.retry]; if (n && n.retry) { const q = n.retry; ASK.turns.splice(+rt.dataset.retry - 1, 2); askSend(q); } return; }
+    const cpb = e.target.closest('[data-copy]');
+    if (cpb) { const t = ASK.turns[+cpb.dataset.copy]; if (t) (navigator.clipboard ? navigator.clipboard.writeText(t.text) : Promise.reject())
+      .then(() => { cpb.textContent = 'Скопировано'; }, () => { cpb.textContent = 'Не вышло'; }); return; }
+    if (e.target.closest('#asClear')) { if (!ASK.clearArmed) { ASK.clearArmed = true; e.target.textContent = 'Точно очистить?'; return; }
+      ASK.clearArmed = false; ASK.turns = []; askSaveChat(); askLogRefresh(); return; }
     const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
     if (ap || dm) { const [ti, id] = (ap || dm).dataset[ap ? 'apply' : 'dismiss'].split(':'); const t = ASK.turns[+ti], a = t && (t.actions || []).find(x => x.id === id);
       if (a && !a.status) { if (ap) askApply(a); else { a.status = 'dismissed'; askLogRefresh(); } } return; }
@@ -9240,26 +9274,32 @@ async function askSend(text0) {
   if (!navigator.onLine) { askNote('Нужен интернет — ассистент работает только онлайн. Расписание и билеты в приложении доступны и без сети.', true); return; }
   const pics = ASK.pics.splice(0);
   const turn = { role: 'user', text, thumbs: pics.map(p => p.thumb), images: pics.length ? pics.map(p => ({ media_type: p.media_type, data: p.data })) : null };
-  ASK.turns.push(turn); ASK.busy = true;
+  ASK.turns.push(turn); ASK.busy = true; ASK.slow = false; ASK.waitText = 'Думаю…'; ASK.atBottom = true;
+  const id = ++ASK.req;                       // a newer request or «Отменить» makes this one's answer stale
+  const stage = (ms, t, slow) => setTimeout(() => { if (ASK.req !== id || !ASK.busy) return; ASK.waitText = t; if (slow) ASK.slow = true;
+    const w = document.getElementById('asWaitT'); if (w && !slow) w.textContent = t; else askLogRefresh(); }, ms);
+  const timers = [stage(4000, 'Смотрю план и карту…'), stage(10000, 'Почти готово…', true), stage(25000, 'Долго отвечает — можно отменить и спросить короче.', true)];
   const ta = document.getElementById('asText'); if (ta) ta.value = '';
   const pp = document.getElementById('asPics'); if (pp) pp.innerHTML = '';
   askLogRefresh();
   try {
     const r = await Api.invoke(askFn(), { trip: T.id, view_day: viewDay, messages: askHistory(), profile: askProfile(), rates: askRates() }, 60000);
+    if (ASK.req !== id) return;
     ASK.turns.push({ role: 'assistant', text: String((r && r.reply) || 'Нет ответа.'), actions: Array.isArray(r && r.actions) ? r.actions.slice(0, 6) : [],
       cards: Array.isArray(r && r.cards) ? r.cards.slice(0, 6) : [], sources: Array.isArray(r && r.sources) ? r.sources.slice(0, 4) : [], sos: !!(r && r.sos) });
   } catch (e) {
-    const msg = askErrorText(e);
-    ASK.turns.push({ role: 'note', text: msg, bad: true });
+    if (ASK.req !== id) return;
+    ASK.turns.push({ role: 'note', text: askErrorText(e), bad: true, retry: text || null });
   } finally {
+    timers.forEach(clearTimeout);
     turn.images = null;                       // photos go once; the thumbnails stay on screen
-    ASK.busy = false; askLogRefresh();
+    if (ASK.req === id) { ASK.busy = false; ASK.slow = false; askSaveChat(); askLogRefresh(); askChips(); }
   }
 }
 
 /* ---------- «Применить»: through the app's own paths; the server re-checks everything ---------- */
 function askApply(a) {
-  try { const say = askDo(a); a.status = 'applied'; renderShell(); if (a.kind !== 'expense') { ASK.turns.push({ role: 'note', text: say }); askLogRefresh(); } }
+  try { const say = askDo(a); a.status = 'applied'; askSaveChat(); renderShell(); if (a.kind !== 'expense') { ASK.turns.push({ role: 'note', text: say }); askLogRefresh(); } }
   catch (e) { a.status = 'failed'; a.error = e.message || 'Не получилось'; askLogRefresh(); }
 }
 function askDo(a) {

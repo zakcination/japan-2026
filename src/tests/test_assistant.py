@@ -326,3 +326,24 @@ def test_app_requests_from_the_form_and_the_assistant_reach_the_hosts_queue(app)
     copied = h.page.locator(".as-jtxt").input_value() if h.page.locator(".as-jtxt").count() else h.page.evaluate("navigator.clipboard.readText()")
     assert "оформи каждую отдельной задачей" in copied and "[#2] Сания: Добавить ночную тему" in copied
     assert not a.errors and not h.errors
+
+
+def test_errors_offer_retry_history_survives_reopen_and_enter_is_a_new_line_on_phones(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake); pg = a.page
+    fake.assistant_reply = lambda body: (502, {"error": "Claude вернул ошибку 500."})
+    pg.click("#tcAsk"); ask(pg, "Где обед?")
+    assert "Claude вернул ошибку 500." in pg.inner_text("#asLog") and pg.locator("[data-retry]").count() == 1
+    fake.assistant_reply = {"reply": "Рамен у станции.", "actions": []}
+    pg.click("[data-retry]")
+    until(pg, "/Рамен у станции/.test(document.getElementById('asLog').textContent)")
+    log = pg.inner_text("#asLog")
+    assert log.count("Где обед?") == 1 and "ошибку 500" not in log                     # the failed try is replaced by the answer
+    assert pg.locator(".as-msg.ai [data-copy]").count() == 1
+    pg.fill("#asText", "строка"); pg.press("#asText", "Enter")                            # a phone: Enter adds a line, nothing is sent
+    assert len(fake.assistant_requests) == 2 and pg.locator("#asEx").is_hidden()
+    pg.click("#tcSheetX"); pg.reload(); pg.wait_for_selector("#today", state="attached")
+    pg.evaluate("renderShell()"); pg.click("#tcAsk")
+    assert "Рамен у станции." in pg.inner_text("#asLog")                                 # kept on the phone
+    pg.click("#asClear"); pg.click("#asClear")
+    assert pg.locator(".as-hello").count() == 1
+    assert not a.errors

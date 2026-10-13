@@ -758,3 +758,9 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-msg.ai { box-shadow: none; }
 .as-dock .as-chip { max-width: 78vw; overflow: hidden; text-overflow: ellipsis; }
 .as-jtxt { width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; padding: 10px 12px; background: var(--inset); color: var(--text); font: 400 min(0.8824rem, 21px)/1.35 var(--sf); }
+
+.as-copy { justify-self: start; border: 0; background: none; padding: 0; min-height: 32px; color: var(--sec); font: 600 min(0.7647rem, 18.2px)/1 var(--sf); cursor: pointer; }
+.as-retry, .as-cancel { min-height: 32px; display: inline; padding: 0 4px; }
+.as-clear { align-self: center; min-height: 32px; color: var(--sec); font-size: min(0.7647rem, 18.2px); }
+.as-newpill { align-self: center; min-height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: var(--text); color: var(--bg); font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
+.as-dock .as-ex[hidden], .as-newpill[hidden] { display: none; }
