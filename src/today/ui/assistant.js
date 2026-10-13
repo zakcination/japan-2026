@@ -345,7 +345,7 @@ function wireTranslate(m) {
   const ta = m.querySelector('#trText'), dir = d => { ASK.trDir = d; ta.lang = d === 'ja' ? 'ja' : '';
     ta.placeholder = d === 'ja' ? '日本語で入力してください（キーボードの🎤）' : 'Или напишите фразу (🎤 на клавиатуре)'; };
   dir(ASK.trDir || 'me');
-  const typed = d => () => { dir(d); out.innerHTML = `<p class="as-note">${d === 'ja' ? 'キーボードの🎤を押して話してください。' : esc(DICTATE)}</p>`; ta.focus(); };
+  const typed = d => () => { dir(d); out.innerHTML = `<p class="as-note">${d === 'ja' ? '🌐で日本語キーボードに切り替えて、🎤を押して話してください。' : esc(DICTATE)}</p>`; ta.focus(); };
   m.querySelector('#trMe').addEventListener('click', () => { dir('me'); askListen(my, t => run(t, my, 'ja'), typed('me')); });
   m.querySelector('#trThem').addEventListener('click', () => { dir('ja'); askListen('ja', t => run(t, 'ja', my), typed('ja')); });
   m.querySelector('#trGo').addEventListener('click', () => ASK.trDir === 'ja' ? run(ta.value, 'ja', my) : run(ta.value, my, 'ja'));

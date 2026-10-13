@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
   const messages = tr ? null : normaliseHistory(body.messages);
   if (!tr && !messages) return json(req, 400, { error: "Напишите вопрос." });
 
-  const st = await groupState(auth, env("SUPABASE_ANON_KEY") || req.headers.get("apikey") || "", body.trip);
+  const st = await groupState(auth, req.headers.get("apikey") || env("SUPABASE_ANON_KEY"), body.trip);   // the Bearer decides who; group_state is _me()-guarded
   if (!st) return json(req, 403, { error: "Ассистент — только для участников группы." });
   if (!env("ANTHROPIC_API_KEY")) return json(req, 503, { error: "Ассистент ещё не настроен." });
 
