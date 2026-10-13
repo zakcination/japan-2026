@@ -13,7 +13,7 @@ def guest(app, fake, profile=True, **kw):
     san = fake._add("Сания", "guest")
     fake.joins.append({"member": san, "scope": "part", "ref": "kyoto", "mode": "in"})
     a = logged(app, fake, san, "4821", state={"prevDay": 3, "prevTime": "06:00"}, **kw)
-    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', '1')")       # the owner switched the server assistant on
+    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', 'all')")       # the owner switched the server assistant on
     if profile:
         a.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))})")
     return a, san
@@ -28,7 +28,7 @@ def ask(pg, text):
 def test_hidden_until_signed_in_then_profile_first_and_a_round_trip(app):
     fake = FakeSupabase.seeded()
     a = app(trip=GROUPED, state={"prevDay": 3, "prevTime": "06:00"}, supabase=fake)
-    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', '1'); renderShell()")
+    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', 'all'); renderShell()")
     assert a.page.locator("#tcAsk").count() == 1                                   # signed out: ✦ opens «Спросить в Claude» (test_askclaude)
     san = fake._add("Сания", "guest")
     a.page.evaluate("localStorage.setItem('japan2026.loginasked.v1', '1')")
@@ -111,7 +111,7 @@ def test_guest_move_on_a_group_stop_becomes_a_proposal_host_move_changes_the_pla
     assert p["member"] == san and p["note"] == "выспаться" and fake.plan["version"] == v      # the plan itself is untouched
 
     h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
-    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', '1')")
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', 'all')")
     fake.assistant_reply = {"reply": "Переношу.", "actions": [dict(move, how="plan")]}
     h.page.click("#tcAsk"); ask(h.page, "Перенеси Тэнрю-дзи")
     h.page.click("[data-apply='1:a1']")
@@ -269,3 +269,16 @@ def test_questionnaire_seed_prefills_the_profile_to_confirm(app):
     saved = json.loads(pg.evaluate("localStorage.getItem('japan2026.assistant.profile.v1')"))
     assert saved["name"] == "Саня" and saved["notes"].startswith("встаю") and "seed" not in saved
     assert not a.errors
+
+
+def test_only_miras_gets_the_in_app_assistant_others_ask_in_claude(app):
+    fake = FakeSupabase.seeded()
+    a, san = guest(app, fake)
+    a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); window.open = (u) => { window.__opened = u; }; renderShell()")
+    a.page.click("#tcAsk")
+    assert a.page.locator("#clGo").is_visible() and a.page.locator("#asText").count() == 0     # Сания: «Спросить в Claude»
+    h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); renderShell()")
+    h.page.click("#tcAsk")
+    assert h.page.locator("#asText").is_visible()                                              # Мирас: the full chat
+    assert not a.errors and not h.errors

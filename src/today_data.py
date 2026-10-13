@@ -175,7 +175,9 @@ RECIPES = [
          url="https://www.teamlab.art/e/tokyo/", opens=None, opens_note="проверить", buy_by="2026-10-20", price_pp=3600, tips=""),
 ]
 GROUP = {"url": "https://ajpiptdkybhtkaoozqet.supabase.co", "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
-         "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0"}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
+         "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0",
+         # the in-app assistant (API key on the server) — only these members; everyone else gets «Спросить в Claude»
+         "assistant": ["Мирас"]}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
 
 # Preparation checklist (spec appendix B). PREP is shared by both trips; PREP_OWN (Shanghai layover
 # items) is ours only. `due`/`from` are ISO dates; `auto` marks an item the app can detect on its own.

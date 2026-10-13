@@ -50,7 +50,7 @@ def test_hosts_get_a_claude_code_session_on_the_repo(app):
     from fake_supabase import FakeSupabase
     from test_group_join import logged
     fake = FakeSupabase.seeded()
-    a = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    a = logged(app, fake, fake.host2_id, fake.host2_pin, state={"prevDay": 3, "prevTime": "06:00"})   # Айкош: host, no in-app chat
     pg = a.page
     pg.evaluate("window.open = (u) => { window.__opened = u; }; renderShell()")
     pg.click("#tcAsk"); pg.wait_for_selector("#clCode")
@@ -65,3 +65,16 @@ def test_hosts_get_a_claude_code_session_on_the_repo(app):
 def test_guests_and_signed_out_have_no_claude_code(app):
     a = open_claude(app)
     assert a.page.locator("#clCode").count() == 0
+
+
+def test_miras_has_claude_code_in_the_full_chat(app):
+    from fake_supabase import FakeSupabase
+    from test_group_join import logged
+    fake = FakeSupabase.seeded()
+    a = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    pg = a.page
+    pg.evaluate("localStorage.setItem('japan2026.assistant.profile.v1', JSON.stringify({name: 'Мирас', lang: 'ru', at: 1})); window.open = (u) => { window.__opened = u; }; renderShell()")
+    pg.click("#tcAsk"); pg.wait_for_selector("#asCode")
+    pg.fill("#asText", "добавь рамен у Нидзё в 19:00"); pg.click("#asCode")
+    assert "добавь рамен" in parse_qs(urlparse(pg.evaluate("window.__opened")).query)["prompt"][0]
+    assert a.errors == []

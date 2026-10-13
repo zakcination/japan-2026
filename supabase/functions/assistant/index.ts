@@ -122,6 +122,9 @@ Deno.serve(async (req) => {
 
   const st = await groupState(auth, req.headers.get("apikey") || env("SUPABASE_ANON_KEY"), body.trip);   // the Bearer decides who; group_state is _me()-guarded
   if (!st) return json(req, 403, { error: "Ассистент — только для участников группы." });
+  const only = env("ASSISTANT_ONLY").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (only.length && !only.includes(String(st.me.name || "").trim().toLowerCase()))
+    return json(req, 403, { error: "Встроенный ассистент включён только для владельца. Нажмите ✦ → «Спросить в Claude»." });
   if (!env("ANTHROPIC_API_KEY")) return json(req, 503, { error: "Ассистент ещё не настроен." });
   if (!(await bump(auth, req.headers.get("apikey") || env("SUPABASE_ANON_KEY")))) return json(req, 429, { error: "На сегодня вопросов достаточно — продолжим завтра." });
 

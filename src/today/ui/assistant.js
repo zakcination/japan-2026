@@ -11,8 +11,14 @@ ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
 
 const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
 /* the in-app assistant needs the owner's API key on the server; until the trip says so, ✦ opens «Спросить в Claude» for everyone */
-const askServer = () => { try { if (localStorage.getItem('japan2026.assistant.server') === '1') return true; } catch (e) {} return !!(T.group && T.group.assistant); };
-const askFull = () => askServer() && askOn();
+const askServer = () => { try { if (/^(1|all)$/.test(localStorage.getItem('japan2026.assistant.server') || '')) return true; } catch (e) {} return !!(T.group && T.group.assistant); };
+/* T.group.assistant: true for everyone, or a list of member names who may use it (the server checks the same list) */
+const askMine = () => { const a = T.group && T.group.assistant, me = Api.me();
+  if (!Array.isArray(a)) return true;
+  try { if (localStorage.getItem('japan2026.assistant.server') === 'all') return true; } catch (e) {}   // tests; the server still checks
+  const norm = s => String(s || '').trim().toLowerCase();
+  return !!me && a.some(n => norm(n) === norm(me.name)); };
+const askFull = () => askServer() && askOn() && askMine();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
 const askHTML = () => { if (tab === 'stats') return ''; const n = askFull() ? askPending().length : 0;
   return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
@@ -96,7 +102,7 @@ const nl = s => esc(s).replace(/\n/g, '<br>');
 const EXAMPLES = ['Что у меня сегодня?', 'Идёт дождь — что поменять?', 'Как сказать «без свинины»?', 'Сколько это в тенге: ¥3 500?'];
 function chatHTML() {
   return `<div class="as-bar"><button type="button" class="tc-btn" id="asToTr">${icon('speak')}Переводчик</button>
-      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
+      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof claudeHost === 'function' && claudeHost() ? `<button type="button" class="tc-btn" id="asCode">${icon('edit')}Claude Code</button>` : ''}${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
     <div id="asRate">${rateHTML()}</div>
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
@@ -161,6 +167,12 @@ function wireChat(m) {
   const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
   m.querySelector('#asToTr').addEventListener('click', () => { ASK.view = 'translate'; askRender(); });
   m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
+  const code = m.querySelector('#asCode');          // the same request as a Claude Code session on the repo (owner's subscription)
+  if (code) code.addEventListener('click', () => {
+    const t = (m.querySelector('#asText') || {}).value || '';
+    if (!t.trim()) { askNote('Напишите в поле, что изменить в плане, и нажмите «Claude Code».'); return; }
+    window.open(codeUrl(t), '_blank', 'noopener');
+  });
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });

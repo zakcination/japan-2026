@@ -2757,7 +2757,10 @@
  "group": {
   "url": "https://ajpiptdkybhtkaoozqet.supabase.co",
   "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
-  "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0"
+  "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0",
+  "assistant": [
+   "Мирас"
+  ]
  },
  "prep": [
   {
@@ -2947,5 +2950,5 @@
   }
  ],
  "id": "miras-aikosh",
- "updated": "2026-10-14T00:24+05:00"
+ "updated": "2026-10-14T02:05+05:00"
 }
