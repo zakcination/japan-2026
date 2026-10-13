@@ -177,6 +177,7 @@ function sheet(title, bodyHTML, onReady) {
     document.body.appendChild(m);
     m.addEventListener('click', e => { if (e.target === m) closeSheet(); });
   }
+  m.classList.remove('tc-full-bg'); m.style.transform = '';
   m.innerHTML = `<div class="tc-sheet"><span class="tc-grab" aria-hidden="true"></span>
     <div class="tc-sheet-head"><h2>${esc(title)}</h2><button type="button" class="tc-x" id="tcSheetX" aria-label="Закрыть">${icon('close')}</button></div>
     ${bodyHTML}</div>`;
@@ -184,5 +185,15 @@ function sheet(title, bodyHTML, onReady) {
   m.hidden = false;
   m.querySelector('#tcSheetX').addEventListener('click', closeSheet);
   if (onReady) onReady(m);
+}
+/* a sheet over the whole screen (chat): its height follows the visible area, so the input stays above the keyboard */
+function fullSheet(m) {
+  const sh = m.querySelector('.tc-sheet'); if (!sh) return;
+  sh.classList.add('tc-full'); m.classList.add('tc-full-bg');
+  const vv = window.visualViewport;
+  const fit = () => { if (!m.isConnected || m.hidden || !sh.classList.contains('tc-full')) return;
+    sh.style.height = vv ? vv.height + 'px' : ''; m.style.transform = vv && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : ''; };
+  if (vv && !m.dataset.vv) { m.dataset.vv = '1'; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+  fit();
 }
 function closeSheet() { const m = document.getElementById('tcSheet'); if (m) { m.hidden = true; m.innerHTML = ''; } }

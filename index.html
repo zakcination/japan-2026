@@ -1726,6 +1726,47 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-stars button { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--seg); font: 400 26px/1 var(--sf); cursor: pointer; }
 .as-stars button.on { color: var(--alert); }
 .as-rate input { min-height: 44px; box-sizing: border-box; border: 0; border-radius: 12px; padding: 0 12px; background: var(--card); color: var(--text); font: 400 min(1rem, 23.8px) var(--sf); }
+
+/* ---------- «Спросить в Claude» ---------- */
+.cl-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cl-chip { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 22px; background: var(--card); color: var(--text);
+  font: 500 min(0.8824rem, 21px)/1.25 var(--sf); text-align: left; cursor: pointer; }
+.cl-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); color: var(--sec); }
+
+/* ---------- iPhone: full height, full-screen chat ---------- */
+#today, .tc-sheet-bg { bottom: calc(-1 * var(--ios-gap, 0px)); }
+.tc-tabs { bottom: calc(-1 * var(--ios-gap, 0px)); }
+.tc-askfab { bottom: calc(49px + max(8px, var(--safe-b)) + 14px - var(--ios-gap, 0px)); }
+.tc-sheet-bg.tc-full-bg { align-items: stretch; background: var(--bg); }
+.tc-sheet.tc-full { height: 100%; max-height: none; border-radius: 0; animation: none; overflow-y: auto;
+  padding: calc(6px + var(--safe-t)) max(16px, var(--safe-r)) max(10px, var(--safe-b)) max(16px, var(--safe-l)); }
+.tc-sheet.tc-full .tc-grab { display: none; }
+.tc-sheet.tc-full:has(> .as-wrap) { overflow: hidden; }
+.tc-sheet.tc-full > .as-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.tc-sheet.tc-full .as-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.tc-sheet.tc-full .as-wrap > *:not(.as-log) { flex-shrink: 0; }
+
+/* ✦ in the Apple Intelligence manner: a slowly turning rainbow rim with a soft glow, a breathing spark */
+@property --as-turn { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.tc-askfab { isolation: isolate; border: 0; background: #0b0b0f; color: #fff;
+  box-shadow: 0 6px 22px rgba(120, 80, 255, .35), 0 2px 6px rgba(0, 0, 0, .3); }
+.tc-askfab::before, .tc-askfab::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; z-index: -1; pointer-events: none;
+  background: conic-gradient(from var(--as-turn), #ff9f0a, #ff375f, #bf5af2, #5e5ce6, #0a84ff, #64d2ff, #ff9f0a);
+  animation: as-turn 4s linear infinite; }
+.tc-askfab::after { inset: -6px; filter: blur(10px); opacity: .7; }
+.tc-askfab .tc-ic { position: relative; z-index: 1; animation: as-breathe 2.6s ease-in-out infinite; }
+.tc-askfab:active { transform: scale(.94); }
+.tc-askfab { transition: transform .15s ease; }
+.tc-askfab > .tc-ic { filter: drop-shadow(0 0 6px rgba(255, 255, 255, .55)); }
+.tc-askfab::selection { background: none; }
+.tc-askfab { background: radial-gradient(circle at 30% 25%, #2a2a35, #0b0b0f 70%); }
+@keyframes as-turn { to { --as-turn: 360deg; } }
+@keyframes as-breathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.12); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tc-askfab::before, .tc-askfab::after, .tc-askfab .tc-ic { animation: none; } }
+.tc-askfab::before { -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
+.tc-askfab::after { inset: -9px; -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 80%); mask: radial-gradient(farthest-side, transparent 62%, #000 80%); }
+.tc-askfab > .tc-ic { color: #fff; }
 </style>
 </head>
 <body>
@@ -3984,6 +4025,21 @@ const Ios = (() => {
   return { isIOS, standalone, appleRoute, escText, fold, ics, routeUrl, walkUrl, dayEvents, calendarForDay, keepAwake, installHint, wireInstall };
 })();
 
+/* iOS Home Screen apps (black-translucent status bar) sometimes size the fixed layer to the screen minus the status bar,
+   leaving a strip under the tab bar. Measure the gap and let the fixed layers reach the bottom edge. */
+(function fitScreen() {
+  const set = () => {
+    let g = 0;
+    if (Ios.standalone() && Ios.isIOS() && innerHeight > innerWidth && screen.height > screen.width) {
+      g = Math.round(screen.height - innerHeight);
+      if (g < 0 || g > 80) g = 0;
+    }
+    document.documentElement.style.setProperty('--ios-gap', g + 'px');
+  };
+  set(); addEventListener('resize', set); addEventListener('orientationchange', () => setTimeout(set, 300));
+})();
+
+
 /* ---------- shell: header (capsule, day segments, title), tabs, theme, bottom sheet, tick ----------
    Tabs register a renderer in RENDER[tab]. */
 const WD2 = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -4163,6 +4219,7 @@ function sheet(title, bodyHTML, onReady) {
     document.body.appendChild(m);
     m.addEventListener('click', e => { if (e.target === m) closeSheet(); });
   }
+  m.classList.remove('tc-full-bg'); m.style.transform = '';
   m.innerHTML = `<div class="tc-sheet"><span class="tc-grab" aria-hidden="true"></span>
     <div class="tc-sheet-head"><h2>${esc(title)}</h2><button type="button" class="tc-x" id="tcSheetX" aria-label="Закрыть">${icon('close')}</button></div>
     ${bodyHTML}</div>`;
@@ -4170,6 +4227,16 @@ function sheet(title, bodyHTML, onReady) {
   m.hidden = false;
   m.querySelector('#tcSheetX').addEventListener('click', closeSheet);
   if (onReady) onReady(m);
+}
+/* a sheet over the whole screen (chat): its height follows the visible area, so the input stays above the keyboard */
+function fullSheet(m) {
+  const sh = m.querySelector('.tc-sheet'); if (!sh) return;
+  sh.classList.add('tc-full'); m.classList.add('tc-full-bg');
+  const vv = window.visualViewport;
+  const fit = () => { if (!m.isConnected || m.hidden || !sh.classList.contains('tc-full')) return;
+    sh.style.height = vv ? vv.height + 'px' : ''; m.style.transform = vv && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : ''; };
+  if (vv && !m.dataset.vv) { m.dataset.vv = '1'; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+  fit();
 }
 function closeSheet() { const m = document.getElementById('tcSheet'); if (m) { m.hidden = true; m.innerHTML = ''; } }
 
@@ -8821,10 +8888,13 @@ ICONS.speak = '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7
 ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
 
 const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
+/* the in-app assistant needs the owner's API key on the server; until the trip says so, ✦ opens «Спросить в Claude» for everyone */
+const askServer = () => { try { if (localStorage.getItem('japan2026.assistant.server') === '1') return true; } catch (e) {} return !!(T.group && T.group.assistant); };
+const askFull = () => askServer() && askOn();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (!askOn() || tab === 'stats') return ''; const n = askPending().length;
+const askHTML = () => { if (tab === 'stats') return ''; const n = askFull() ? askPending().length : 0;
   return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
-document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) { if (askFull()) openAssistant(); else openClaude(); } });
 
 function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
 function putProfile(p) { try { localStorage.setItem(ASK_PROFILE, JSON.stringify(p)); } catch (e) {} }
@@ -8832,6 +8902,7 @@ const LANG_SR = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', ja: 'ja-JP' };
 const myLang = () => ((askProfile() || {}).lang) || 'ru';
 const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: +r.USD }; } catch (e) { return null; } };
 
+function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
   askSyncProfile(); askLoadAi(); askLoadSeed();
@@ -8841,6 +8912,7 @@ function openAssistant() {
 function askRender() {
   const title = ASK.view === 'profile' ? 'Ассистент: профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Ассистент';
   sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : chatHTML()}</div>`, m => {
+    fullSheet(m);
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -8890,9 +8962,11 @@ function wireProfile(m) {
     putProfile({ name: v('asName').slice(0, 40), lang: segVal('lang') || 'ru', tone: segVal('tone') || 'calm', energy: segVal('energy') || 'mid',
                  interests: v('asInterests').slice(0, 200), food: v('asFood').slice(0, 200), notes: v('asNotes').slice(0, 500), notify, at: Date.now() });
     if (typeof askSyncProfile === 'function') askSyncProfile();
+    if (!askFull()) { openClaude(); return; }
     ASK.view = 'chat'; askRender();
   });
-  m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() }); ASK.view = 'chat'; askRender(); });
+  m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() });
+    if (!askFull()) { openClaude(); return; } ASK.view = 'chat'; askRender(); });
 }
 
 /* ---------- chat ---------- */
@@ -8906,7 +8980,7 @@ function chatHTML() {
     <div class="as-pics" id="asPics">${picsHTML()}</div>
     <form class="as-form" id="asForm">
       <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>
-      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите — или 🎤 на клавиатуре" aria-label="Вопрос ассистенту"></textarea>
+      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите…" aria-label="Вопрос ассистенту"></textarea>
       <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
       <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
     </form>
@@ -9001,6 +9075,18 @@ function askAddPhoto(file) {
   img.src = url;
 }
 
+/* why the assistant didn't answer: the function's own words when it answered, else what the Supabase gateway said */
+function askErrorText(e) {
+  const b = (e && e.body) || {}, st = e && e.status;
+  if (!st) return 'Нет связи с ассистентом — проверьте интернет и повторите.';
+  if (typeof b.error === 'string' && b.error) return b.error;
+  const said = String(b.message || b.msg || b.code || '').slice(0, 140);
+  if (st === 403) return 'Ассистент — только для участников группы. Войдите заново в ⚙.';
+  if (st === 404) return 'Функция assistant не найдена (404): в Supabase она должна называться ровно «assistant».';
+  if (st === 401) return 'Supabase не принял вход (401' + (said ? ': ' + said : '') + '). Войдите заново в ⚙; если не помогло — у функции включите или выключите Verify JWT, см. инструкцию.';
+  if (st === 546 || /WORKER|BOOT/i.test(said)) return 'Функция assistant не запустилась (' + st + (said ? ': ' + said : '') + '). Вставьте one_file.ts заново и нажмите Deploy; подробности — Edge Functions → assistant → Logs.';
+  return 'Ассистент не ответил (код ' + st + (said ? ': ' + said : '') + '). Подробности — Supabase → Edge Functions → assistant → Logs.';
+}
 function askNote(text, bad) { ASK.turns.push({ role: 'note', text, bad: !!bad }); askLogRefresh(); }
 const askHistory = () => ASK.turns.filter(t => t.role === 'user' || t.role === 'assistant').slice(-20)
   .map((t, i, xs) => ({ role: t.role, text: t.text || '', ...(i === xs.length - 1 && t.images ? { images: t.images } : {}) }));
@@ -9019,8 +9105,7 @@ async function askSend(text0) {
     ASK.turns.push({ role: 'assistant', text: String((r && r.reply) || 'Нет ответа.'), actions: Array.isArray(r && r.actions) ? r.actions.slice(0, 6) : [],
       cards: Array.isArray(r && r.cards) ? r.cards.slice(0, 6) : [], sources: Array.isArray(r && r.sources) ? r.sources.slice(0, 4) : [], sos: !!(r && r.sos) });
   } catch (e) {
-    const msg = !e.status ? 'Нет связи с ассистентом — проверьте интернет и повторите.' : e.status === 403 ? 'Ассистент — только для участников группы. Войдите заново в ⚙.'
-      : (e.body && typeof e.body.error === 'string' ? e.body.error : 'Ассистент сейчас недоступен — попробуйте позже.');
+    const msg = askErrorText(e);
     ASK.turns.push({ role: 'note', text: msg, bad: true });
   } finally {
     turn.images = null;                       // photos go once; the thumbnails stay on screen
@@ -9260,6 +9345,72 @@ function askDeepLink(hash) {
   const go = () => { if (!askOn()) return false; const sh = document.getElementById('tcSheet'); if (sh && !sh.hidden) return false; openAssistant(); return true; };
   if (!go()) { const h = () => { if (go()) window.removeEventListener('japan2026:group', h); }; window.addEventListener('japan2026:group', h); }
   return true;
+}
+
+/* ---------- «Спросить в Claude»: the question goes to the Claude app with this trip as context ----------
+   No server, no key: each person asks with their own Claude account. The prompt is built on the phone from what
+   the app already knows (the day on screen, my plan, profile, rates, emergency basics) and is also copied, in case
+   the Claude app opens without the question filled in. Nothing personal beyond what the traveller typed in ⚙. */
+const CLAUDE_NEW = 'https://claude.ai/new?q=';
+const CLAUDE_MAX = 6000;                                         // characters of prompt; long links break on some phones
+const CLAUDE_CHIPS = [
+  'Что у меня сегодня и что стоит не пропустить?',
+  'Где поесть халяль или без свинины рядом со следующим пунктом?',
+  'Как лучше добраться до следующего пункта?',
+  'Идёт дождь — чем заменить план на сегодня?',
+  'Переведи на японский и напиши, как это прочитать: ',
+  'Помоги с ситуацией: ',
+];
+
+function claudeContext(question) {
+  const x = ctx(), d = x.day, p = (typeof askProfile === 'function' && askProfile()) || {};
+  const lang = { ru: 'по-русски', kk: 'по-казахски', en: 'in English' }[p.lang] || 'по-русски';
+  const evs = (x.evs || []).filter(e => e.st !== 'skip').map(e =>
+    `- ${e.s}${e.e ? '–' + e.e : ''} ${e.t}${e.loc ? ' (' + e.loc + ')' : ''}${e.note ? ' — ' + String(e.note).slice(0, 120) : ''}`);
+  const rate = +SET.rate > 0 ? `1 ¥ = ${SET.rate} ${SET.cur || 'KZT'}` : '';
+  const lines = [
+    `Я в поездке по Японии: ${T.name || 'группа из Казахстана'}, ${Core.ddmmyyyy(dateOf(T.days[0]))}–${Core.ddmmyyyy(dateOf(T.days[T.days.length - 1]))}.`,
+    `Отвечай ${lang}, коротко и по делу (1–5 предложений), тон ${({ fun: 'с юмором', strict: 'строгий' })[p.tone] || 'спокойный'}.`,
+    `Не выдумывай расписания поездов, цены и часы работы — дай ссылку Google Maps и скажи «проверьте».`,
+    `${p.name ? 'Меня зовут ' + p.name + '. ' : ''}${p.food ? 'Еда: ' + p.food + '. ' : ''}${p.interests ? 'Интересы: ' + p.interests + '. ' : ''}${p.notes ? 'О себе: ' + p.notes : ''}`.trim(),
+    `День ${d.n}, ${Core.ddmmyyyy(dateOf(d))}, ${d.city || d.label || ''}.${d.hotel ? ' Ночёвка: ' + d.hotel + '.' : ''}`,
+    evs.length ? 'Мой план на этот день:\n' + evs.join('\n') : 'Плана на этот день нет.',
+    rate ? `Курс в приложении: ${rate}.` : '',
+    'На всякий случай: Япония 110 полиция, 119 скорая; страховка от карты Mastercard (Forte Travel), assistance +44 1273 765321.',
+  ].filter(Boolean);
+  let head = lines.join('\n');
+  const q = String(question || '').trim();
+  if (head.length + q.length + 20 > CLAUDE_MAX) head = head.slice(0, Math.max(0, CLAUDE_MAX - q.length - 40)) + '…';
+  return head + '\n\nВопрос: ' + q;
+}
+
+function openClaude(prefill) {
+  sheet('Спросить в Claude', `
+    <p class="tc-sub">Вопрос откроется в приложении Claude вместе с планом дня, вашим профилем и курсом — объяснять ничего не нужно.</p>
+    <div class="cl-chips">${CLAUDE_CHIPS.map((c, i) => `<button type="button" class="cl-chip" data-cl-chip="${i}">${esc(c.replace(/: $/, '…'))}</button>`).join('')}</div>
+    <label class="tc-f" for="clText"><span>Ваш вопрос</span>
+      <textarea id="clText" rows="3" maxlength="1500" placeholder="Например: где рядом рамен без свинины? · 🎤 на клавиатуре">${esc(prefill || '')}</textarea></label>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary" id="clGo">${icon('spark')}Открыть в Claude</button>
+      <button type="button" class="tc-btn" id="clProf">Профиль</button></div>
+    <details class="tc-more"><summary>Что уйдёт в Claude</summary><pre class="cl-pre" id="clPre"></pre></details>
+    <p class="tc-foot" id="clMsg" role="status">Текст ещё и копируется: если Claude открылся с пустым полем — вставьте. Номера карт, паспорта и коды не пишите.</p>
+    ${typeof openSos === 'function' ? '<button type="button" class="tc-btn wide" data-cl-sos>SOS — экстренная помощь без интернета</button>' : ''}`, m => {
+    fullSheet(m);
+    const ta = m.querySelector('#clText'), pre = m.querySelector('#clPre');
+    const show = () => { pre.textContent = claudeContext(ta.value); };
+    show(); ta.addEventListener('input', show);
+    m.querySelectorAll('[data-cl-chip]').forEach(b => b.addEventListener('click', () => {
+      ta.value = CLAUDE_CHIPS[+b.dataset.clChip]; show(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    }));
+    m.querySelector('#clProf').addEventListener('click', () => openAskProfile());
+    const sos = m.querySelector('[data-cl-sos]'); if (sos) sos.addEventListener('click', () => openSos());
+    m.querySelector('#clGo').addEventListener('click', () => {
+      if (!ta.value.trim()) { m.querySelector('#clMsg').textContent = 'Напишите вопрос или выберите готовый.'; ta.focus(); return; }
+      const text = claudeContext(ta.value);
+      try { if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+      window.open(CLAUDE_NEW + encodeURIComponent(text), '_blank', 'noopener');
+    });
+  });
 }
 
 /* ---------- boot: title, open/close the screen, restore the tab, keep it fresh, install on a web host ---------- */

@@ -10,10 +10,13 @@ ICONS.speak = '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7
 ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
 
 const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
+/* the in-app assistant needs the owner's API key on the server; until the trip says so, ✦ opens «Спросить в Claude» for everyone */
+const askServer = () => { try { if (localStorage.getItem('japan2026.assistant.server') === '1') return true; } catch (e) {} return !!(T.group && T.group.assistant); };
+const askFull = () => askServer() && askOn();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (!askOn() || tab === 'stats') return ''; const n = askPending().length;
+const askHTML = () => { if (tab === 'stats') return ''; const n = askFull() ? askPending().length : 0;
   return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
-document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) { if (askFull()) openAssistant(); else openClaude(); } });
 
 function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
 function putProfile(p) { try { localStorage.setItem(ASK_PROFILE, JSON.stringify(p)); } catch (e) {} }
@@ -21,6 +24,7 @@ const LANG_SR = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', ja: 'ja-JP' };
 const myLang = () => ((askProfile() || {}).lang) || 'ru';
 const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: +r.USD }; } catch (e) { return null; } };
 
+function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
   askSyncProfile(); askLoadAi(); askLoadSeed();
@@ -30,6 +34,7 @@ function openAssistant() {
 function askRender() {
   const title = ASK.view === 'profile' ? 'Ассистент: профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Ассистент';
   sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : chatHTML()}</div>`, m => {
+    fullSheet(m);
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -79,9 +84,11 @@ function wireProfile(m) {
     putProfile({ name: v('asName').slice(0, 40), lang: segVal('lang') || 'ru', tone: segVal('tone') || 'calm', energy: segVal('energy') || 'mid',
                  interests: v('asInterests').slice(0, 200), food: v('asFood').slice(0, 200), notes: v('asNotes').slice(0, 500), notify, at: Date.now() });
     if (typeof askSyncProfile === 'function') askSyncProfile();
+    if (!askFull()) { openClaude(); return; }
     ASK.view = 'chat'; askRender();
   });
-  m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() }); ASK.view = 'chat'; askRender(); });
+  m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() });
+    if (!askFull()) { openClaude(); return; } ASK.view = 'chat'; askRender(); });
 }
 
 /* ---------- chat ---------- */
@@ -95,7 +102,7 @@ function chatHTML() {
     <div class="as-pics" id="asPics">${picsHTML()}</div>
     <form class="as-form" id="asForm">
       <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>
-      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите — или 🎤 на клавиатуре" aria-label="Вопрос ассистенту"></textarea>
+      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите…" aria-label="Вопрос ассистенту"></textarea>
       <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
       <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
     </form>
@@ -190,6 +197,18 @@ function askAddPhoto(file) {
   img.src = url;
 }
 
+/* why the assistant didn't answer: the function's own words when it answered, else what the Supabase gateway said */
+function askErrorText(e) {
+  const b = (e && e.body) || {}, st = e && e.status;
+  if (!st) return 'Нет связи с ассистентом — проверьте интернет и повторите.';
+  if (typeof b.error === 'string' && b.error) return b.error;
+  const said = String(b.message || b.msg || b.code || '').slice(0, 140);
+  if (st === 403) return 'Ассистент — только для участников группы. Войдите заново в ⚙.';
+  if (st === 404) return 'Функция assistant не найдена (404): в Supabase она должна называться ровно «assistant».';
+  if (st === 401) return 'Supabase не принял вход (401' + (said ? ': ' + said : '') + '). Войдите заново в ⚙; если не помогло — у функции включите или выключите Verify JWT, см. инструкцию.';
+  if (st === 546 || /WORKER|BOOT/i.test(said)) return 'Функция assistant не запустилась (' + st + (said ? ': ' + said : '') + '). Вставьте one_file.ts заново и нажмите Deploy; подробности — Edge Functions → assistant → Logs.';
+  return 'Ассистент не ответил (код ' + st + (said ? ': ' + said : '') + '). Подробности — Supabase → Edge Functions → assistant → Logs.';
+}
 function askNote(text, bad) { ASK.turns.push({ role: 'note', text, bad: !!bad }); askLogRefresh(); }
 const askHistory = () => ASK.turns.filter(t => t.role === 'user' || t.role === 'assistant').slice(-20)
   .map((t, i, xs) => ({ role: t.role, text: t.text || '', ...(i === xs.length - 1 && t.images ? { images: t.images } : {}) }));
@@ -208,8 +227,7 @@ async function askSend(text0) {
     ASK.turns.push({ role: 'assistant', text: String((r && r.reply) || 'Нет ответа.'), actions: Array.isArray(r && r.actions) ? r.actions.slice(0, 6) : [],
       cards: Array.isArray(r && r.cards) ? r.cards.slice(0, 6) : [], sources: Array.isArray(r && r.sources) ? r.sources.slice(0, 4) : [], sos: !!(r && r.sos) });
   } catch (e) {
-    const msg = !e.status ? 'Нет связи с ассистентом — проверьте интернет и повторите.' : e.status === 403 ? 'Ассистент — только для участников группы. Войдите заново в ⚙.'
-      : (e.body && typeof e.body.error === 'string' ? e.body.error : 'Ассистент сейчас недоступен — попробуйте позже.');
+    const msg = askErrorText(e);
     ASK.turns.push({ role: 'note', text: msg, bad: true });
   } finally {
     turn.images = null;                       // photos go once; the thumbnails stay on screen

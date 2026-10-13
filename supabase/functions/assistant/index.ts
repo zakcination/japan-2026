@@ -47,6 +47,22 @@ async function bump(auth: string, apikey: string) {
   return !!r && r.ok && (await r.json().catch(() => false)) === true;
 }
 
+/* why Claude didn't answer, in words the owner can act on (never the key, never the request) */
+function claudeError(e: any): string {
+  const st = e && typeof e.status === "number" ? e.status : 0, msg = String((e && e.message) || "");
+  const name = String((e && e.constructor && e.constructor.name) || "");
+  if (/timeout/i.test(name + " " + msg)) return "Claude не ответил вовремя — повторите вопрос короче.";
+  if (!st) return "Нет связи с Claude из Supabase — повторите через минуту.";
+  if (st === 401) return "Ключ Anthropic не принят (401): проверьте секрет ANTHROPIC_API_KEY — без пробелов, начинается с sk-ant-.";
+  if (st === 403) return "Ключу Anthropic запрещён доступ (403): проверьте ключ и организацию в console.anthropic.com.";
+  if (st === 400 && /credit|balance|billing/i.test(msg)) return "На балансе Anthropic нет денег (400): пополните в console.anthropic.com → Billing.";
+  if (st === 400 && /limit/i.test(msg)) return "Достигнут лимит расходов Anthropic (400): поднимите его в console.anthropic.com → Limits.";
+  if (st === 404) return "Модель недоступна для этого ключа (404).";
+  if (st === 429) return "Слишком много запросов к Claude (429) — попробуйте через минуту.";
+  if (st === 529 || st === 503) return "Claude сейчас перегружен (" + st + ") — попробуйте через минуту.";
+  return "Claude вернул ошибку " + st + (msg ? ": " + msg.replace(/sk-ant-[\w-]+/g, "…").slice(0, 160) : "") + ".";
+}
+
 const same = (a: string, b: string) => { const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b); return x.length === y.length && timingSafeEqual(x, y); };
 
 /* the cron tick: who is due a morning / place / evening message now; write it to ai_sent (the in-app inbox), push via notify */
@@ -123,7 +139,6 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     const status = e && typeof e.status === "number" ? e.status : 0;
     console.error("assistant", status, e && e.message);
-    if (status === 429 || status === 529) return json(req, 503, { error: "Ассистент сейчас перегружен — попробуйте через минуту." });
-    return json(req, 502, { error: "Ассистент сейчас недоступен — попробуйте позже." });
+    return json(req, status === 429 || status === 529 ? 503 : 502, { error: claudeError(e), code: status || null });
   }
 });

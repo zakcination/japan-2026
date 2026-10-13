@@ -13,6 +13,7 @@ def guest(app, fake, profile=True, **kw):
     san = fake._add("Сания", "guest")
     fake.joins.append({"member": san, "scope": "part", "ref": "kyoto", "mode": "in"})
     a = logged(app, fake, san, "4821", state={"prevDay": 3, "prevTime": "06:00"}, **kw)
+    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', '1')")       # the owner switched the server assistant on
     if profile:
         a.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))})")
     return a, san
@@ -27,8 +28,8 @@ def ask(pg, text):
 def test_hidden_until_signed_in_then_profile_first_and_a_round_trip(app):
     fake = FakeSupabase.seeded()
     a = app(trip=GROUPED, state={"prevDay": 3, "prevTime": "06:00"}, supabase=fake)
-    a.page.evaluate("renderShell()")
-    assert a.page.locator("#tcAsk").count() == 0                                   # signed out: no assistant
+    a.page.evaluate("localStorage.setItem('japan2026.assistant.server', '1'); renderShell()")
+    assert a.page.locator("#tcAsk").count() == 1                                   # signed out: ✦ opens «Спросить в Claude» (test_askclaude)
     san = fake._add("Сания", "guest")
     a.page.evaluate("localStorage.setItem('japan2026.loginasked.v1', '1')")
     if a.page.locator("#grJustLook").count() and a.page.locator("#grJustLook").is_visible(): a.page.click("#grJustLook")
@@ -110,7 +111,7 @@ def test_guest_move_on_a_group_stop_becomes_a_proposal_host_move_changes_the_pla
     assert p["member"] == san and p["note"] == "выспаться" and fake.plan["version"] == v      # the plan itself is untouched
 
     h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
-    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))})")
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', '1')")
     fake.assistant_reply = {"reply": "Переношу.", "actions": [dict(move, how="plan")]}
     h.page.click("#tcAsk"); ask(h.page, "Перенеси Тэнрю-дзи")
     h.page.click("[data-apply='1:a1']")

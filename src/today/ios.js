@@ -122,3 +122,18 @@ const Ios = (() => {
 
   return { isIOS, standalone, appleRoute, escText, fold, ics, routeUrl, walkUrl, dayEvents, calendarForDay, keepAwake, installHint, wireInstall };
 })();
+
+/* iOS Home Screen apps (black-translucent status bar) sometimes size the fixed layer to the screen minus the status bar,
+   leaving a strip under the tab bar. Measure the gap and let the fixed layers reach the bottom edge. */
+(function fitScreen() {
+  const set = () => {
+    let g = 0;
+    if (Ios.standalone() && Ios.isIOS() && innerHeight > innerWidth && screen.height > screen.width) {
+      g = Math.round(screen.height - innerHeight);
+      if (g < 0 || g > 80) g = 0;
+    }
+    document.documentElement.style.setProperty('--ios-gap', g + 'px');
+  };
+  set(); addEventListener('resize', set); addEventListener('orientationchange', () => setTimeout(set, 300));
+})();
+

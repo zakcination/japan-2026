@@ -691,3 +691,44 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-stars button { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--seg); font: 400 26px/1 var(--sf); cursor: pointer; }
 .as-stars button.on { color: var(--alert); }
 .as-rate input { min-height: 44px; box-sizing: border-box; border: 0; border-radius: 12px; padding: 0 12px; background: var(--card); color: var(--text); font: 400 min(1rem, 23.8px) var(--sf); }
+
+/* ---------- «Спросить в Claude» ---------- */
+.cl-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cl-chip { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 22px; background: var(--card); color: var(--text);
+  font: 500 min(0.8824rem, 21px)/1.25 var(--sf); text-align: left; cursor: pointer; }
+.cl-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); color: var(--sec); }
+
+/* ---------- iPhone: full height, full-screen chat ---------- */
+#today, .tc-sheet-bg { bottom: calc(-1 * var(--ios-gap, 0px)); }
+.tc-tabs { bottom: calc(-1 * var(--ios-gap, 0px)); }
+.tc-askfab { bottom: calc(49px + max(8px, var(--safe-b)) + 14px - var(--ios-gap, 0px)); }
+.tc-sheet-bg.tc-full-bg { align-items: stretch; background: var(--bg); }
+.tc-sheet.tc-full { height: 100%; max-height: none; border-radius: 0; animation: none; overflow-y: auto;
+  padding: calc(6px + var(--safe-t)) max(16px, var(--safe-r)) max(10px, var(--safe-b)) max(16px, var(--safe-l)); }
+.tc-sheet.tc-full .tc-grab { display: none; }
+.tc-sheet.tc-full:has(> .as-wrap) { overflow: hidden; }
+.tc-sheet.tc-full > .as-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.tc-sheet.tc-full .as-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.tc-sheet.tc-full .as-wrap > *:not(.as-log) { flex-shrink: 0; }
+
+/* ✦ in the Apple Intelligence manner: a slowly turning rainbow rim with a soft glow, a breathing spark */
+@property --as-turn { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.tc-askfab { isolation: isolate; border: 0; background: #0b0b0f; color: #fff;
+  box-shadow: 0 6px 22px rgba(120, 80, 255, .35), 0 2px 6px rgba(0, 0, 0, .3); }
+.tc-askfab::before, .tc-askfab::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; z-index: -1; pointer-events: none;
+  background: conic-gradient(from var(--as-turn), #ff9f0a, #ff375f, #bf5af2, #5e5ce6, #0a84ff, #64d2ff, #ff9f0a);
+  animation: as-turn 4s linear infinite; }
+.tc-askfab::after { inset: -6px; filter: blur(10px); opacity: .7; }
+.tc-askfab .tc-ic { position: relative; z-index: 1; animation: as-breathe 2.6s ease-in-out infinite; }
+.tc-askfab:active { transform: scale(.94); }
+.tc-askfab { transition: transform .15s ease; }
+.tc-askfab > .tc-ic { filter: drop-shadow(0 0 6px rgba(255, 255, 255, .55)); }
+.tc-askfab::selection { background: none; }
+.tc-askfab { background: radial-gradient(circle at 30% 25%, #2a2a35, #0b0b0f 70%); }
+@keyframes as-turn { to { --as-turn: 360deg; } }
+@keyframes as-breathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.12); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tc-askfab::before, .tc-askfab::after, .tc-askfab .tc-ic { animation: none; } }
+.tc-askfab::before { -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
+.tc-askfab::after { inset: -9px; -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 80%); mask: radial-gradient(farthest-side, transparent 62%, #000 80%); }
+.tc-askfab > .tc-ic { color: #fff; }
