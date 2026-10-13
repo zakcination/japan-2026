@@ -35,6 +35,17 @@ function claudeContext(question) {
   return head + '\n\nВопрос: ' + q;
 }
 
+/* hosts: the same question as a Claude Code session on the trip's repo (claude.ai/code, the owner's own subscription).
+   It can change the plan and publish; CLAUDE.md in the repo tells it how. The link only fills the form — you press send. */
+const CODE_REPO = 'zakcination/japan-2026';
+const claudeHost = () => { try { const me = typeof Api !== 'undefined' && Api.enabled() && Api.me(); return !!me && me.role === 'host'; } catch (e) { return false; } };
+function codeUrl(question) {
+  const x = ctx(), d = x.day;
+  const prompt = `Режим ассистента поездки (CLAUDE.md). Сейчас на экране день ${d.n}, ${Core.ddmmyyyy(dateOf(d))}, ${d.city || d.label || ''}`
+    + `. Запрос: ${String(question || '').trim()}`;
+  return 'https://claude.ai/code?prompt=' + encodeURIComponent(prompt.slice(0, 1800)) + '&repositories=' + encodeURIComponent(CODE_REPO);
+}
+
 function openClaude(prefill) {
   sheet('Спросить в Claude', `
     <p class="tc-sub">Вопрос откроется в приложении Claude вместе с планом дня, вашим профилем и курсом — объяснять ничего не нужно.</p>
@@ -43,6 +54,8 @@ function openClaude(prefill) {
       <textarea id="clText" rows="3" maxlength="1500" placeholder="Например: где рядом рамен без свинины? · 🎤 на клавиатуре">${esc(prefill || '')}</textarea></label>
     <div class="tc-actions two"><button type="button" class="tc-btn primary" id="clGo">${icon('spark')}Открыть в Claude</button>
       <button type="button" class="tc-btn" id="clProf">Профиль</button></div>
+    ${claudeHost() ? `<button type="button" class="tc-btn wide" id="clCode">${icon('edit')}Claude Code — изменить план</button>
+      <p class="tc-foot">Сессия на вашей подписке: правит план и публикует, приложение обновится у всех. Откроется форма — нажмите «отправить».</p>` : ''}
     <details class="tc-more"><summary>Что уйдёт в Claude</summary><pre class="cl-pre" id="clPre"></pre></details>
     <p class="tc-foot" id="clMsg" role="status">Текст ещё и копируется: если Claude открылся с пустым полем — вставьте. Номера карт, паспорта и коды не пишите.</p>
     ${typeof openSos === 'function' ? '<button type="button" class="tc-btn wide" data-cl-sos>SOS — экстренная помощь без интернета</button>' : ''}`, m => {
@@ -54,6 +67,11 @@ function openClaude(prefill) {
       ta.value = CLAUDE_CHIPS[+b.dataset.clChip]; show(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     }));
     m.querySelector('#clProf').addEventListener('click', () => openAskProfile());
+    const code = m.querySelector('#clCode');
+    if (code) code.addEventListener('click', () => {
+      if (!ta.value.trim()) { m.querySelector('#clMsg').textContent = 'Напишите, что изменить: например, «перенеси Тэнрю-дзи на 11:00».'; ta.focus(); return; }
+      window.open(codeUrl(ta.value), '_blank', 'noopener');
+    });
     const sos = m.querySelector('[data-cl-sos]'); if (sos) sos.addEventListener('click', () => openSos());
     m.querySelector('#clGo').addEventListener('click', () => {
       if (!ta.value.trim()) { m.querySelector('#clMsg').textContent = 'Напишите вопрос или выберите готовый.'; ta.focus(); return; }

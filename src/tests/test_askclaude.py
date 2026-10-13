@@ -44,3 +44,24 @@ def test_on_money_tab_no_button(app):
     a = app(trip=OURS, state={"prevDay": 3, "prevTime": "06:00"})
     a.page.click(".tc-tab[data-tab='stats']")
     assert a.page.locator("#tcAsk").count() == 0
+
+
+def test_hosts_get_a_claude_code_session_on_the_repo(app):
+    from fake_supabase import FakeSupabase
+    from test_group_join import logged
+    fake = FakeSupabase.seeded()
+    a = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    pg = a.page
+    pg.evaluate("window.open = (u) => { window.__opened = u; }; renderShell()")
+    pg.click("#tcAsk"); pg.wait_for_selector("#clCode")
+    pg.fill("#clText", "перенеси Тэнрю-дзи на 11:00"); pg.click("#clCode")
+    url = pg.evaluate("window.__opened")
+    q = parse_qs(urlparse(url).query)
+    assert url.startswith("https://claude.ai/code?") and q["repositories"] == ["zakcination/japan-2026"]
+    assert "день 3" in q["prompt"][0] and "перенеси Тэнрю-дзи на 11:00" in q["prompt"][0]
+    assert a.errors == []
+
+
+def test_guests_and_signed_out_have_no_claude_code(app):
+    a = open_claude(app)
+    assert a.page.locator("#clCode").count() == 0
