@@ -186,11 +186,12 @@ PREP = [
     dict(id="p-maps", group="phone", title="Офлайн-карты Токио, Киото, Нагои", due="2026-10-15"),
     dict(id="p-translate", group="phone", title="Google Переводчик: японский офлайн", due="2026-10-15"),
     dict(id="p-passport", group="money", title="Паспорт и японская виза на руках", due="2026-10-14"),
-    dict(id="p-insurance", group="money", title="Страховка", due="2026-10-14"),
+    dict(id="p-insurance", group="money", title="Страховка: письмо о покрытии на каждого", due="2026-10-15", url="https://www.mcpeaceofmind.com",
+         note="Страховка от карты Mastercard включается сама, если билеты оплачены этой картой. На сайте — 16 цифр карты → письмо-подтверждение (PDF) → сохранить в «Файлы». Чужую карту и CVV никому не отправлять."),
     dict(id="p-card", group="money", title="Карта работает за границей", note="Предупредите банк; проверьте оплату в иенах.", due="2026-10-14"),
     dict(id="p-cash", group="money", title="Наличные: план на первые дни", note="Менять в World Currency Shop, только если ≥ ¥155 за $1; иначе — 7-Bank."),
     dict(id="p-vjw", group="money", title="Visit Japan Web: QR иммиграции и таможни", url="https://www.vjw.digital.go.jp/", **{"from": "2026-10-11"}, due="2026-10-15",
-         note="Заполнить за 1–6 дней до прилёта — проверить сроки."),
+         note="Каждому: аккаунт → паспорт → поездка (рейс в Японию, аэропорт, первый отель) → иммиграция и таможня → QR. Сделать до вылета, QR — скриншотом."),
     dict(id="p-offline", group="money", title="Брони сохранены офлайн", note="Скриншоты или PDF — во вкладке «Брони»."),
     dict(id="p-adapter", group="packing", title="Переходник тип A"),
     dict(id="p-powerbank", group="packing", title="Пауэрбанк ≤ 100 Wh — в ручной клади"),
@@ -200,11 +201,23 @@ PREP = [
     dict(id="p-meds", group="packing", title="Лекарства"),
     dict(id="p-snacks", group="packing", title="Халяль-перекус"),
     dict(id="p-space", group="packing", title="Место для покупок / курьер чемоданов"),
+    dict(id="p-checkin", group="door", title="Онлайн-регистрация на рейс, посадочный в Wallet или скриншот"),
+    dict(id="p-door-pass", group="door", title="Паспорт с визой — в ручной клади, не в чемодане"),
+    dict(id="p-door-files", group="door", title="Офлайн на телефоне: посадочные, QR Visit Japan Web, письмо о страховке, брони"),
+    dict(id="p-door-money", group="door", title="Две карты разных банков и наличные"),
+    dict(id="p-door-power", group="door", title="Зарядка, кабель, пауэрбанк — в ручной клади"),
+    dict(id="p-door-meds", group="door", title="Лекарства на первые дни — в ручной клади"),
+    dict(id="p-door-home", group="door", title="Дома: газ, вода, окна, утюг; ключи — с собой или у близких"),
 ]
 PREP_OWN = [
     dict(id="p-sh-bags", group="money", title="Шанхай: уточнить, сквозной ли багаж до Ханэды", due="2026-10-10"),
     dict(id="p-sh-visa", group="money", title="Шанхай: безвиз для граждан РК — проверить", due="2026-10-10"),
     dict(id="p-sh-pay", group="money", title="Шанхай: юани или Alipay/WeChat Pay с иностранной картой", due="2026-10-14"),
+    dict(id="p-cn-card1", group="money", title="Китай: онлайн-карта прибытия на 17.10 (Пудун)", url="https://s.nia.gov.cn/ArrivalCardFillingPhone/",
+         **{"from": "2026-10-14"}, due="2026-10-16",
+         note="Каждому на себя, за 72 ч до прилёта. Рейс MU6042, въезд по безвизу РК–КНР. Не успели — на месте по QR или бумажная карта."),
+    dict(id="p-cn-card2", group="money", title="Китай: карта прибытия на 27.10 (ночь в Шанхае)", url="https://s.nia.gov.cn/ArrivalCardFillingPhone/",
+         **{"from": "2026-10-24"}, due="2026-10-27", note="Рейс MU540 из Ханэды, прилёт 22:40. Заполнить в Токио, за 72 ч до прилёта."),
 ]
 
 BOOKINGS = [

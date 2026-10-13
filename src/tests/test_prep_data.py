@@ -4,7 +4,7 @@ from conftest import ROOT
 
 OWN = json.loads((ROOT / "trips" / "miras-aikosh.json").read_text(encoding="utf-8"))
 TPL = json.loads((ROOT / "trips" / "template.json").read_text(encoding="utf-8"))
-GROUPS = {"tickets", "phone", "money", "packing"}
+GROUPS = {"tickets", "phone", "money", "packing", "door"}
 
 
 def test_shanghai_day_only_in_our_trip():

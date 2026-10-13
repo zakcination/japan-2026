@@ -156,7 +156,8 @@ function day1HTML(expanded) {
 const wireDay1 = root => { const m = root.querySelector('#tcDay1More'); if (m) m.addEventListener('click', () => { day1All = true; renderShell(); }); };
 function renderPre(x, root) {
   const now = Date.now(), list = prepItems(), dep = x.ph.dep, dep0 = dep || dayOne();
-  const f = Prep.first(list, now, dep0), g = Prep.groups(list);
+  const f = Prep.first(list, now, dep0),
+    g = Prep.groups(list).filter(r => r.key !== 'door' || (dep0 && now >= dep0 - 1.5 * 864e5));   // «перед выходом» — only in the last 36 h
   const leg = x.ph.leg, t0 = dep && leg ? atAirport(dep, leg.frm, leg.frmOff) : null;
   const chain = myFlights();
   const out = leg ? chain.slice(0, chain.findIndex(l => Flights.isJapan(l.to)) + 1) : [];

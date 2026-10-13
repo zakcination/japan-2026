@@ -67,3 +67,19 @@ def test_a_task_due_today_reaches_its_assignee_at_eight():
     assert not any(x["tag"] == "task-t-later" for x in m)
     m = run({"type": "deadlines"}, "2026-10-07T03:00:00Z", tasks=tasks, task_state=[{"member": H, "ref": "t:t-shakhi", "done": True}])
     assert not any(x["tag"] == "task-t-shakhi" for x in m)                             # ticked: left alone
+
+
+def test_countdown_to_the_first_flight_at_36_24_12_5_hours():
+    # MU6042 leaves Almaty 16.10 at 20:50 (UTC+5) = 15:50Z; the cron runs hourly at :50
+    seen = {}
+    for iso in ["2026-10-15T02:50:00Z", "2026-10-15T03:50:00Z", "2026-10-15T15:50:00Z", "2026-10-16T03:50:00Z",
+                "2026-10-16T10:50:00Z", "2026-10-16T11:50:00Z", "2026-10-16T16:50:00Z"]:
+        m = run({"type": "countdown"}, iso)
+        seen[iso] = m[0]["title"] if m else None
+        if m:
+            assert sorted(m[0]["to"]) == sorted([H, A, S, M]) and m[0]["tag"] == "countdown"
+    assert seen == {"2026-10-15T02:50:00Z": None, "2026-10-15T03:50:00Z": "36 часов до вылета",
+                    "2026-10-15T15:50:00Z": "Сутки до вылета", "2026-10-16T03:50:00Z": "12 часов до вылета",
+                    "2026-10-16T10:50:00Z": "5 часов до вылета", "2026-10-16T11:50:00Z": None, "2026-10-16T16:50:00Z": None}
+    assert run({"type": "countdown"}, "2026-10-16T10:50:00Z")[0]["url"].endswith("#prep=door")
+    assert run({"type": "countdown"}, "2026-10-15T03:50:00Z", plan={"doc": {"flights": []}}) == []

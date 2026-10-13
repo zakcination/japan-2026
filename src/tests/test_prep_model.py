@@ -16,7 +16,7 @@ def P(pg, js, local=None, auto=None):
 def test_groups_count_and_auto_ticks(core):
     pg = core(("core.js", "flights.js", "prep.js"))
     g = P(pg, "return Prep.groups(I);", auto={"installed": True, "booked": ["shin22"], "tickets": []})
-    assert [x["title"] for x in g] == ["Билеты и отели", "Телефон", "Деньги и документы", "Сборы"]
+    assert [x["title"] for x in g] == ["Билеты и отели", "Телефон", "Деньги и документы", "Сборы", "Перед выходом из дома"]
     tickets = g[0]
     fixed = sum(b["st"] == "fixed" for b in OWN["bookings"])
     assert tickets["total"] == len(OWN["bookings"]) and tickets["done"] == fixed + 1   # + the one the app sees as bought

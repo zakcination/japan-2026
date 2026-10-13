@@ -14,6 +14,20 @@ function describe(p, doc) {
   return `${what}: ${p.note || 'комментарий'}`;
 }
 
+// countdown to the first flight, said in the departure city's clock; the hourly cron asks, we answer at 36/24/12/5 h
+const TZ = { ALA: 5, NQZ: 5, TSE: 5, PVG: 8, SHA: 8, HND: 9, NRT: 9, KIX: 9, NGO: 9 };
+const COUNTDOWN = {
+  36: ['36 часов до вылета', 'Сегодня — бумаги: Visit Japan Web, карта прибытия в Китай, письмо о страховке. Всё в «Подготовке».'],
+  24: ['Сутки до вылета', 'Онлайн-регистрация на рейс и посадочный офлайн. Проверьте «Перед выходом из дома».'],
+  12: ['12 часов до вылета', 'Паспорт, карты, наличные, зарядка и лекарства — в ручную кладь.'],
+  5: ['5 часов до вылета', 'Перед выходом: паспорт, телефон, ключи; газ, вода, окна. Список — в приложении.'],
+};
+function firstDeparture(doc) {
+  const f = ((doc && doc.flights) || []).filter(x => x && x.date && x.dep && TZ[x.frm] != null)
+    .map(x => Date.parse(`${x.date}T${x.dep}:00Z`) - TZ[x.frm] * 3600e3).filter(Number.isFinite).sort((a, b) => a - b);
+  return f.length ? f[0] : null;
+}
+
 // D = { trip, members, proposals, plan: {doc}, parts, joins, recipes, task_state } for one trip; now = epoch ms
 export function messages(ev, D, now) {
   const url = h => APP + encodeURIComponent(D.trip) + '#' + h;
@@ -34,6 +48,10 @@ export function messages(ev, D, now) {
     out.push({ to: hosts.filter(h => h !== ev.member), title: ev.mode === 'in' ? `${name(ev.member)} едет` : `${name(ev.member)} не едет`, body: part, url: url('tab=day'), tag: `join-${ev.member}-${ev.ref}` });
   } else if (ev.type === 'plan') {
     out.push({ to: guests, title: 'План поездки обновился', body: 'Откройте «Мой план» — там уже новая версия.', url: url('tab=day'), tag: 'plan' });
+  } else if (ev.type === 'countdown') {
+    const dep = firstDeparture(doc); if (dep == null) return out;
+    const h = Math.round((dep - now) / 3600e3), c = COUNTDOWN[h];
+    if (c) out.push({ to: D.members.map(m => m.id), title: c[0], body: c[1], url: url(h >= 24 ? 'prep=money' : 'prep=door'), tag: 'countdown' });
   } else if (ev.type === 'deadlines') {
     const today = almaty(now).slice(0, 10), in3 = almaty(now + 3 * 864e5).slice(0, 10);
     // tasks due today: to their assignee (everyone when unassigned), unless already ticked

@@ -14,7 +14,7 @@ webpush.setVapidDetails("https://zakcination.github.io/japan-2026/", env("VAPID_
 const db = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
 
 async function tripOf(ev: any): Promise<string[]> {
-  if (ev.type === "deadlines") return ((await db.from("trips").select("id")).data ?? []).map((t: any) => t.id);
+  if (ev.type === "deadlines" || ev.type === "countdown") return ((await db.from("trips").select("id")).data ?? []).map((t: any) => t.id);
   if (ev.type === "plan") return [ev.trip];
   if (ev.type === "proposal" || ev.type === "decision") return [((await db.from("proposals").select("trip").eq("id", ev.id).single()).data ?? {}).trip].filter(Boolean);
   if (ev.type === "join") return [((await db.from("members").select("trip").eq("id", ev.member).single()).data ?? {}).trip].filter(Boolean);

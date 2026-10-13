@@ -1,8 +1,8 @@
-/* ---------- readiness before the trip: four groups, one «first thing», nothing invented — pure ---------- */
+/* ---------- readiness before the trip: five groups, one «first thing», nothing invented — pure ---------- */
 const Prep = (() => {
-  const ORDER = ['tickets', 'money', 'phone', 'packing'];               // tie-break for «Сначала это»
-  const SHOW = ['tickets', 'phone', 'money', 'packing'];                // display order
-  const TITLES = { tickets: 'Билеты и отели', phone: 'Телефон', money: 'Деньги и документы', packing: 'Сборы' };
+  const ORDER = ['tickets', 'money', 'phone', 'packing', 'door'];               // tie-break for «Сначала это»
+  const SHOW = ['tickets', 'phone', 'money', 'packing', 'door'];                // display order
+  const TITLES = { tickets: 'Билеты и отели', phone: 'Телефон', money: 'Деньги и документы', packing: 'Сборы', door: 'Перед выходом из дома' };
   const at = v => { const t = v ? Date.parse(v.length === 10 ? v + 'T00:00:00+09:00' : v) : NaN; return Number.isFinite(t) ? t : null; };
 
   /* «Купить: …» for tickets; a recipe that already says «забронировать» (hotels) becomes «Забронировать: …» */
@@ -38,7 +38,8 @@ const Prep = (() => {
   function first(list, nowMs, departMs) {
     const open = list.filter(i => !i.done);
     const doable = open.filter(i => (!at(i.opens) || at(i.opens) <= nowMs) && (!at(i.from) || at(i.from) <= nowMs)
-      && (i.group !== 'packing' || !departMs || nowMs >= departMs - 3 * 864e5));
+      && (i.group !== 'packing' || !departMs || nowMs >= departMs - 3 * 864e5)
+      && (i.group !== 'door' || !departMs || nowMs >= departMs - 1.5 * 864e5));
     doable.sort((a, b) => (at(a.due) ?? Infinity) - (at(b.due) ?? Infinity) || ORDER.indexOf(a.group) - ORDER.indexOf(b.group));
     const item = doable[0] || null;
     return { item, rest: item ? open.length - 1 : 0 };

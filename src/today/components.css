@@ -370,6 +370,7 @@ button.tc-mini { cursor: pointer; }
 .tc-link { align-self: flex-start; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--tint);
   font: 600 min(0.9412rem, 22.4px)/1 var(--sf); cursor: pointer; }
 .tc-ready { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tc-ready-chip[data-ready="door"] { grid-column: 1 / -1; }
 .tc-ready-chip { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 12px; border: 0; border-radius: 20px;
   background: var(--card); box-shadow: var(--shadow); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 .tc-ready-ring { width: 36px; height: 36px; flex: 0 0 36px; }
