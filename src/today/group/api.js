@@ -20,10 +20,10 @@ const Api = (() => {
   const enabled = () => !!cfg() && !!T.id;
   const emit = () => window.dispatchEvent(new Event('japan2026:group'));
 
-  async function http(path, body, auth, method = 'POST', raw = false, ctype) {
+  async function http(path, body, auth, method = 'POST', raw = false, ctype, ms = 15000) {
     const c = cfg();
     /* a stalled request (bad signal) must not hold the queue forever: give up after 15 s, like no signal */
-    const ac = !raw && typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 15000);   // files may be slow: no limit
+    const ac = !raw && typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), ms);   // files may be slow: no limit
     let res;
     try {
       res = await fetch(c.url + path, { method, signal: ac ? ac.signal : undefined, headers: { apikey: c.anon, Authorization: 'Bearer ' + (auth || c.anon),
@@ -68,6 +68,16 @@ const Api = (() => {
     }
   }
   const netErr = e => !e.status;            // fetch threw: no signal / blocked
+  /* an Edge Function called as the signed-in member (the assistant): same session and refresh as the RPCs, its own timeout */
+  async function invoke(name, body, ms, retried) {
+    if (!/^[a-z][a-z0-9_-]*$/.test(name)) throw new Error('bad function');
+    await ensureSession();
+    try { return await http('/functions/v1/' + name, body, session.access_token, 'POST', false, undefined, ms || 15000); }
+    catch (e) {
+      if (e.status === 401 && !retried) { await refreshToken(); return invoke(name, body, ms, true); }
+      throw e;
+    }
+  }
 
   async function login(memberId, pin, code) {
     try {
@@ -152,5 +162,5 @@ const Api = (() => {
 
   if (enabled() && session && session.member) { poll(); setTimeout(() => { flush(); refresh(); }, 0); }
   return { enabled, me: () => (session && session.member) || null, state: () => state, status: () => ({ ...status }),
-           login: (m, p, c) => login(m, p, c).then(r => { if (r.ok) { status.error = null; poll(); flush(); } return r; }), logout, reauth, run, memberNames, refresh, call, flush, upload, download, remove };
+           login: (m, p, c) => login(m, p, c).then(r => { if (r.ok) { status.error = null; poll(); flush(); } return r; }), logout, reauth, run, invoke, memberNames, refresh, call, flush, upload, download, remove };
 })();

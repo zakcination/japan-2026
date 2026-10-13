@@ -84,7 +84,7 @@ function segmentsHTML(x) {
 
 /* in a preview the title's date becomes a pill that says so and leaves it (the date is in the preview line below) */
 const pvTopHTML = x => `<button type="button" class="tc-pvchip" id="tcPvExitTop" aria-label="Предпросмотр: ${Core.ddmmyyyy(dateOf(x.cday)).slice(0, 5)}, ${hm(x.c.min)}. Выйти из предпросмотра">Предпросмотр${icon('close')}</button>`;
-const gearHTML = () => `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
+const gearHTML = () => (typeof askHTML === 'function' ? askHTML() : '') + `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
 function titleHTML(day, side) {
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
   return `<div class="tc-title"><h1>${esc(day.label)}</h1>${side || `<span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span>`}</div>`;

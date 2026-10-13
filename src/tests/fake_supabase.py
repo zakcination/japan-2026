@@ -30,6 +30,8 @@ class FakeSupabase:
         self.expenses = {}          # id -> {member, e, deleted, updated_at}
         self.clock = time.time      # tests may replace it
         self.fail_network = False   # tests flip it to simulate no signal
+        self.assistant_reply = {"reply": "Готово.", "actions": [], "cards": []}   # dict, or callable(body) -> (status, dict)
+        self.assistant_requests = []   # what the app sent to the Edge Function «assistant»
 
     # ---------- seed ----------
     @classmethod
@@ -397,6 +399,14 @@ class FakeSupabase:
             if path.startswith("/auth/v1/signup"): return send(200, self.signup())
             if path.startswith("/auth/v1/token"): return send(200, self.refresh_token(json.loads(req.post_data or "{}").get("refresh_token")))
             if path.startswith("/rest/v1/rpc/"): return send(200, self.rpc(tok, path.split("/rpc/")[1], json.loads(req.post_data or "{}")))
+            if path.startswith("/functions/v1/assistant"):
+                try: self._me(tok)                                  # the function proves membership via group_state
+                except RpcError as e:
+                    if e.status == 401: raise
+                    return send(403, {"error": "Ассистент — только для участников группы."})
+                body = json.loads(req.post_data or "{}"); self.assistant_requests.append(body)
+                r = self.assistant_reply(body) if callable(self.assistant_reply) else (200, self.assistant_reply)
+                return send(r[0], r[1])
             if path.startswith("/storage/v1/object/authenticated/tickets/"):
                 body, ctype = self.download(tok, path.split("/tickets/", 1)[1]); return send(200, body=body, ctype=ctype)
             if path.rstrip("/") == "/storage/v1/object/tickets" and req.method == "DELETE":

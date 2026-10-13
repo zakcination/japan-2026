@@ -1,0 +1,334 @@
+/* ---------- the assistant: a chat with Claude (Edge Function «assistant»), signed-in members only ----------
+   It only proposes: plan changes and expenses come back as cards, and nothing changes until «Применить».
+   Also: a profile kept on this phone (how to call me, language, tone…), photos, dictation, a voice translator. */
+const ASK_PROFILE = 'japan2026.assistant.profile.v1';
+const ASK = { turns: [], busy: false, view: 'chat', pics: [], rec: null };
+ICONS.spark = '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"/>';
+ICONS.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
+ICONS.cam = '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
+ICONS.speak = '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>';
+ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
+
+const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
+/* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
+const askHTML = () => askOn() && tab !== 'stats' ? `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент">${icon('spark')}</button>` : '';
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
+
+function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
+function putProfile(p) { try { localStorage.setItem(ASK_PROFILE, JSON.stringify(p)); } catch (e) {} }
+const LANG_SR = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', ja: 'ja-JP' };
+const myLang = () => ((askProfile() || {}).lang) || 'ru';
+const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: +r.USD }; } catch (e) { return null; } };
+
+function openAssistant() {
+  if (!askOn()) return;
+  ASK.view = askProfile() ? (ASK.view === 'profile' ? 'chat' : ASK.view) : 'profile';
+  askRender();
+}
+function askRender() {
+  const title = ASK.view === 'profile' ? 'Ассистент: профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Ассистент';
+  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : chatHTML()}</div>`, m => {
+    if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
+  });
+}
+
+/* ---------- profile ---------- */
+const seg = (name, val, opts) => `<div class="as-seg" role="radiogroup" data-seg="${name}">${opts.map(([k, l]) =>
+  `<button type="button" role="radio" data-v="${k}" aria-checked="${k === val}">${esc(l)}</button>`).join('')}</div>`;
+function profileHTML() {
+  const p = askProfile() || {}, n = p.notify || {};
+  const sw = (k, l, sub) => `<label class="tc-act"><span>${l}<small>${sub}</small></span><input type="checkbox" switch data-notify="${k}"${n[k] === false ? '' : ' checked'}></label>`;
+  return `<p class="tc-sub">Пара вопросов, чтобы отвечать по-вашему. Хранится только на этом телефоне и отправляется вместе с вопросом.</p>
+    ${fld('asName', 'Как к вам обращаться', p.name || (Api.me() || {}).name || '', 'text', 'maxlength="40" autocomplete="nickname"')}
+    <span class="tc-lbl">Язык ответов</span>${seg('lang', p.lang || 'ru', [['ru', 'Русский'], ['kk', 'Қазақша'], ['en', 'English']])}
+    <span class="tc-lbl">Тон</span>${seg('tone', p.tone || 'calm', [['calm', 'Спокойно'], ['fun', 'С юмором'], ['strict', 'Строго']])}
+    <span class="tc-lbl">Энергия</span>${seg('energy', p.energy || 'mid', [['low', 'Бережно'], ['mid', 'Средне'], ['high', 'На максимум']])}
+    ${fld('asInterests', 'Что интересно (храмы, еда, шопинг, фото…)', p.interests || '', 'text', 'maxlength="200"')}
+    ${fld('asFood', 'Еда: ограничения (халяль, без свинины, аллергия…)', p.food || '', 'text', 'maxlength="200"')}
+    <span class="tc-sech">Сообщения от ассистента</span>
+    <div class="tc-group">${sw('morning', 'Утром', 'настрой и первые пункты дня')}${sw('place', 'После каждого места', 'оценка в пять звёзд')}${sw('evening', 'Вечером', 'как прошёл день')}</div>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary" id="asProfSave">Сохранить</button>
+      <button type="button" class="tc-btn" id="asProfLater">${askProfile() ? 'Отмена' : 'Позже'}</button></div>`;
+}
+function wireProfile(m) {
+  m.querySelectorAll('[data-seg]').forEach(g => g.addEventListener('click', e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    g.querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+  }));
+  const segVal = k => (m.querySelector(`[data-seg="${k}"] [aria-checked="true"]`) || {}).dataset.v;
+  m.querySelector('#asProfSave').addEventListener('click', () => {
+    const v = id => m.querySelector('#' + id).value.trim(), notify = {};
+    m.querySelectorAll('[data-notify]').forEach(i => { notify[i.dataset.notify] = i.checked; });
+    putProfile({ name: v('asName').slice(0, 40), lang: segVal('lang') || 'ru', tone: segVal('tone') || 'calm', energy: segVal('energy') || 'mid',
+                 interests: v('asInterests').slice(0, 200), food: v('asFood').slice(0, 200), notify, at: Date.now() });
+    if (typeof askSyncProfile === 'function') askSyncProfile();
+    ASK.view = 'chat'; askRender();
+  });
+  m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() }); ASK.view = 'chat'; askRender(); });
+}
+
+/* ---------- chat ---------- */
+const nl = s => esc(s).replace(/\n/g, '<br>');
+const EXAMPLES = ['Что у меня сегодня?', 'Идёт дождь — что поменять?', 'Как сказать «без свинины»?', 'Сколько это в тенге: ¥3 500?'];
+function chatHTML() {
+  return `<div class="as-bar"><button type="button" class="tc-btn" id="asToTr">${icon('speak')}Переводчик</button>
+      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
+    <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
+    <div class="as-pics" id="asPics">${picsHTML()}</div>
+    <form class="as-form" id="asForm">
+      <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" capture="environment" hidden></label>
+      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите что угодно" aria-label="Вопрос ассистенту"></textarea>
+      <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
+      <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
+    </form>
+    <p class="tc-foot">Ассистент только предлагает — ничего не меняется без «Применить». Фото — меню, вывески, ценники; не присылайте фото паспорта и карт, номера карт и коды.</p>`;
+}
+const picsHTML = () => ASK.pics.map((p, i) => `<span class="as-pic"><img src="${p.thumb}" alt="Фото ${i + 1}"><button type="button" class="tc-x" data-unpic="${i}" aria-label="Убрать фото">${icon('close')}</button></span>`).join('');
+function logHTML() {
+  if (!ASK.turns.length) return `<div class="as-hello"><b>Чем помочь?</b><span class="tc-sub">План, места, перевод, деньги, как что работает в приложении. При беде — страховка и номера.</span>
+    <div class="as-ex">${EXAMPLES.map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div></div>`;
+  return ASK.turns.map((t, ti) => {
+    if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}</p>`;
+    if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
+    return `<div class="as-msg ai"><p>${nl(t.text)}</p>
+      ${(t.cards || []).map((c, ci) => cardHTML(c, ti, ci)).join('')}
+      ${t.sos && typeof openSos === 'function' ? '<button type="button" class="tc-btn primary wide as-sos" data-sos>Открыть SOS: номера и страховка</button>' : ''}
+      ${(t.actions || []).map(a => actionHTML(a, ti)).join('')}
+      ${(t.sources || []).length ? `<p class="as-src">Источники: ${t.sources.map(s => Core.safeUrl(s.url) ? `<a href="${esc(Core.safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title || 'ссылка')}</a>` : '').filter(Boolean).join(' · ')}</p>` : ''}</div>`;
+  }).join('') + (ASK.busy ? '<p class="as-msg ai as-wait" id="asWait">Думаю…</p>' : '');
+}
+function cardHTML(c, ti, ci) {
+  if (c.kind === 'ja') return `<div class="as-card as-ja"><p class="as-ja-t" lang="ja">${esc(c.ja)}</p>${c.reading ? `<p class="tc-sub">${esc(c.reading)}</p>` : ''}<p>${esc(c.meaning)}</p>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary" data-jafull="${ti}:${ci}">Показать по-японски</button>
+      <button type="button" class="tc-btn" data-jasay="${ti}:${ci}">${icon('speak')}Озвучить</button></div></div>`;
+  if (c.kind === 'place') { const u = Core.safeUrl(c.url);
+    return `<div class="as-card as-place"><b>${esc(c.name)}</b>${c.note ? `<span class="tc-sub">${esc(c.note)}</span>` : ''}
+      ${u ? `<a class="tc-btn" href="${esc(u)}" target="_blank" rel="noopener">${icon('pin')}${c.route ? 'Маршрут в Google Maps' : 'Открыть в Google Maps'}</a>` : ''}</div>`; }
+  return '';
+}
+const dmOf = n => { const d = planDoc().days.find(x => x.n === n); return d ? Core.ddmmyyyy(dateOf(d)).slice(0, 5) : 'день ' + n; };
+function actionText(a) {
+  if (a.kind === 'move') return [`Перенести «${a.title}» (${dmOf(a.day_n)}): ${a.from_s}${a.from_e ? '–' + a.from_e : ''} → ${a.start}–${a.end}`,
+    a.how === 'propose' ? 'станет предложением хозяевам' : a.how === 'plan' ? 'изменит план группы для всех' : 'в вашем плане'];
+  if (a.kind === 'skip') return [`Не идти: «${a.title}» (${dmOf(a.day_n)})`, a.scope === 'mine' ? 'пометка «Пропустить», можно вернуть' : '«Без меня» — только для вас'];
+  if (a.kind === 'add') return [`Добавить ${dmOf(a.day_n)} ${a.start}–${a.end}: «${a.title}»${a.place ? ' · ' + a.place : ''}`,
+    a.scope === 'mine' ? 'в ваш план' : a.how === 'propose' ? 'предложение хозяевам в план группы' : 'в план группы для всех'];
+  if (a.kind === 'expense') { const c = Exp.cat(a.category);
+    return [`Расход: ${Exp.fmt(a.amount, a.currency)} · ${c.icon} ${c.name}${a.title ? ' · ' + a.title : ''}`, 'откроется окно расхода — проверите и сохраните']; }
+  return ['Неизвестное действие', ''];
+}
+function actionHTML(a, ti) {
+  const [what, how] = actionText(a), key = `${ti}:${a.id}`;
+  const state = a.status === 'applied' ? '<p class="as-done">Применено</p>' : a.status === 'dismissed' ? '<p class="as-done">Не надо</p>'
+    : a.status === 'failed' ? `<p class="as-done bad">${esc(a.error || 'Не получилось')}</p>`
+    : `<div class="tc-actions two"><button type="button" class="tc-btn primary" data-apply="${esc(key)}">Применить</button><button type="button" class="tc-btn" data-dismiss="${esc(key)}">Не надо</button></div>`;
+  return `<div class="as-card as-act" data-act="${esc(key)}"><b>${esc(what)}</b>${how ? `<span class="tc-sub">${esc(how)}</span>` : ''}${a.reason ? `<span class="tc-sub">${esc(a.reason)}</span>` : ''}${state}</div>`;
+}
+function askLogRefresh() {
+  const log = document.getElementById('asLog'); if (!log) return;
+  log.innerHTML = logHTML(); log.scrollTop = log.scrollHeight;
+  const s = document.getElementById('asSend'); if (s) s.disabled = ASK.busy;
+  const last = log.lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest' });
+}
+function wireChat(m) {
+  const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
+  m.querySelector('#asToTr').addEventListener('click', () => { ASK.view = 'translate'; askRender(); });
+  m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
+  m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
+  form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
+  m.querySelector('#asLog').addEventListener('click', e => {
+    const ex = e.target.closest('[data-ex]'); if (ex) { askSend(ex.dataset.ex); return; }
+    const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
+    if (ap || dm) { const [ti, id] = (ap || dm).dataset[ap ? 'apply' : 'dismiss'].split(':'); const t = ASK.turns[+ti], a = t && (t.actions || []).find(x => x.id === id);
+      if (a && !a.status) { if (ap) askApply(a); else { a.status = 'dismissed'; askLogRefresh(); } } return; }
+    const jf = e.target.closest('[data-jafull]'), js = e.target.closest('[data-jasay]');
+    if (jf || js) { const [ti, ci] = (jf || js).dataset[jf ? 'jafull' : 'jasay'].split(':').map(Number); const c = ((ASK.turns[ti] || {}).cards || [])[ci];
+      if (c) { if (jf) askShowJa(c); else askSpeak(c.ja, 'ja'); } }
+  });
+  m.querySelector('#asPhoto').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) askAddPhoto(f); });
+  m.querySelector('#asPics').addEventListener('click', e => { const b = e.target.closest('[data-unpic]'); if (b) { ASK.pics.splice(+b.dataset.unpic, 1); m.querySelector('#asPics').innerHTML = picsHTML(); } });
+  m.querySelector('#asMic').addEventListener('click', () => askListen(myLang(), txt => { ta.value = (ta.value ? ta.value + ' ' : '') + txt; ta.focus(); }));
+  const log = m.querySelector('#asLog'); log.scrollTop = log.scrollHeight;
+}
+
+/* photos: shrunk on the phone to ≤1568 px (what the model uses anyway), JPEG */
+function askAddPhoto(file) {
+  if (ASK.pics.length >= 2) { askNote('Не больше двух фото за раз.', true); return; }
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    const k = Math.min(1, 1568 / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h);
+    const data = c.toDataURL('image/jpeg', 0.82).split(',')[1];
+    const t = document.createElement('canvas'), tk = 120 / Math.max(w, h); t.width = Math.round(w * tk); t.height = Math.round(h * tk);
+    t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+    URL.revokeObjectURL(url);
+    ASK.pics.push({ media_type: 'image/jpeg', data, w, h, thumb: t.toDataURL('image/jpeg', 0.7) });
+    const p = document.getElementById('asPics'); if (p) p.innerHTML = picsHTML();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); askNote('Не получилось открыть фото.', true); };
+  img.src = url;
+}
+
+function askNote(text, bad) { ASK.turns.push({ role: 'note', text, bad: !!bad }); askLogRefresh(); }
+const askHistory = () => ASK.turns.filter(t => t.role === 'user' || t.role === 'assistant').slice(-20)
+  .map((t, i, xs) => ({ role: t.role, text: t.text || '', ...(i === xs.length - 1 && t.images ? { images: t.images } : {}) }));
+async function askSend(text0) {
+  const text = String(text0 || '').trim().slice(0, 2000);
+  if (ASK.busy || (!text && !ASK.pics.length)) return;
+  if (!navigator.onLine) { askNote('Нужен интернет — ассистент работает только онлайн. Расписание и билеты в приложении доступны и без сети.', true); return; }
+  const pics = ASK.pics.splice(0);
+  const turn = { role: 'user', text, thumbs: pics.map(p => p.thumb), images: pics.length ? pics.map(p => ({ media_type: p.media_type, data: p.data })) : null };
+  ASK.turns.push(turn); ASK.busy = true;
+  const ta = document.getElementById('asText'); if (ta) ta.value = '';
+  const pp = document.getElementById('asPics'); if (pp) pp.innerHTML = '';
+  askLogRefresh();
+  try {
+    const r = await Api.invoke('assistant', { trip: T.id, view_day: viewDay, messages: askHistory(), profile: askProfile(), rates: askRates() }, 60000);
+    ASK.turns.push({ role: 'assistant', text: String((r && r.reply) || 'Нет ответа.'), actions: Array.isArray(r && r.actions) ? r.actions.slice(0, 6) : [],
+      cards: Array.isArray(r && r.cards) ? r.cards.slice(0, 6) : [], sources: Array.isArray(r && r.sources) ? r.sources.slice(0, 4) : [], sos: !!(r && r.sos) });
+  } catch (e) {
+    const msg = !e.status ? 'Нет связи с ассистентом — проверьте интернет и повторите.' : e.status === 403 ? 'Ассистент — только для участников группы. Войдите заново в ⚙.'
+      : (e.body && typeof e.body.error === 'string' ? e.body.error : 'Ассистент сейчас недоступен — попробуйте позже.');
+    ASK.turns.push({ role: 'note', text: msg, bad: true });
+  } finally {
+    turn.images = null;                       // photos go once; the thumbnails stay on screen
+    ASK.busy = false; askLogRefresh();
+  }
+}
+
+/* ---------- «Применить»: through the app's own paths; the server re-checks everything ---------- */
+function askApply(a) {
+  try { const say = askDo(a); a.status = 'applied'; renderShell(); if (a.kind !== 'expense') { ASK.turns.push({ role: 'note', text: say }); askLogRefresh(); } }
+  catch (e) { a.status = 'failed'; a.error = e.message || 'Не получилось'; askLogRefresh(); }
+}
+function askDo(a) {
+  const s = Api.state(), me = Api.me(), HMok = (x, y) => Proposals.HM.test(x || '') && Proposals.HM.test(y || '') && y > x;
+  if (!s || !me) throw new Error('Войдите в группу.');
+  if (a.kind === 'expense') {
+    if (!Exp.CURS.includes(a.currency) || !(+a.amount > 0)) throw new Error('Странная сумма — добавьте расход сами.');
+    closeSheet(); openAdd({ amount: +a.amount, currency: a.currency, cat: Exp.CATS.some(c => c.code === a.category) ? a.category : null, title: String(a.title || '').slice(0, 80) });
+    ASK.turns.push({ role: 'note', text: 'Открыл расход — проверьте и нажмите «Сохранить».' });
+    return '';
+  }
+  const own = a.stop_id ? (s.my_stops || []).find(x => x.id === a.stop_id) : null;
+  const G = s.plan, hit = a.stop_id && G ? Proposals.findEv(G.doc, a.stop_id) : null;
+  if (a.kind === 'move') {
+    if (!HMok(a.start, a.end)) throw new Error('Неверное время.');
+    if (own) {
+      if (own.member !== me.id) throw new Error('Это чужой пункт — его меняет автор.');
+      const next = { id: own.id, day: own.day, ev: { ...own.ev, s: a.start, e: a.end }, shared: !!own.shared };
+      Api.call('save_my_stop', { p_stop: next }, st => { st.my_stops = (st.my_stops || []).filter(q => q.id !== next.id).concat([{ ...next, member: me.id }]); });
+      return `Перенёс «${own.ev.t}» на ${a.start}–${a.end}.`;
+    }
+    if (!hit) throw new Error('Пункт не найден — план уже изменился.');
+    if (me.role === 'host') {
+      const doc = Proposals.apply(G.doc, { kind: 'time', ref: a.stop_id, payload: { s: a.start, e: a.end } }), v = G.version;
+      Api.call('save_plan', { p_doc: doc, p_version: v }, st => { st.plan = { doc, version: v + 1 }; });
+      return `Перенёс «${hit.e.t}» в плане группы на ${a.start}–${a.end}.`;
+    }
+    askPropose('time', a.stop_id, hit.d.n, { s: a.start, e: a.end }, a.reason);
+    return `Отправил хозяевам предложение: «${hit.e.t}» на ${a.start}–${a.end}. Ответ — в «Делах».`;
+  }
+  if (a.kind === 'skip') {
+    if (own && own.member === me.id) { S.skip[own.id] = true; save(); return `«${own.ev.t}» пропущен — вернуть можно в пункте.`; }
+    if (own) { setJoin('mine', own.id, 'out'); return `«${own.ev.t}» — не пойду.`; }
+    if (!hit) throw new Error('Пункт не найден — план уже изменился.');
+    setJoin('stop', a.stop_id, 'out'); return `«${hit.e.t}» — «Без меня».`;
+  }
+  if (a.kind === 'add') {
+    const n = +a.day_n, title = String(a.title || '').trim().slice(0, 120);
+    if (!HMok(a.start, a.end) || !title || !planDoc().days.some(d => d.n === n)) throw new Error('Неполный пункт — добавьте сами.');
+    const num = v => typeof v === 'number' && Number.isFinite(v) ? v : null;
+    const ev = { t: title, s: a.start, e: a.end, st: 'planned', cat: 'activity', pname: String(a.place || '').slice(0, 120), lat: num(a.lat), lng: num(a.lng),
+                 walk: 0, ride: 0, buf: 0, note: String(a.note || '').slice(0, 500) };
+    if (a.scope !== 'group') {
+      const stop = { id: 'm-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)), day: n, ev, shared: typeof shareAllOn === 'function' ? shareAllOn() : false };
+      Api.call('save_my_stop', { p_stop: stop }, st => { st.my_stops = (st.my_stops || []).concat([{ ...stop, member: me.id }]); });
+      return `Добавил в ваш план: ${dmOf(n)} ${a.start} «${title}».`;
+    }
+    if (me.role === 'host') {
+      const doc = JSON.parse(JSON.stringify(G.doc)), d = doc.days.find(x => x.n === n), v = G.version;
+      d.ev.push({ id: 'u' + Date.now().toString(36), ...ev }); d.ev.sort((x, y) => (toMin(x.s) || 0) - (toMin(y.s) || 0));
+      Api.call('save_plan', { p_doc: doc, p_version: v }, st => { st.plan = { doc, version: v + 1 }; });
+      return `Добавил в план группы: ${dmOf(n)} ${a.start} «${title}».`;
+    }
+    askPropose('add', null, n, { s: a.start, e: a.end, t: title }, ev.note);
+    return `Отправил хозяевам предложение добавить «${title}». Ответ — в «Делах».`;
+  }
+  throw new Error('Неизвестное действие.');
+}
+function askPropose(kind, ref, day, payload, note) {
+  const me = Api.me().id, tmp = 'tmp-' + Date.now().toString(36), n = String(note || '').slice(0, 500);
+  Api.call('propose', { p_kind: kind, p_ref: ref, p_day: day, p_payload: payload, p_note: n }, s => {
+    s.proposals = [{ id: tmp, member: me, kind, ref, day, payload, note: n, status: 'open' }].concat(s.proposals || []);
+  });
+}
+
+/* ---------- voice: dictation, speech, the Japanese card ---------- */
+function askListen(lang, done) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { askNote('Диктовка здесь недоступна — нажмите 🎤 на клавиатуре iPhone и говорите.'); const t = document.getElementById('asText') || document.getElementById('trText'); if (t) t.focus(); return; }
+  try { if (ASK.rec) ASK.rec.abort(); } catch (e) {}
+  const r = new SR(); ASK.rec = r;
+  r.lang = LANG_SR[lang] || 'ru-RU'; r.interimResults = false; r.maxAlternatives = 1;
+  document.querySelectorAll('[data-listening]').forEach(b => b.removeAttribute('data-listening'));
+  r.onresult = e => { const t = Array.from(e.results).map(x => x[0].transcript).join(' ').trim(); if (t) done(t); };
+  r.onerror = e => { if (e && e.error === 'not-allowed') askNote('Разрешите микрофон в настройках браузера или говорите через 🎤 на клавиатуре.', true); };
+  r.onend = () => { if (ASK.rec === r) ASK.rec = null; };
+  try { r.start(); } catch (e) { askNote('Микрофон не включился — попробуйте ещё раз.', true); }
+}
+function askSpeak(text, lang) {
+  if (!('speechSynthesis' in window) || !text) return false;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = LANG_SR[lang] || 'ja-JP'; u.rate = lang === 'ja' ? 0.9 : 1; speechSynthesis.speak(u); return true; }
+  catch (e) { return false; }
+}
+function askShowJa(c) {
+  let m = document.getElementById('asLocal');
+  if (!m) { m = document.createElement('div'); m.id = 'asLocal'; m.className = 'tc-local'; document.body.appendChild(m); }
+  m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', c.meaning || 'По-японски');
+  m.innerHTML = `<p class="tc-local-name" lang="ja">${esc(c.ja)}</p>${c.reading ? `<p class="tc-local-ru">${esc(c.reading)}</p>` : ''}<p class="tc-local-ru">${esc(c.meaning || '')}</p>
+    <div class="tc-local-acts"><button type="button" class="tc-btn" id="asLocalSay">${icon('speak')}Озвучить</button><button type="button" class="tc-btn primary" id="asLocalClose">Закрыть</button></div>`;
+  m.hidden = false; Ios.keepAwake(true);
+  const close = () => { m.hidden = true; Ios.keepAwake(false); };
+  m.querySelector('#asLocalClose').addEventListener('click', close);
+  m.querySelector('#asLocalSay').addEventListener('click', ev => { ev.stopPropagation(); askSpeak(c.ja, 'ja'); });
+  m.onclick = ev => { if (!ev.target.closest('button')) close(); };
+  m.querySelector('#asLocalClose').focus();
+}
+
+/* ---------- the voice translator: I speak → Japanese out loud; the Japanese speaker answers → my language ---------- */
+const TR_NAME = { ru: 'Русский', kk: 'Қазақша', en: 'English' };
+function translateHTML() {
+  const l = myLang();
+  return `<p class="tc-sub">Скажите фразу — переведу и озвучу по-японски. Потом дайте телефон собеседнику: вторая кнопка — для него.</p>
+    <button type="button" class="tc-btn primary wide" id="trMe">${icon('mic')}Я говорю · ${esc(TR_NAME[l] || 'Русский')}</button>
+    <button type="button" class="tc-btn wide" id="trThem" lang="ja">${icon('mic')}日本語で話してください</button>
+    <div class="as-form"><textarea id="trText" rows="2" maxlength="500" placeholder="Или напишите фразу" aria-label="Фраза для перевода"></textarea>
+      <button type="button" class="as-ib as-send" id="trGo" aria-label="Перевести на японский">${icon('send')}</button></div>
+    <div id="trOut" class="as-trout" aria-live="polite"></div>
+    <button type="button" class="tc-btn" id="trBack">Назад к чату</button>`;
+}
+function wireTranslate(m) {
+  const out = m.querySelector('#trOut'), my = myLang();
+  const run = async (text, from, to) => {
+    text = String(text || '').trim(); if (!text) return;
+    if (!navigator.onLine) { out.innerHTML = '<p class="as-note bad">Нужен интернет для перевода.</p>'; return; }
+    out.innerHTML = `<p class="as-msg me">${esc(text)}</p><p class="as-msg ai as-wait">Перевожу…</p>`;
+    try {
+      const r = await Api.invoke('assistant', { trip: T.id, mode: 'translate', text, from, to }, 30000);
+      const t = r && typeof r.text === 'string' ? r.text : '';
+      if (!t) throw Object.assign(new Error('x'), { status: 200 });
+      const card = { ja: to === 'ja' ? t : text, meaning: to === 'ja' ? text : t };
+      out.innerHTML = `<p class="as-msg me">${esc(text)}</p><div class="as-card as-ja"><p class="${to === 'ja' ? 'as-ja-t' : 'as-tr-t'}"${to === 'ja' ? ' lang="ja"' : ''}>${esc(t)}</p>
+        <div class="tc-actions two"><button type="button" class="tc-btn" data-trsay>${icon('speak')}Ещё раз</button>${to === 'ja' ? '<button type="button" class="tc-btn primary" data-trfull>На весь экран</button>' : ''}</div></div>`;
+      out.querySelector('[data-trsay]').addEventListener('click', () => askSpeak(t, to));
+      const f = out.querySelector('[data-trfull]'); if (f) f.addEventListener('click', () => askShowJa(card));
+      askSpeak(t, to);
+    } catch (e) { out.innerHTML = `<p class="as-note bad">${!e.status ? 'Нет связи — повторите.' : 'Не получилось перевести — попробуйте сказать иначе.'}</p>`; }
+  };
+  m.querySelector('#trMe').addEventListener('click', () => askListen(my, t => run(t, my, 'ja')));
+  m.querySelector('#trThem').addEventListener('click', () => askListen('ja', t => run(t, 'ja', my)));
+  m.querySelector('#trGo').addEventListener('click', () => run(m.querySelector('#trText').value, my, 'ja'));
+  m.querySelector('#trBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+}
