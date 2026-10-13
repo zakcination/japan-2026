@@ -20,6 +20,8 @@ const askMine = () => { const a = T.group && T.group.assistant, me = Api.me();
   return !!me && a.some(n => norm(n) === norm(me.name)); };
 /* photos need a model that reads images (Claude); the trip turns them off for DeepSeek */
 const askPhotos = () => { try { if (localStorage.getItem('japan2026.assistant.photos') === '1') return true; } catch (e) {} return !(T.group && T.group.assistant_photos === false); };
+/* the Edge Function's name in Supabase (the owner deployed it as «clever-handler») */
+const askFn = () => (T.group && /^[a-z][a-z0-9_-]{0,62}$/.test(T.group.assistant_fn || '') ? T.group.assistant_fn : 'assistant');
 const askFull = () => askServer() && askOn() && askMine();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
 const askHTML = () => { if (tab === 'stats' || !askFull()) return '';
@@ -236,7 +238,7 @@ async function askSend(text0) {
   const pp = document.getElementById('asPics'); if (pp) pp.innerHTML = '';
   askLogRefresh();
   try {
-    const r = await Api.invoke('assistant', { trip: T.id, view_day: viewDay, messages: askHistory(), profile: askProfile(), rates: askRates() }, 60000);
+    const r = await Api.invoke(askFn(), { trip: T.id, view_day: viewDay, messages: askHistory(), profile: askProfile(), rates: askRates() }, 60000);
     ASK.turns.push({ role: 'assistant', text: String((r && r.reply) || 'Нет ответа.'), actions: Array.isArray(r && r.actions) ? r.actions.slice(0, 6) : [],
       cards: Array.isArray(r && r.cards) ? r.cards.slice(0, 6) : [], sources: Array.isArray(r && r.sources) ? r.sources.slice(0, 4) : [], sos: !!(r && r.sos) });
   } catch (e) {
@@ -377,7 +379,7 @@ function wireTranslate(m) {
     if (!navigator.onLine) { out.innerHTML = '<p class="as-note bad">Нужен интернет для перевода.</p>'; return; }
     out.innerHTML = `<p class="as-msg me">${esc(text)}</p><p class="as-msg ai as-wait">Перевожу…</p>`;
     try {
-      const r = await Api.invoke('assistant', { trip: T.id, mode: 'translate', text, from, to }, 30000);
+      const r = await Api.invoke(askFn(), { trip: T.id, mode: 'translate', text, from, to }, 30000);
       const t = r && typeof r.text === 'string' ? r.text : '';
       if (!t) throw Object.assign(new Error('x'), { status: 200 });
       const card = { ja: to === 'ja' ? t : text, meaning: to === 'ja' ? text : t };

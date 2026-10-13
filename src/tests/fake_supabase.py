@@ -431,7 +431,7 @@ class FakeSupabase:
             if path.startswith("/auth/v1/signup"): return send(200, self.signup())
             if path.startswith("/auth/v1/token"): return send(200, self.refresh_token(json.loads(req.post_data or "{}").get("refresh_token")))
             if path.startswith("/rest/v1/rpc/"): return send(200, self.rpc(tok, path.split("/rpc/")[1], json.loads(req.post_data or "{}")))
-            if path.startswith("/functions/v1/assistant"):
+            if path.startswith("/functions/v1/assistant") or path.startswith("/functions/v1/clever-handler"):
                 try: self._me(tok)                                  # the function proves membership via group_state
                 except RpcError as e:
                     if e.status == 401: raise

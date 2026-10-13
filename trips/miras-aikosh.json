@@ -2759,7 +2759,8 @@
   "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
   "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0",
   "assistant": true,
-  "assistant_photos": false
+  "assistant_photos": false,
+  "assistant_fn": "clever-handler"
  },
  "prep": [
   {
@@ -2949,5 +2950,5 @@
   }
  ],
  "id": "miras-aikosh",
- "updated": "2026-10-14T03:03+05:00"
+ "updated": "2026-10-14T03:08+05:00"
 }

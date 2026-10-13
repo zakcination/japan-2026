@@ -177,7 +177,7 @@ RECIPES = [
 GROUP = {"url": "https://ajpiptdkybhtkaoozqet.supabase.co", "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
          "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0",
          # the in-app assistant (model key on the server, DeepSeek since 14.10) — every member; photos off (DeepSeek reads text only)
-         "assistant": True, "assistant_photos": False}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
+         "assistant": True, "assistant_photos": False, "assistant_fn": "clever-handler"}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
 
 # Preparation checklist (spec appendix B). PREP is shared by both trips; PREP_OWN (Shanghai layover
 # items) is ours only. `due`/`from` are ISO dates; `auto` marks an item the app can detect on its own.
