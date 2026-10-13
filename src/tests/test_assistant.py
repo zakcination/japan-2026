@@ -302,3 +302,27 @@ def test_tools_mark_a_task_done_and_edit_a_stop_and_the_journal_is_for_hosts(app
     txt = h.page.inner_text("#asWrap")
     assert "1 вопрос" in txt and "Сания — 1" in txt and "где поесть халяль в Гионе" in txt and "халяль (1)" in txt
     assert not a.errors and not h.errors
+
+
+def test_app_requests_from_the_form_and_the_assistant_reach_the_hosts_queue(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake); pg = a.page
+    pg.click("#tcAsk"); pg.click("#asReq")
+    pg.fill("#asReqText", "Кнопка «Пешком» плохо видна ночью"); pg.click("#asReqGo")
+    until(pg, "Api.status().pending === 0")
+    pg.click("#asReqBack")
+    fake.assistant_reply = {"reply": "Передам.", "actions": [{"id": "a1", "kind": "request", "text": "Добавить ночную тему для карты"}]}
+    ask(pg, "Сделайте карту тёмной ночью")
+    assert "Передать разработчикам" in pg.inner_text("[data-act='1:a1']")
+    pg.click("[data-apply='1:a1']"); until(pg, "Api.status().pending === 0")
+    assert [(r["source"], r["body"]) for r in fake.app_requests] == [("user", "Кнопка «Пешком» плохо видна ночью"), ("assistant", "Добавить ночную тему для карты")]
+    h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    h.page.context.grant_permissions(["clipboard-read", "clipboard-write"])
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', 'all'); renderShell()")
+    h.page.click("#tcAsk"); h.page.click("#asJournal")
+    until(h.page, "!!document.getElementById('asJCopy')")
+    assert "2 новых" in h.page.inner_text("#asWrap").lower() and "через Спутника" in h.page.inner_text("#asWrap")
+    h.page.click("#asJCopy"); until(h.page, "/передана/.test(document.getElementById('asJMsg').textContent)"); until(h.page, "Api.status().pending === 0")
+    assert all(r["status"] == "queued" for r in fake.app_requests)
+    copied = h.page.locator(".as-jtxt").input_value() if h.page.locator(".as-jtxt").count() else h.page.evaluate("navigator.clipboard.readText()")
+    assert "оформи каждую отдельной задачей" in copied and "[#2] Сания: Добавить ночную тему" in copied
+    assert not a.errors and not h.errors

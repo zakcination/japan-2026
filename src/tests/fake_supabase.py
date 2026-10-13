@@ -357,6 +357,24 @@ class FakeSupabase:
         return copy.deepcopy({"profile": self.ai_profiles.get(me), "feedback": [v for (m, _), v in self.ai_feedback.items() if m == me],
                               "inbox": [x for x in reversed(self.ai_sent) if x["member"] == me][:20]})
 
+    def rpc_file_request(self, token, p_body, p_source):
+        me = self._me(token)
+        if len((p_body or "").strip()) < 3: raise RpcError(400, "empty request")
+        self.app_requests = getattr(self, "app_requests", [])
+        self.app_requests.append({"id": len(self.app_requests) + 1, "member": me["id"], "who": me["name"], "at": "2026-10-19T01:00:00Z",
+                                  "body": p_body.strip()[:500], "source": "assistant" if p_source == "assistant" else "user", "status": "new"})
+        return True
+
+    def rpc_app_requests_list(self, token):
+        if self._me(token)["role"] != "host": raise RpcError(400, "hosts only")
+        return copy.deepcopy(list(reversed(getattr(self, "app_requests", []))))
+
+    def rpc_set_request_status(self, token, p_id, p_status):
+        if self._me(token)["role"] != "host": raise RpcError(400, "hosts only")
+        for r in getattr(self, "app_requests", []):
+            if r["id"] == p_id: r["status"] = p_status
+        return True
+
     def rpc_ai_journal(self, token, p_days=7):
         me = self._me(token)
         if me["role"] != "host": raise RpcError(400, "hosts only")

@@ -654,6 +654,41 @@ end $$;
 revoke all on function public.ai_note(text, text, text, int, int, boolean), public.ai_journal(int) from public, anon, authenticated;
 grant execute on function public.ai_note(text, text, text, int, int, boolean), public.ai_journal(int) to authenticated;
 
+-- upgrade and fix requests for the app, filed by travellers (or the assistant, after «Применить»); hosts read them and hand
+-- them to Claude Code as separate tasks
+create table if not exists public.app_requests (id bigint generated always as identity primary key, member uuid references public.members(id) on delete cascade,
+  at timestamptz not null default now(), body text not null, source text not null default 'user', status text not null default 'new');
+alter table public.app_requests enable row level security;
+revoke all on public.app_requests from anon, authenticated;
+create or replace function public.file_request(p_body text, p_source text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if length(trim(coalesce(p_body, ''))) < 3 then raise exception 'empty request' using errcode = 'P0001'; end if;
+  if (select count(*) from public.app_requests where member = m.id and at > now() - interval '1 day') >= 30 then raise exception 'too many' using errcode = 'P0001'; end if;
+  insert into public.app_requests (member, body, source) values (m.id, left(trim(p_body), 500), case when p_source = 'assistant' then 'assistant' else 'user' end);
+  return true;
+end $$;
+create or replace function public.app_requests_list() returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if m.role <> 'host' then raise exception 'hosts only' using errcode = 'P0001'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'at', r.at, 'who', x.name, 'body', r.body, 'source', r.source, 'status', r.status) order by r.at desc)
+    from public.app_requests r join public.members x on x.id = r.member where x.trip = m.trip and r.at > now() - interval '60 days'), '[]');
+end $$;
+create or replace function public.set_request_status(p_id bigint, p_status text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if m.role <> 'host' then raise exception 'hosts only' using errcode = 'P0001'; end if;
+  if p_status not in ('new', 'queued', 'done', 'dropped') then raise exception 'bad status' using errcode = 'P0001'; end if;
+  update public.app_requests r set status = p_status from public.members x where r.id = p_id and x.id = r.member and x.trip = m.trip;
+  return found;
+end $$;
+revoke all on function public.file_request(text, text), public.app_requests_list(), public.set_request_status(bigint, text) from public, anon, authenticated;
+grant execute on function public.file_request(text, text), public.app_requests_list(), public.set_request_status(bigint, text) to authenticated;
+
 -- the cron tick: the same notify secret, the assistant's cron deployment next to notify (…/functions/v1/assistant-cron)
 create or replace function public._ai_tick() returns void language plpgsql security definer
 set search_path = public, extensions as $$

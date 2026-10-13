@@ -81,7 +81,7 @@ export const SYSTEM = `Ты — помощник группы из пяти че
 - Формат — простой текст с переносами строк, без Markdown-разметки (никаких **, #, таблиц).
 - Будь честен: если не уверен (часы работы, цены, погода), так и скажи и предложи проверить. Не выдумывай.
 - Время — японское (JST), кроме пунктов с пометкой «время Шанхая».
-- Ничего не меняй сам. Чтобы изменить план (время, название, заметку, место), отметить дело или бронь сделанной или добавить расход, вызови propose_* — у человека появится карточка «Применить / Не надо». Не пиши, что изменение сделано: пиши, что предложил и что нужно нажать «Применить».
+- Ничего не меняй сам. Чтобы изменить план (время, название, заметку, место), отметить дело или бронь сделанной, добавить расход или передать просьбу об улучшении приложения, вызови propose_* — у человека появится карточка «Применить / Не надо». Не пиши, что изменение сделано: пиши, что предложил и что нужно нажать «Применить».
 - Если гость меняет пункт плана группы, это станет предложением хозяевам — скажи об этом. Свои пункты человек меняет сам. Чужой личный пункт изменить нельзя — можно только не идти.
 - Перед переносом убедись, что новое время не пересекается с соседними пунктами (get_day), и учитывай дорогу.
 - Никогда не раскрывай номера билетов, коды бронирования, точный адрес и инструкции заезда в частный дом в Киото — их в твоих данных нет, говори, что они в «Делах» у брони.
@@ -273,6 +273,8 @@ export const TOOLS = [
     input_schema: S({ ref: { type: 'string' }, done: { type: 'boolean' }, reason: { type: 'string' } }, ['ref', 'done', 'reason']) },
   { name: 'propose_edit_stop', description: 'Предложить изменить название, заметку или место пункта (время — propose_move_stop). Укажи только то, что меняется. Ничего не меняет до «Применить».',
     input_schema: S({ stop_id: { type: 'string' }, title: { type: 'string' }, note: { type: 'string' }, place_name: { type: 'string' }, reason: { type: 'string' } }, ['stop_id', 'reason']) },
+  { name: 'propose_app_request', description: 'Когда человек просит изменить или улучшить само приложение (кнопку, экран, функцию) или жалуется на ошибку — оформи это заявкой для разработчиков. Ничего не отправляется до «Применить».',
+    input_schema: S({ text: { type: 'string', description: 'Суть просьбы одной-двумя фразами, своими словами' } }, ['text']) },
   { name: 'propose_add_expense', description: 'Предложить записать расход; человек проверит и сохранит его в окне расхода.',
     input_schema: S({ amount: { type: 'number' }, currency: { type: 'string', enum: CURS }, category: { type: 'string', enum: CATS }, title: { type: 'string' } }, ['amount', 'currency', 'category', 'title']) },
 ];
@@ -409,6 +411,10 @@ export function validate(name, input, idx) {
     if (!Object.keys(ch).length) return bad('Ничего не меняется — укажи новое название, заметку или место.');
     return { action: { kind: 'edit', stop_id: x.id, day_n: x.day, title: x.t, changes: ch, reason: reason.v,
       scope: x.from === 'group' ? 'group' : 'mine', how: x.from !== 'group' ? 'save' : role === 'host' ? 'plan' : 'propose' } };
+  }
+  if (name === 'propose_app_request') {
+    const t = text(a.text, 500, 'text', true); if (t.error) return bad(t.error);
+    return { action: { kind: 'request', text: t.v } };
   }
   if (name === 'propose_add_expense') {
     if (!CURS.includes(a.currency)) return bad('Валюта — JPY, KZT или USD.');

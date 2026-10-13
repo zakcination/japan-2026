@@ -48,11 +48,12 @@ function openAssistant() {
   askRender();
 }
 function askRender() {
-  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал вопросов' : 'Спутник';
-  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : chatHTML()}</div>`, m => {
+  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал и заявки' : ASK.view === 'request' ? 'Улучшить приложение' : 'Спутник';
+  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : ASK.view === 'request' ? requestHTML() : chatHTML()}</div>`, m => {
     fullSheet(m);
     m.querySelector('.tc-sheet').classList.toggle('as-chat', ASK.view === 'chat');
     if (ASK.view === 'journal') { wireJournal(m); return; }
+    if (ASK.view === 'request') { wireRequest(m); return; }
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -152,6 +153,22 @@ function chatHeadHTML() {
     <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
     ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
 }
+/* anyone: a request to improve or fix the app — goes to the hosts' queue (app_requests), then to Claude Code as a task */
+function requestHTML() {
+  return `<p class="tc-sub">Что поменять или починить в приложении? Опишите своими словами — хозяева передадут это разработке отдельной задачей.</p>
+    <label class="tc-f" for="asReqText"><span>Ваша просьба</span><textarea id="asReqText" rows="4" maxlength="500" placeholder="Например: кнопка «Пешком» не видна в тёмной теме"></textarea></label>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary" id="asReqGo">Отправить</button><button type="button" class="tc-btn" id="asReqBack">Назад к чату</button></div>
+    <p class="as-note" id="asReqMsg" role="status"></p>`;
+}
+function wireRequest(m) {
+  m.querySelector('#asReqBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+  m.querySelector('#asReqGo').addEventListener('click', () => {
+    const t = m.querySelector('#asReqText').value.trim(), msg = m.querySelector('#asReqMsg');
+    if (t.length < 3) { msg.textContent = 'Напишите, что поменять.'; return; }
+    Api.call('file_request', { p_body: t.slice(0, 500), p_source: 'user' }, null);
+    m.querySelector('#asReqText').value = ''; msg.textContent = 'Отправлено — спасибо! Уйдёт, как только будет интернет.';
+  });
+}
 /* hosts: what people ask (last 7 days) — the hot questions and the tokens, read from ai_journal */
 function journalHTML() {
   const J = ASK.journal;
@@ -166,12 +183,30 @@ function journalHTML() {
       <span class="tc-sub">${Object.entries(by).map(([k, v]) => `${esc(k)} — ${v}`).join(' · ') || 'пока пусто'}</span>
       ${top.length ? `<span class="tc-sub">Частые слова: ${top.map(([w, n]) => `${esc(w)} (${n})`).join(', ')}</span>` : ''}</div>
     <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 16).replace('T', ' '))} UTC · ${esc(r.kind || '')}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
+    <span class="tc-sech">Заявки на улучшение · ${(J.reqs || []).filter(r => r.status === 'new').length} новых</span>
+    <div class="tc-group">${(J.reqs || []).slice(0, 60).map(r => `<div class="tc-act"><span>${esc(r.body)}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 10))} · ${r.source === 'assistant' ? 'через Спутника' : 'сам'} · ${esc({ new: 'новая', queued: 'передана', done: 'сделано', dropped: 'отклонена' }[r.status] || r.status)}</small></span></div>`).join('') || '<p class="tc-sub" style="padding:12px 16px">Пока заявок нет.</p>'}</div>
+    ${(J.reqs || []).some(r => r.status === 'new') ? '<button type="button" class="tc-btn primary" id="asJCopy">Скопировать новые для Claude Code</button>' : ''}
+    <p class="as-note" id="asJMsg" role="status"></p>
     <button type="button" class="tc-btn" id="asJBack">Назад к чату</button>`;
 }
 function wireJournal(m) {
   m.querySelector('#asJBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+  const cp = m.querySelector('#asJCopy');
+  if (cp) cp.addEventListener('click', () => {
+    const news = (ASK.journal.reqs || []).filter(r => r.status === 'new');
+    const txt = 'Заявки на улучшение приложения (из Спутника), оформи каждую отдельной задачей:\n' + news.map(r => `- [#${r.id}] ${r.who}: ${r.body}`).join('\n');
+    const mark = () => news.forEach(r => { Api.call('set_request_status', { p_id: r.id, p_status: 'queued' }, null); r.status = 'queued'; });
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => {
+      mark(); m.querySelector('#asJMsg').textContent = `Скопировано: ${news.length}. Вставьте в Claude Code — заявки отмечены «передана».`;
+    }, () => {                                                   // no clipboard here: show the text to copy by hand
+      mark(); const ta = document.createElement('textarea'); ta.className = 'as-jtxt'; ta.rows = 6; ta.readOnly = true; ta.value = txt;
+      cp.replaceWith(ta); ta.focus(); ta.select();
+      m.querySelector('#asJMsg').textContent = 'Выделите текст и скопируйте вручную — заявки отмечены «передана».';
+    });
+  });
   if (ASK.journal) return;
-  Api.run('ai_journal', { p_days: 7 }).then(r => { ASK.journal = { rows: Array.isArray(r) ? r : [] }; if (ASK.view === 'journal') askRender(); })
+  Promise.all([Api.run('ai_journal', { p_days: 7 }), Api.run('app_requests_list', {}).catch(() => [])])
+    .then(([r, q]) => { ASK.journal = { rows: Array.isArray(r) ? r : [], reqs: Array.isArray(q) ? q : [] }; if (ASK.view === 'journal') askRender(); })
     .catch(e => { ASK.journal = { error: 'Журнал недоступен' + (e && e.status ? ` (${e.status})` : '') + ' — выполните обновлённую миграцию в Supabase.' }; if (ASK.view === 'journal') askRender(); });
 }
 function chatHTML() {
@@ -197,7 +232,8 @@ function logHTML() {
     const hi = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер', who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
     return `<div class="as-hello"><b>${hi}${who ? ', ' + esc(who) : ''}</b><span class="tc-sub">Спросите про план, места, еду, дорогу или деньги — подскажу и, если нужно, предложу правку плана. Ничего не меняется без «Применить».</span>
       <span class="as-fine">Номера карт, паспорта и коды не пишите. Вопросы сохраняются в журнал — его видят хозяева.</span>
-      ${(Api.me() || {}).role === 'host' ? '<button type="button" class="tc-link as-jbtn" id="asJournal">Журнал вопросов за неделю ›</button>' : ''}</div>`; }
+      <button type="button" class="tc-link as-jbtn" id="asReq">Предложить улучшение приложения ›</button>
+      ${(Api.me() || {}).role === 'host' ? '<button type="button" class="tc-link as-jbtn" id="asJournal">Журнал вопросов и заявки ›</button>' : ''}</div>`; }
   return ASK.turns.map((t, ti) => {
     if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}</p>`;
     if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
@@ -225,6 +261,7 @@ function actionText(a) {
   if (a.kind === 'add') { const note = String(a.note || '').trim(), short = note.length > 140 ? note.slice(0, 139) + '…' : note;
     return [`Добавить ${dmOf(a.day_n)} ${a.start}–${a.end}: «${a.title}»${a.place ? ' · ' + a.place : ''}${short ? ' — ' + short : ''}${a.lat != null ? ' · с точкой на карте' : ''}`,
       a.scope === 'mine' ? 'в ваш план' : a.how === 'propose' ? 'предложение хозяевам в план группы' : 'в план группы для всех']; }
+  if (a.kind === 'request') return [`Передать разработчикам: «${a.text}»`, 'в очередь улучшений приложения — хозяева увидят'];
   if (a.kind === 'task') return [`${a.done ? 'Отметить сделанным' : 'Вернуть в несделанные'}: «${a.title}»`, 'в «Делах», только у вас'];
   if (a.kind === 'edit') { const c = a.changes || {}, parts = [];
     if (c.t) parts.push(`название → «${c.t}»`); if (c.pname) parts.push(`место → ${c.pname}`); if (c.note) parts.push(`заметка → ${c.note.length > 120 ? c.note.slice(0, 119) + '…' : c.note}`);
@@ -256,6 +293,7 @@ function wireChat(m) {
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
   const jb = m.querySelector('#asJournal'); if (jb) jb.addEventListener('click', () => { ASK.view = 'journal'; ASK.journal = null; askRender(); });
+  const rq = m.querySelector('#asReq'); if (rq) rq.addEventListener('click', () => { ASK.view = 'request'; askRender(); });
   m.querySelector('#asEx').addEventListener('click', e => { const ex = e.target.closest('[data-ex]'); if (ex) askSend(ex.dataset.ex); });
   m.querySelector('#asLog').addEventListener('click', e => {
     const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
@@ -340,6 +378,12 @@ function askDo(a) {
     closeSheet(); openAdd({ amount: +a.amount, currency: a.currency, cat: Exp.CATS.some(c => c.code === a.category) ? a.category : null, title: String(a.title || '').slice(0, 80) });
     ASK.turns.push({ role: 'note', text: 'Открыл расход — проверьте и нажмите «Сохранить».' });
     return '';
+  }
+  if (a.kind === 'request') {
+    const body = String(a.text || '').trim().slice(0, 500);
+    if (body.length < 3) throw new Error('Пустая просьба.');
+    Api.call('file_request', { p_body: body, p_source: 'assistant' }, null);
+    return 'Передал разработчикам — спасибо!';
   }
   if (a.kind === 'task') {
     const ref = String(a.ref || ''), done = a.done === true;

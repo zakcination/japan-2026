@@ -757,3 +757,4 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-form .as-send { width: 46px; height: 46px; }
 .as-msg.ai { box-shadow: none; }
 .as-dock .as-chip { max-width: 78vw; overflow: hidden; text-overflow: ellipsis; }
+.as-jtxt { width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; padding: 10px 12px; background: var(--inset); color: var(--text); font: 400 min(0.8824rem, 21px)/1.35 var(--sf); }
