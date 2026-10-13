@@ -1734,9 +1734,6 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .cl-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); color: var(--sec); }
 
 /* ---------- iPhone: full height, full-screen chat ---------- */
-#today, .tc-sheet-bg { bottom: calc(-1 * var(--ios-gap, 0px)); }
-.tc-tabs { bottom: calc(-1 * var(--ios-gap, 0px)); }
-.tc-askfab { bottom: calc(49px + max(8px, var(--safe-b)) + 14px - var(--ios-gap, 0px)); }
 .tc-sheet-bg.tc-full-bg { align-items: stretch; background: var(--bg); }
 .tc-sheet.tc-full { height: 100%; max-height: none; border-radius: 0; animation: none; overflow-y: auto;
   padding: calc(6px + var(--safe-t)) max(16px, var(--safe-r)) max(10px, var(--safe-b)) max(16px, var(--safe-l)); }
@@ -4025,21 +4022,6 @@ const Ios = (() => {
   return { isIOS, standalone, appleRoute, escText, fold, ics, routeUrl, walkUrl, dayEvents, calendarForDay, keepAwake, installHint, wireInstall };
 })();
 
-/* iOS Home Screen apps (black-translucent status bar) sometimes size the fixed layer to the screen minus the status bar,
-   leaving a strip under the tab bar. Measure the gap and let the fixed layers reach the bottom edge. */
-(function fitScreen() {
-  const set = () => {
-    let g = 0;
-    if (Ios.standalone() && Ios.isIOS() && innerHeight > innerWidth && screen.height > screen.width) {
-      g = Math.round(screen.height - innerHeight);
-      if (g < 0 || g > 80) g = 0;
-    }
-    document.documentElement.style.setProperty('--ios-gap', g + 'px');
-  };
-  set(); addEventListener('resize', set); addEventListener('orientationchange', () => setTimeout(set, 300));
-})();
-
-
 /* ---------- shell: header (capsule, day segments, title), tabs, theme, bottom sheet, tick ----------
    Tabs register a renderer in RENDER[tab]. */
 const WD2 = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -4172,6 +4154,9 @@ function applyTheme(x) {
   const th = Core.themeFor(x.c.min, x.csun, SET.theme || 'auto');
   const root = document.getElementById('today');
   if (root.dataset.th !== th) root.dataset.th = th;
+  /* under the app: the same colour, so an iPhone Home Screen app whose fixed layer stops short of the screen shows no strip */
+  const under = root.hidden ? '' : getComputedStyle(root).backgroundColor;
+  if (document.documentElement.style.backgroundColor !== under) { document.documentElement.style.backgroundColor = under; document.body.style.backgroundColor = under; }
   let m = document.querySelector('meta[name="theme-color"]');
   if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
   m.content = th === 'dark' ? '#000000' : '#F2F2F7';

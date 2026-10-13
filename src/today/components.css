@@ -699,9 +699,6 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .cl-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); color: var(--sec); }
 
 /* ---------- iPhone: full height, full-screen chat ---------- */
-#today, .tc-sheet-bg { bottom: calc(-1 * var(--ios-gap, 0px)); }
-.tc-tabs { bottom: calc(-1 * var(--ios-gap, 0px)); }
-.tc-askfab { bottom: calc(49px + max(8px, var(--safe-b)) + 14px - var(--ios-gap, 0px)); }
 .tc-sheet-bg.tc-full-bg { align-items: stretch; background: var(--bg); }
 .tc-sheet.tc-full { height: 100%; max-height: none; border-radius: 0; animation: none; overflow-y: auto;
   padding: calc(6px + var(--safe-t)) max(16px, var(--safe-r)) max(10px, var(--safe-b)) max(16px, var(--safe-l)); }

@@ -130,6 +130,9 @@ function applyTheme(x) {
   const th = Core.themeFor(x.c.min, x.csun, SET.theme || 'auto');
   const root = document.getElementById('today');
   if (root.dataset.th !== th) root.dataset.th = th;
+  /* under the app: the same colour, so an iPhone Home Screen app whose fixed layer stops short of the screen shows no strip */
+  const under = root.hidden ? '' : getComputedStyle(root).backgroundColor;
+  if (document.documentElement.style.backgroundColor !== under) { document.documentElement.style.backgroundColor = under; document.body.style.backgroundColor = under; }
   let m = document.querySelector('meta[name="theme-color"]');
   if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
   m.content = th === 'dark' ? '#000000' : '#F2F2F7';
