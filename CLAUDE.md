@@ -40,4 +40,4 @@ the build prints no error. GitHub Pages updates within ~1 minute.
 - Never commit `survey/` or `research/` (git-ignored, private).
 - Never touch Supabase secrets, `supabase/migrations` or the Edge Functions from a phone session — those changes need
   the owner at a computer.
-- Miras and Aikosh are always together: never plan split days for them.
+- The couples are always together — Мирас and Айкош, Аманжан and Сания: never plan split days for either couple.
