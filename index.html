@@ -8877,9 +8877,15 @@ const askMine = () => { const a = T.group && T.group.assistant, me = Api.me();
   return !!me && a.some(n => norm(n) === norm(me.name)); };
 const askFull = () => askServer() && askOn() && askMine();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (tab === 'stats' || !askFull()) return ''; const n = askPending().length;
+const askHTML = () => { if (tab === 'stats' || !askFull()) return '';
+  const link = askCompanion();
+  if (link) return `<a class="tc-askfab" id="tcAsk" href="${link}" target="_blank" rel="noopener" aria-label="Спутник: ассистент на claude.ai">${icon('spark')}</a>`;
+  const n = askPending().length;
   return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
-document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
+/* the companion on claude.ai (owner's own Claude account) replaces the in-app chat; a phone that set the server flag keeps the chat */
+const askCompanion = () => { try { if (localStorage.getItem('japan2026.assistant.server') === 'all') return ''; } catch (e) {}
+  return (T.group && Core.safeUrl(T.group.companion)) || ''; };
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]') && !askCompanion()) openAssistant(); });
 
 function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
 function putProfile(p) { try { localStorage.setItem(ASK_PROFILE, JSON.stringify(p)); } catch (e) {} }

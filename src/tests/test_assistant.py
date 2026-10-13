@@ -111,7 +111,7 @@ def test_guest_move_on_a_group_stop_becomes_a_proposal_host_move_changes_the_pla
     assert p["member"] == san and p["note"] == "выспаться" and fake.plan["version"] == v      # the plan itself is untouched
 
     h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
-    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', 'all')")
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); localStorage.setItem('japan2026.assistant.server', 'all'); renderShell()")
     fake.assistant_reply = {"reply": "Переношу.", "actions": [dict(move, how="plan")]}
     h.page.click("#tcAsk"); ask(h.page, "Перенеси Тэнрю-дзи")
     h.page.click("[data-apply='1:a1']")
@@ -277,7 +277,7 @@ def test_only_miras_gets_the_assistant(app):
     a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); renderShell()")
     assert a.page.locator("#tcAsk").count() == 0                                               # Сания: no ✦
     h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
-    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); renderShell()")
-    h.page.click("#tcAsk")
-    assert h.page.locator("#asText").is_visible() and h.page.locator("#asCode").count() == 0   # Мирас: the one chat
+    h.page.evaluate("renderShell()")
+    fab = h.page.locator("a#tcAsk")                                                             # Мирас: ✦ opens the claude.ai companion
+    assert fab.get_attribute("href").startswith("https://claude.ai/artifact/") and fab.get_attribute("target") == "_blank"
     assert not a.errors and not h.errors
