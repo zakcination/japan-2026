@@ -176,10 +176,8 @@ RECIPES = [
 ]
 GROUP = {"url": "https://ajpiptdkybhtkaoozqet.supabase.co", "anon": "sb_publishable_b6RTQ3rUOXTNwWxnEd98dg_feX9DPJi",
          "vapid": "BNlAOijvMWi2Hj9DYyuQBorTg-ZEtk1-UwtrnovgBNUCDri8007svbuj6epux66aVjwYqwGn-bORPlmFFKXRzw0",
-         # the in-app assistant (API key on the server) — only these members; everyone else gets «Спросить в Claude»
-         "assistant": ["Мирас"],
-         # the assistant lives on claude.ai and runs on the owner's own Claude account; ✦ opens it
-         "companion": "https://claude.ai/artifact/FkEBxC4mQ4DB7e88Kso5fV"}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
+         # the in-app assistant (model key on the server, DeepSeek since 14.10) — every member; photos off (DeepSeek reads text only)
+         "assistant": True, "assistant_photos": False}   # publishable key: safe in the page; RLS + guarded RPCs do the rest
 
 # Preparation checklist (spec appendix B). PREP is shared by both trips; PREP_OWN (Shanghai layover
 # items) is ours only. `due`/`from` are ISO dates; `auto` marks an item the app can detect on its own.

@@ -160,6 +160,7 @@ def _jpeg_size(b):
 
 def test_a_photo_is_shrunk_to_1568_and_sent_once(app):
     fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
+    pg.evaluate("localStorage.setItem('japan2026.assistant.photos', '1'); renderShell()")   # a trip whose model reads photos
     png = pg.evaluate("""(() => { const c = document.createElement('canvas'); c.width = 3000; c.height = 1500;
       const x = c.getContext('2d'); x.fillStyle = '#c00'; x.fillRect(0, 0, 3000, 1500); return c.toDataURL('image/png').split(',')[1]; })()""")
     pg.click("#tcAsk")
@@ -271,13 +272,10 @@ def test_questionnaire_seed_prefills_the_profile_to_confirm(app):
     assert not a.errors
 
 
-def test_only_miras_gets_the_assistant(app):
+def test_every_member_gets_the_chat_and_no_camera_when_photos_are_off(app):
     fake = FakeSupabase.seeded()
     a, san = guest(app, fake)
     a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); renderShell()")
-    assert a.page.locator("#tcAsk").count() == 0                                               # Сания: no ✦
-    h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
-    h.page.evaluate("renderShell()")
-    fab = h.page.locator("a#tcAsk")                                                             # Мирас: ✦ opens the claude.ai companion
-    assert fab.get_attribute("href").startswith("https://claude.ai/artifact/") and fab.get_attribute("target") == "_blank"
-    assert not a.errors and not h.errors
+    a.page.click("#tcAsk")                                                                     # Сания: the in-app chat
+    assert a.page.locator("#asText").is_visible() and a.page.locator("#asPhoto").count() == 0  # DeepSeek: no photos
+    assert not a.errors

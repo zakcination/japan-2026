@@ -18,6 +18,8 @@ const askMine = () => { const a = T.group && T.group.assistant, me = Api.me();
   try { if (localStorage.getItem('japan2026.assistant.server') === 'all') return true; } catch (e) {}   // tests; the server still checks
   const norm = s => String(s || '').trim().toLowerCase();
   return !!me && a.some(n => norm(n) === norm(me.name)); };
+/* photos need a model that reads images (Claude); the trip turns them off for DeepSeek */
+const askPhotos = () => { try { if (localStorage.getItem('japan2026.assistant.photos') === '1') return true; } catch (e) {} return !(T.group && T.group.assistant_photos === false); };
 const askFull = () => askServer() && askOn() && askMine();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
 const askHTML = () => { if (tab === 'stats' || !askFull()) return '';
@@ -112,7 +114,7 @@ function chatHTML() {
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
     <form class="as-form" id="asForm">
-      <label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>
+      ${!askPhotos() ? '' : `<label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>`}
       <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите…" aria-label="Вопрос ассистенту"></textarea>
       <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
       <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
@@ -184,7 +186,7 @@ function wireChat(m) {
     if (jf || js) { const [ti, ci] = (jf || js).dataset[jf ? 'jafull' : 'jasay'].split(':').map(Number); const c = ((ASK.turns[ti] || {}).cards || [])[ci];
       if (c) { if (jf) askShowJa(c); else askSpeak(c.ja, 'ja'); } }
   });
-  m.querySelector('#asPhoto').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) askAddPhoto(f); });
+  const ph = m.querySelector('#asPhoto'); if (ph) ph.addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) askAddPhoto(f); });
   m.querySelector('#asPics').addEventListener('click', e => { const b = e.target.closest('[data-unpic]'); if (b) { ASK.pics.splice(+b.dataset.unpic, 1); m.querySelector('#asPics').innerHTML = picsHTML(); } });
   m.querySelector('#asMic').addEventListener('click', () => askListen(myLang(), txt => { ta.value = (ta.value ? ta.value + ' ' : '') + txt; ta.focus(); }));
   const log = m.querySelector('#asLog'); log.scrollTop = log.scrollHeight;

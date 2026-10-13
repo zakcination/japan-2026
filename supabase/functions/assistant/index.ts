@@ -2,7 +2,7 @@
 // session; the function proves group membership through the existing RPC group_state (never the service role), builds a
 // small trip context, runs a short tool loop and returns { reply, actions, sources, usage }. It never changes anything:
 // actions are proposals the traveller applies in the app. Pure parts live in logic.mjs (tested with Node).
-// Secret (Edge Functions → Secrets): ANTHROPIC_API_KEY. SUPABASE_URL / SUPABASE_ANON_KEY are provided by Supabase.
+// Secret (Edge Functions → Secrets): DEEPSEEK_API_KEY (used when set) or ANTHROPIC_API_KEY. SUPABASE_URL / SUPABASE_ANON_KEY are provided by Supabase.
 // Deploy as «assistant» with «Verify JWT» ON (the default) for the chat.
 // The same file deployed again as «assistant-cron» with «Verify JWT» OFF serves the database's cron tick (scheduled
 // morning / after-a-place / evening messages, digest.mjs): that path needs x-hook-secret = HOOK_SECRET (the notify secret),
@@ -11,6 +11,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.110.0";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { timingSafeEqual } from "node:crypto";
+import { deepseekCreate } from "./deepseek.mjs";
 import { appUrl, digestRequest, digestText, dueMessages, fallbackText } from "./digest.mjs";
 import { buildSystem, buildTranslateRequest, contextText, normaliseHistory, normaliseRates, normaliseTranslate, profileText, runAgent, translationOf,
   tripIndex } from "./logic.mjs";
@@ -18,6 +19,11 @@ import { buildSystem, buildTranslateRequest, contextText, normaliseHistory, norm
 const env = (k: string) => Deno.env.get(k) ?? "";
 const ORIGINS = [/^https:\/\/zakcination\.github\.io$/, /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/];
 const client = new Anthropic({ apiKey: env("ANTHROPIC_API_KEY"), timeout: 40_000, maxRetries: 0 });   // the app gives up at 60 s; never keep paying after that
+/* which model answers: DeepSeek when its key is set, else Claude. Both speak the Anthropic message shape to logic.mjs. */
+const PROVIDER = env("DEEPSEEK_API_KEY") ? "deepseek" : env("ANTHROPIC_API_KEY") ? "claude" : "";
+const llm = (b: any, ms = 40_000): Promise<any> => PROVIDER === "deepseek"
+  ? deepseekCreate(b, env("DEEPSEEK_API_KEY"), ms)
+  : client.beta.messages.create(b, { timeout: ms, maxRetries: 0 }) as any;
 
 function cors(req: Request): Record<string, string> {
   const o = req.headers.get("origin") ?? "";
@@ -47,8 +53,19 @@ async function bump(auth: string, apikey: string) {
   return !!r && r.ok && (await r.json().catch(() => false)) === true;
 }
 
-/* why Claude didn't answer, in words the owner can act on (never the key, never the request) */
+/* why the model didn't answer, in words the owner can act on (never the key, never the request) */
+function deepseekError(e: any): string {
+  const st = e && typeof e.status === "number" ? e.status : 0, msg = String((e && e.message) || "");
+  if (/timeout/i.test(msg)) return "DeepSeek не ответил вовремя — повторите вопрос короче.";
+  if (!st) return "Нет связи с DeepSeek из Supabase — повторите через минуту.";
+  if (st === 401) return "Ключ DeepSeek не принят (401): проверьте секрет DEEPSEEK_API_KEY — без пробелов, начинается с sk-.";
+  if (st === 402) return "На балансе DeepSeek нет денег (402): пополните на platform.deepseek.com.";
+  if (st === 429) return "Слишком много запросов к DeepSeek (429) — попробуйте через минуту.";
+  if (st >= 500) return "DeepSeek сейчас перегружен (" + st + ") — попробуйте через минуту.";
+  return "DeepSeek вернул ошибку " + st + (msg ? ": " + msg.replace(/sk-[\w-]+/g, "…").slice(0, 160) : "") + ".";
+}
 function claudeError(e: any): string {
+  if (PROVIDER === "deepseek") return deepseekError(e);
   const st = e && typeof e.status === "number" ? e.status : 0, msg = String((e && e.message) || "");
   const name = String((e && e.constructor && e.constructor.name) || "");
   if (/timeout/i.test(name + " " + msg)) return "Claude не ответил вовремя — повторите вопрос короче.";
@@ -87,8 +104,8 @@ async function tick(req: Request) {
     const out: any[] = [];
     for (const m of dueMessages(D, Date.now())) {
       let text = fallbackText(m);
-      if (m.kind !== "place" && env("ANTHROPIC_API_KEY")) {
-        try { text = digestText(await client.beta.messages.create(digestRequest(m) as any), m); } catch (e: any) { console.error("digest", e && e.message); }
+      if (m.kind !== "place" && PROVIDER) {
+        try { text = digestText(await llm(digestRequest(m)), m); } catch (e: any) { console.error("digest", e && e.message); }
       }
       const { error } = await db.from("ai_sent").insert({ member: m.member, key: m.key, day: m.date, kind: m.kind, ref: m.stop ? m.stop.id : "day:" + m.day,
         title: text.title, body: text.body, pushed: m.push });
@@ -125,19 +142,19 @@ Deno.serve(async (req) => {
   const only = env("ASSISTANT_ONLY").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   if (only.length && !only.includes(String(st.me.name || "").trim().toLowerCase()))
     return json(req, 403, { error: "Ассистент включён только для владельца." });
-  if (!env("ANTHROPIC_API_KEY")) return json(req, 503, { error: "Ассистент ещё не настроен." });
+  if (!PROVIDER) return json(req, 503, { error: "Ассистент ещё не настроен: нет ключа модели в секретах Supabase." });
   if (!(await bump(auth, req.headers.get("apikey") || env("SUPABASE_ANON_KEY")))) return json(req, 429, { error: "На сегодня вопросов достаточно — продолжим завтра." });
 
   try {
     if (tr) {
-      const res: any = await client.beta.messages.create(buildTranslateRequest(tr) as any);
+      const res: any = await llm(buildTranslateRequest(tr));
       const text = translationOf(res);
       return text ? json(req, 200, { text, usage: res.usage }) : json(req, 200, { text: null, error: "Не получилось перевести." });
     }
     const idx = tripIndex(st);
     const viewDay = Number.isInteger(body.view_day) ? body.view_day : null;
     const system = buildSystem(contextText(idx, Date.now(), viewDay) + "\n" + profileText(body.profile, body.rates));
-    const out = await runAgent({ create: (b: any, ms: number) => client.beta.messages.create(b, { timeout: ms, maxRetries: 0 }), system, messages, idx, rates: normaliseRates(body.rates) });
+    const out = await runAgent({ create: (b: any, ms: number) => llm(b, ms), system, messages, idx, rates: normaliseRates(body.rates) });
     return json(req, 200, out);
   } catch (e: any) {
     const status = e && typeof e.status === "number" ? e.status : 0;
