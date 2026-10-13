@@ -272,12 +272,12 @@ def test_questionnaire_seed_prefills_the_profile_to_confirm(app):
     assert not a.errors
 
 
-def test_every_member_gets_the_chat_and_no_camera_when_photos_are_off(app):
+def test_every_member_gets_the_chat_with_photos(app):
     fake = FakeSupabase.seeded()
     a, san = guest(app, fake)
     a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); renderShell()")
     a.page.click("#tcAsk")                                                                     # Сания: the in-app chat
-    assert a.page.locator("#asText").is_visible() and a.page.locator("#asPhoto").count() == 0  # DeepSeek: no photos
+    assert a.page.locator("#asText").is_visible() and a.page.locator("#asPhoto").count() == 1  # Claude reads photos
     assert not a.errors
 
 

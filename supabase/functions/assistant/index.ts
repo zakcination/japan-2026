@@ -2,7 +2,7 @@
 // session; the function proves group membership through the existing RPC group_state (never the service role), builds a
 // small trip context, runs a short tool loop and returns { reply, actions, sources, usage }. It never changes anything:
 // actions are proposals the traveller applies in the app. Pure parts live in logic.mjs (tested with Node).
-// Secret (Edge Functions → Secrets): DEEPSEEK_API_KEY (used when set) or ANTHROPIC_API_KEY. SUPABASE_URL / SUPABASE_ANON_KEY are provided by Supabase.
+// Secret (Edge Functions → Secrets): ANTHROPIC_API_KEY (preferred) or DEEPSEEK_API_KEY; ASSISTANT_PROVIDER to force one. SUPABASE_URL / SUPABASE_ANON_KEY are provided by Supabase.
 // Deploy as «assistant» with «Verify JWT» ON (the default) for the chat.
 // The same file deployed again as «assistant-cron» with «Verify JWT» OFF serves the database's cron tick (scheduled
 // morning / after-a-place / evening messages, digest.mjs): that path needs x-hook-secret = HOOK_SECRET (the notify secret),
@@ -20,10 +20,21 @@ const env = (k: string) => Deno.env.get(k) ?? "";
 const ORIGINS = [/^https:\/\/zakcination\.github\.io$/, /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/];
 const client = new Anthropic({ apiKey: env("ANTHROPIC_API_KEY"), timeout: 40_000, maxRetries: 0 });   // the app gives up at 60 s; never keep paying after that
 /* which model answers: DeepSeek when its key is set, else Claude. Both speak the Anthropic message shape to logic.mjs. */
-const PROVIDER = env("DEEPSEEK_API_KEY") ? "deepseek" : env("ANTHROPIC_API_KEY") ? "claude" : "";
-const llm = (b: any, ms = 40_000): Promise<any> => PROVIDER === "deepseek"
-  ? deepseekCreate(b, env("DEEPSEEK_API_KEY"), ms)
-  : client.beta.messages.create(b, { timeout: ms, maxRetries: 0 }) as any;
+// ASSISTANT_PROVIDER = claude | deepseek picks one when both keys are set; otherwise Claude first (API credits, reads photos)
+const PROVIDER = (() => { const want = env("ASSISTANT_PROVIDER").toLowerCase(), a = !!env("ANTHROPIC_API_KEY"), d = !!env("DEEPSEEK_API_KEY");
+  if (want === "deepseek" && d) return "deepseek"; if (want === "claude" && a) return "claude"; return a ? "claude" : d ? "deepseek" : ""; })();
+/* Claude first; DeepSeek is the reserve — when Claude is overloaded, unreachable or out of credits, the same step goes there */
+const SPARE = (st: number, msg: string) => !st || st === 429 || st === 529 || st >= 500 || st === 402 || (st === 400 && /credit|balance|billing|limit/i.test(msg));
+const llm = async (b: any, ms = 40_000): Promise<any> => {
+  if (PROVIDER === "deepseek") return deepseekCreate(b, env("DEEPSEEK_API_KEY"), ms);
+  try { return await client.beta.messages.create(b, { timeout: ms, maxRetries: 0 }); }
+  catch (e: any) {
+    const st = e && typeof e.status === "number" ? e.status : 0;
+    if (!env("DEEPSEEK_API_KEY") || !SPARE(st, String((e && e.message) || ""))) throw e;
+    console.error("claude failed, using DeepSeek", st);
+    return deepseekCreate(b, env("DEEPSEEK_API_KEY"), Math.min(ms, 30_000));
+  }
+};
 
 function cors(req: Request): Record<string, string> {
   const o = req.headers.get("origin") ?? "";
