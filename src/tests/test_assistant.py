@@ -29,7 +29,7 @@ def test_hidden_until_signed_in_then_profile_first_and_a_round_trip(app):
     fake = FakeSupabase.seeded()
     a = app(trip=GROUPED, state={"prevDay": 3, "prevTime": "06:00"}, supabase=fake)
     a.page.evaluate("localStorage.setItem('japan2026.assistant.server', 'all'); renderShell()")
-    assert a.page.locator("#tcAsk").count() == 1                                   # signed out: ✦ opens «Спросить в Claude» (test_askclaude)
+    assert a.page.locator("#tcAsk").count() == 0                                   # signed out: no assistant
     san = fake._add("Сания", "guest")
     a.page.evaluate("localStorage.setItem('japan2026.loginasked.v1', '1')")
     if a.page.locator("#grJustLook").count() and a.page.locator("#grJustLook").is_visible(): a.page.click("#grJustLook")
@@ -271,14 +271,13 @@ def test_questionnaire_seed_prefills_the_profile_to_confirm(app):
     assert not a.errors
 
 
-def test_only_miras_gets_the_in_app_assistant_others_ask_in_claude(app):
+def test_only_miras_gets_the_assistant(app):
     fake = FakeSupabase.seeded()
     a, san = guest(app, fake)
-    a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); window.open = (u) => { window.__opened = u; }; renderShell()")
-    a.page.click("#tcAsk")
-    assert a.page.locator("#clGo").is_visible() and a.page.locator("#asText").count() == 0     # Сания: «Спросить в Claude»
+    a.page.evaluate("localStorage.removeItem('japan2026.assistant.server'); renderShell()")
+    assert a.page.locator("#tcAsk").count() == 0                                               # Сания: no ✦
     h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
     h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))}); renderShell()")
     h.page.click("#tcAsk")
-    assert h.page.locator("#asText").is_visible()                                              # Мирас: the full chat
+    assert h.page.locator("#asText").is_visible() and h.page.locator("#asCode").count() == 0   # Мирас: the one chat
     assert not a.errors and not h.errors

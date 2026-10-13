@@ -20,9 +20,9 @@ const askMine = () => { const a = T.group && T.group.assistant, me = Api.me();
   return !!me && a.some(n => norm(n) === norm(me.name)); };
 const askFull = () => askServer() && askOn() && askMine();
 /* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (tab === 'stats') return ''; const n = askFull() ? askPending().length : 0;
+const askHTML = () => { if (tab === 'stats' || !askFull()) return ''; const n = askPending().length;
   return `<button type="button" class="tc-askfab" id="tcAsk" data-ask aria-label="Ассистент${n ? ': оценить ' + n : ''}">${icon('spark')}${n ? `<span class="as-dot" aria-hidden="true">${n}</span>` : ''}</button>`; };
-document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) { if (askFull()) openAssistant(); else openClaude(); } });
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-ask]')) openAssistant(); });
 
 function askProfile() { try { return JSON.parse(localStorage.getItem(ASK_PROFILE) || 'null'); } catch (e) { return null; } }
 function putProfile(p) { try { localStorage.setItem(ASK_PROFILE, JSON.stringify(p)); } catch (e) {} }
@@ -90,11 +90,10 @@ function wireProfile(m) {
     putProfile({ name: v('asName').slice(0, 40), lang: segVal('lang') || 'ru', tone: segVal('tone') || 'calm', energy: segVal('energy') || 'mid',
                  interests: v('asInterests').slice(0, 200), food: v('asFood').slice(0, 200), notes: v('asNotes').slice(0, 500), notify, at: Date.now() });
     if (typeof askSyncProfile === 'function') askSyncProfile();
-    if (!askFull()) { openClaude(); return; }
     ASK.view = 'chat'; askRender();
   });
   m.querySelector('#asProfLater').addEventListener('click', () => { if (!askProfile()) putProfile({ lang: 'ru', skipped: true, at: Date.now() });
-    if (!askFull()) { openClaude(); return; } ASK.view = 'chat'; askRender(); });
+    ASK.view = 'chat'; askRender(); });
 }
 
 /* ---------- chat ---------- */
@@ -102,7 +101,7 @@ const nl = s => esc(s).replace(/\n/g, '<br>');
 const EXAMPLES = ['Что у меня сегодня?', 'Идёт дождь — что поменять?', 'Как сказать «без свинины»?', 'Сколько это в тенге: ¥3 500?'];
 function chatHTML() {
   return `<div class="as-bar"><button type="button" class="tc-btn" id="asToTr">${icon('speak')}Переводчик</button>
-      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof claudeHost === 'function' && claudeHost() ? `<button type="button" class="tc-btn" id="asCode">${icon('edit')}Claude Code</button>` : ''}${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
+      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
     <div id="asRate">${rateHTML()}</div>
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
@@ -167,12 +166,6 @@ function wireChat(m) {
   const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
   m.querySelector('#asToTr').addEventListener('click', () => { ASK.view = 'translate'; askRender(); });
   m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
-  const code = m.querySelector('#asCode');          // the same request as a Claude Code session on the repo (owner's subscription)
-  if (code) code.addEventListener('click', () => {
-    const t = (m.querySelector('#asText') || {}).value || '';
-    if (!t.trim()) { askNote('Напишите в поле, что изменить в плане, и нажмите «Claude Code».'); return; }
-    window.open(codeUrl(t), '_blank', 'noopener');
-  });
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });

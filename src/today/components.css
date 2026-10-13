@@ -692,12 +692,6 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-stars button.on { color: var(--alert); }
 .as-rate input { min-height: 44px; box-sizing: border-box; border: 0; border-radius: 12px; padding: 0 12px; background: var(--card); color: var(--text); font: 400 min(1rem, 23.8px) var(--sf); }
 
-/* ---------- «Спросить в Claude» ---------- */
-.cl-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.cl-chip { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 22px; background: var(--card); color: var(--text);
-  font: 500 min(0.8824rem, 21px)/1.25 var(--sf); text-align: left; cursor: pointer; }
-.cl-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); color: var(--sec); }
-
 /* ---------- iPhone: full height, full-screen chat ---------- */
 .tc-sheet-bg.tc-full-bg { align-items: stretch; background: var(--bg); }
 .tc-sheet.tc-full { height: 100%; max-height: none; border-radius: 0; animation: none; overflow-y: auto;
