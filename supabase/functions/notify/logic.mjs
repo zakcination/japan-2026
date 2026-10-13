@@ -46,6 +46,15 @@ export function messages(ev, D, now) {
     const part = ev.scope === 'part' ? (D.parts.find(x => x.id === ev.ref) || {}).title : (findEv(doc, ev.ref) || {}).t;
     if (!part) return out;
     out.push({ to: hosts.filter(h => h !== ev.member), title: ev.mode === 'in' ? `${name(ev.member)} едет` : `${name(ev.member)} не едет`, body: part, url: url('tab=day'), tag: `join-${ev.member}-${ev.ref}` });
+  } else if (ev.type === 'direct') {
+    // the assistant's scheduled messages (supabase/functions/assistant/digest.mjs): already written, only routed here —
+    // to this trip's members only, and only with a link into this trip's app
+    const ids = new Set(D.members.map(m => m.id)), base = url('');
+    for (const m of (Array.isArray(ev.messages) ? ev.messages : []).slice(0, 200)) {
+      const u = String((m && m.url) || '');
+      if (!u.startsWith(base)) continue;
+      out.push({ to: (Array.isArray(m.to) ? m.to : []).filter(x => ids.has(x)), title: String(m.title || ''), body: String(m.body || ''), url: u, tag: cut(m.tag || 'ai', 80) });
+    }
   } else if (ev.type === 'plan') {
     out.push({ to: guests, title: 'План поездки обновился', body: 'Откройте «Мой план» — там уже новая версия.', url: url('tab=day'), tag: 'plan' });
   } else if (ev.type === 'countdown') {

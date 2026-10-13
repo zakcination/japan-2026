@@ -88,6 +88,7 @@ let FLASH = null;                         // the task a #task= link points at: h
 
 /* #tab=…, #prep=…, #task=… — handled once on load, then taken off the address */
 function handleDeepLink() {
+  if (typeof askDeepLink === 'function' && askDeepLink(location.hash)) return;     // #briefing, #rate=… (the assistant)
   const m = location.hash.match(/^#(tab|prep|task)=([A-Za-z0-9:_-]{1,80})$/); if (!m) return;
   history.replaceState(null, '', location.pathname + location.search);
   const [, k, v] = m;

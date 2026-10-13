@@ -548,3 +548,103 @@ create policy "tickets read own or shared" on storage.objects for select to auth
 -- Hosts' PINs are set at trip setup by the owner, here in the SQL editor — claim_member refuses to set
 -- a PIN-less host's PIN from the app (see claim_member's 'PIN is set by the owner'). Example:
 -- update public.members set pin_hash = crypt('1234', gen_salt('bf')) where trip = 'miras-aikosh' and name = 'Айкош';
+
+-- ================= assistant: profile, ratings, scheduled messages (idempotent; safe to re-run) =================
+-- The assistant's profile (how to call me, language, tone, energy, interests, food, which messages) — the member's own row.
+-- Ratings after a place and of the day: only the author reads their rows; the group sees nothing but averages.
+-- ai_sent: the morning / place / evening messages written by the cron tick (in-app inbox + one push per row at most).
+create table if not exists public.ai_profiles (member uuid primary key references public.members(id) on delete cascade, p jsonb not null, at timestamptz not null default now());
+create table if not exists public.ai_feedback (member uuid references public.members(id) on delete cascade, ref text not null, kind text not null check (kind in ('place','day')),
+  day int, stars int not null check (stars between 1 and 5), comment text, at timestamptz not null default now(), primary key (member, ref));
+create table if not exists public.ai_sent (member uuid references public.members(id) on delete cascade, key text not null, day date not null, kind text not null,
+  ref text, title text, body text, pushed boolean not null default false, at timestamptz not null default now(), primary key (member, key));
+alter table public.ai_profiles enable row level security;
+alter table public.ai_feedback enable row level security;
+alter table public.ai_sent enable row level security;
+revoke all on public.ai_profiles, public.ai_feedback, public.ai_sent from anon, authenticated;
+
+create or replace function public.save_ai_profile(p_p jsonb) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me(); p jsonb;
+begin
+  if jsonb_typeof(p_p) is distinct from 'object' or pg_column_size(p_p) > 2000 then raise exception 'bad profile' using errcode = 'P0001'; end if;
+  -- only the known fields; never anything else (no card or policy numbers have a place here)
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into p from jsonb_each(p_p) as e(k, v)
+    where k in ('name', 'lang', 'tone', 'energy', 'interests', 'food', 'notes', 'notify');
+  if coalesce(p->>'lang', 'ru') not in ('ru', 'kk', 'en') or coalesce(p->>'tone', 'calm') not in ('calm', 'fun', 'strict')
+     or coalesce(p->>'energy', 'mid') not in ('low', 'mid', 'high') or length(coalesce(p->>'name', '')) > 40
+     or length(coalesce(p->>'interests', '')) > 200 or length(coalesce(p->>'food', '')) > 200 or length(coalesce(p->>'notes', '')) > 500 then raise exception 'bad profile' using errcode = 'P0001'; end if;
+  insert into public.ai_profiles values (m.id, p, now()) on conflict (member) do update set p = excluded.p, at = now();
+  return true;
+end $$;
+
+create or replace function public.save_feedback(p_ref text, p_kind text, p_stars int, p_comment text, p_day int) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if coalesce(p_ref, '') !~ '^[A-Za-z0-9:_-]{1,80}$' or p_kind is null or p_kind not in ('place', 'day') or p_stars is null or p_stars not between 1 and 5
+     or length(coalesce(p_comment, '')) > 300 or (p_day is not null and p_day not between 1 and 60) then raise exception 'bad feedback' using errcode = 'P0001'; end if;
+  if (select count(*) from public.ai_feedback where member = m.id) >= 500 then raise exception 'too many' using errcode = 'P0001'; end if;
+  insert into public.ai_feedback values (m.id, p_ref, p_kind, p_day, p_stars, nullif(trim(coalesce(p_comment, '')), ''), now())
+    on conflict (member, ref) do update set stars = excluded.stars, comment = excluded.comment, day = excluded.day, at = now();
+  return true;
+end $$;
+
+-- my own: profile, ratings, the last messages from the assistant
+create or replace function public.my_ai() returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  return jsonb_build_object(
+    'profile', (select p from public.ai_profiles where member = m.id),
+    'feedback', coalesce((select jsonb_agg(jsonb_build_object('ref', ref, 'kind', kind, 'day', day, 'stars', stars, 'comment', comment, 'at', at))
+                          from public.ai_feedback where member = m.id), '[]'),
+    'inbox', coalesce((select jsonb_agg(x) from (select jsonb_build_object('key', key, 'day', day, 'kind', kind, 'ref', ref, 'title', title, 'body', body, 'at', at) as x
+                       from public.ai_sent where member = m.id order by at desc limit 20) q), '[]'));
+end $$;
+
+-- what the group sees: averages only, and only where at least two people besides the caller rated (else one rating shows through)
+create or replace function public.feedback_averages() returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  return coalesce((select jsonb_agg(jsonb_build_object('ref', ref, 'avg', round(avg(stars)::numeric, 1), 'n', count(*)))
+                   from public.ai_feedback f join public.members x on x.id = f.member where x.trip = m.trip group by ref
+                   having count(*) filter (where f.member <> m.id) >= 2), '[]');   -- two OTHER people: your own row can't unmask one
+end $$;
+
+-- a daily cap on assistant questions per member (the Edge Function asks before every Claude call)
+create table if not exists public.ai_usage (member uuid references public.members(id) on delete cascade, day date not null, n int not null default 0,
+  primary key (member, day));
+alter table public.ai_usage enable row level security;
+revoke all on public.ai_usage from anon, authenticated;
+create or replace function public.ai_bump() returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me(); c int;
+begin
+  insert into public.ai_usage values (m.id, current_date, 1) on conflict (member, day) do update set n = public.ai_usage.n + 1 returning n into c;
+  return c <= 150;
+end $$;
+revoke all on function public.ai_bump() from public, anon, authenticated;
+grant execute on function public.ai_bump() to authenticated;
+
+-- the cron tick: the same notify secret, the assistant's cron deployment next to notify (…/functions/v1/assistant-cron)
+create or replace function public._ai_tick() returns void language plpgsql security definer
+set search_path = public, extensions as $$
+declare h public._hook;
+begin
+  select * into h from public._hook where id = 1;
+  if h.url is null then return; end if;
+  begin
+    perform net.http_post(url := replace(h.url, '/functions/v1/notify', '/functions/v1/assistant-cron'), body := '{"type":"tick"}'::jsonb,
+      headers := jsonb_build_object('Content-Type', 'application/json', 'x-hook-secret', h.secret), timeout_milliseconds := 60000);
+  exception when others then null;
+  end;
+end $$;
+-- NOT scheduled yet: the morning / place / evening messages wait for the owner's approval of the design. To switch them on later:
+--   select cron.schedule('ai-messages', '*/10 * * * *', $c$select public._ai_tick()$c$);
+-- and to switch them off again: select cron.unschedule('ai-messages');
+
+revoke all on function public.save_ai_profile(jsonb), public.save_feedback(text, text, int, text, int), public.my_ai(), public.feedback_averages(), public._ai_tick()
+  from public, anon, authenticated;
+grant execute on function public.save_ai_profile(jsonb), public.save_feedback(text, text, int, text, int), public.my_ai(), public.feedback_averages() to authenticated;

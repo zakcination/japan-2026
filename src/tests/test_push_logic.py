@@ -83,3 +83,13 @@ def test_countdown_to_the_first_flight_at_36_24_12_5_hours():
                     "2026-10-16T10:50:00Z": "5 часов до вылета", "2026-10-16T11:50:00Z": None, "2026-10-16T16:50:00Z": None}
     assert run({"type": "countdown"}, "2026-10-16T10:50:00Z")[0]["url"].endswith("#prep=door")
     assert run({"type": "countdown"}, "2026-10-15T03:50:00Z", plan={"doc": {"flights": []}}) == []
+
+
+def test_direct_messages_from_the_assistant_go_only_to_this_trips_members_with_this_trips_link():
+    base = "https://zakcination.github.io/japan-2026/?trip=miras-aikosh#"
+    ev = {"type": "direct", "trip": "miras-aikosh", "messages": [
+        {"to": [S, "stranger"], "title": "Доброе утро", "body": "Сегодня Киото", "url": base + "ask", "tag": "ai-morning:2026-10-19"},
+        {"to": [S], "title": "x", "body": "y", "url": "https://evil.example/#ask", "tag": "t"},
+        {"to": [H], "title": "z" * 300, "body": "b", "url": base + "rate=d3e3", "tag": "ai-place:d3e3"}]}
+    m = run(ev, "2026-10-19T00:00:00Z")
+    assert [x["to"] for x in m] == [[S], [H]] and m[0]["url"] == base + "ask" and len(m[1]["title"]) == 120
