@@ -1758,6 +1758,40 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
   mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
 .tc-askfab::after { inset: -9px; -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 80%); mask: radial-gradient(farthest-side, transparent 62%, #000 80%); }
 .tc-askfab > .tc-ic { color: #fff; }
+
+/* ---------- Спутник chat (in-app): slim header, suggestions and composer at the thumb ---------- */
+.tc-sheet.as-chat .tc-sheet-head h2 { display: none; }
+.tc-sheet.as-chat .tc-sheet-head { position: absolute; top: calc(10px + var(--safe-t)); right: max(16px, var(--safe-r)); z-index: 2; }
+.tc-sheet.as-chat .tc-sheet-head .tc-x { width: 38px; height: 38px; }
+.tc-sheet.as-chat { position: relative; }
+.as-head { display: flex; align-items: center; gap: 10px; padding-right: 50px; min-height: 44px; }
+.as-orb { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%; position: relative; display: grid; place-items: center; isolation: isolate;
+  background: radial-gradient(circle at 30% 25%, #2a2a35, #0b0b0f 70%); color: #fff; }
+.as-orb::before { content: ''; position: absolute; inset: -2.5px; border-radius: 50%; z-index: -1; background: conic-gradient(from var(--as-turn), #ff9f0a, #ff375f, #bf5af2, #5e5ce6, #0a84ff, #64d2ff, #ff9f0a);
+  animation: as-turn 4s linear infinite; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); }
+#today .as-orb .tc-ic, .as-orb .tc-ic { width: 18px; height: 18px; }
+.as-ttl { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.as-ttl b { font: 700 min(1.0588rem, 25px)/1.15 var(--sf); }
+.as-ttl small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.as-hb { flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--inset); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.as-hb .tc-ic { width: 20px; height: 20px; }
+.as-hb.as-sosb { width: auto; padding: 0 10px; border-radius: 19px; background: var(--bad); color: #fff; font: 700 min(0.7rem, 16px)/1 var(--sf); letter-spacing: .04em; }
+.as-hello { display: grid; gap: 6px; margin-top: 12px; }
+.as-hello b { font: 700 min(1.4rem, 33px)/1.15 var(--sf); }
+.as-fine { color: var(--sec); font: 400 min(0.7647rem, 18.2px)/1.3 var(--sf); }
+.as-dock { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.as-dock .as-ex { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, var(--safe-l))); padding: 0 max(16px, var(--safe-l)); }
+.as-dock .as-ex::-webkit-scrollbar { display: none; }
+.as-dock .as-chip { flex: 0 0 auto; min-height: 38px; white-space: nowrap; box-shadow: none; border: 1px solid var(--sep); font-size: min(0.8824rem, 21px); }
+.as-form { position: static; padding-top: 0; align-items: flex-end; gap: 8px; }
+.as-field { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-end; background: var(--card); border: 1px solid var(--sep); border-radius: 24px; padding: 2px; }
+.as-field:focus-within { border-color: var(--tint); }
+.as-field textarea { background: none !important; border: 0; min-height: 42px; padding: 10px 8px 10px 12px; }
+.as-field textarea:focus { outline: none; }
+.as-field .as-ib { background: none; width: 42px; height: 42px; color: var(--sec); }
+.as-form .as-send { width: 46px; height: 46px; }
+.as-msg.ai { box-shadow: none; }
+.as-dock .as-chip { max-width: 78vw; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -8905,9 +8939,10 @@ function openAssistant() {
   askRender();
 }
 function askRender() {
-  const title = ASK.view === 'profile' ? 'Ассистент: профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Ассистент';
+  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : 'Спутник';
   sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : chatHTML()}</div>`, m => {
     fullSheet(m);
+    m.querySelector('.tc-sheet').classList.toggle('as-chat', ASK.view === 'chat');
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -8965,25 +9000,71 @@ function wireProfile(m) {
 
 /* ---------- chat ---------- */
 const nl = s => esc(s).replace(/\n/g, '<br>');
+/* suggestions for right now: the trip phase, the time of day, what is on and what is next in my plan */
+function askSuggest() {
+  const out = [], add = q => { if (q && !out.includes(q) && out.length < 6) out.push(q); };
+  let x; try { x = ctx(); } catch (e) { return EXAMPLES; }
+  const ph = (x.ph && x.ph.phase) || 'live', min = x.c ? x.c.min : null, h = min == null ? 12 : Math.floor(min / 60);
+  const evs = (x.cevs || []).filter(e => e.st !== 'skip' && e.st !== 'done');
+  const m = s => { const r = /^(\d{1,2}):(\d{2})/.exec(s || ''); return r ? +r[1] * 60 + +r[2] : null; };
+  const cut = t => { t = String(t || ''); return t.length > 24 ? t.slice(0, 23) + '…' : t; };
+  if (ph === 'pre') {
+    add('Что осталось сделать до вылета?'); add('Что взять в ручную кладь?'); add('Как пройти пересадку в Пудуне?');
+    add('Что посмотреть в первый день?'); add('Сколько наличных иен взять?'); return out;
+  }
+  if (ph === 'departure' || ph === 'transit') {
+    add('Что делать на пересадке в Шанхае?'); add('Как добраться из Ханэды до рёкана?'); add('Что сказать на паспортном контроле?');
+    add('Где поесть в аэропорту без свинины?'); return out;
+  }
+  if (ph === 'post') { add('Как вернуть tax-free при вылете?'); add('Что купить в аэропорту?'); return out; }
+  const cur = min == null ? null : evs.find(e => m(e.s) != null && m(e.s) <= min && (m(e.e) ?? m(e.s) + 60) > min);
+  const next = min == null ? evs[0] : evs.find(e => m(e.s) != null && m(e.s) > min);
+  if (next) {
+    if (next.cat === 'transport') add(`Где сесть на «${cut(next.t)}» в ${next.s}?`);
+    else add(`Как добраться до «${cut(next.t)}» к ${next.s}?`);
+  }
+  if (cur && cur.cat !== 'transport') add(`Что не пропустить в «${cut(cur.t)}»?`);
+  if (h >= 6 && h < 10) add('Где позавтракать рядом?');
+  else if (h >= 11 && h < 14) add('Где пообедать халяль рядом?');
+  else if (h >= 17 && h < 21) add('Где поужинать всем пятерым?');
+  if (h >= 20) { add('Что завтра и во сколько выходить?'); add('Как вернуться в отель последним поездом?'); }
+  if (!next && h < 20) add('Чем заняться до вечера рядом?');
+  add('Идёт дождь — что поменять?'); add('Сколько это в тенге: ¥3 500?'); add('Как сказать «без свинины»?');
+  return out;
+}
 const EXAMPLES = ['Что у меня сегодня?', 'Идёт дождь — что поменять?', 'Как сказать «без свинины»?', 'Сколько это в тенге: ¥3 500?'];
+ICONS.person = '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>';
+function chatHeadHTML() {
+  const x = ctx(), d = x.day, p = askProfile() || {}, who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
+  return `<div class="as-head"><span class="as-orb" aria-hidden="true">${icon('spark')}</span>
+    <span class="as-ttl"><b>Спутник</b><small>${esc(who ? who + ' · ' : '')}день ${d.n} · ${esc(d.city || d.label || '')}</small></span>
+    <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('speak')}</button>
+    <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
+    ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
+}
 function chatHTML() {
-  return `<div class="as-bar"><button type="button" class="tc-btn" id="asToTr">${icon('speak')}Переводчик</button>
-      <button type="button" class="tc-btn" id="asToProf">Профиль</button>${typeof openSos === 'function' ? '<button type="button" class="tc-btn as-sos" data-sos>SOS</button>' : ''}</div>
+  return `${chatHeadHTML()}
     <div id="asRate">${rateHTML()}</div>
     <div class="as-log" id="asLog" role="log" aria-live="polite">${logHTML()}</div>
     <div class="as-pics" id="asPics">${picsHTML()}</div>
-    <form class="as-form" id="asForm">
-      ${!askPhotos() ? '' : `<label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>`}
-      <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите…" aria-label="Вопрос ассистенту"></textarea>
-      <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
-      <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
-    </form>
-    <p class="tc-foot">Ассистент только предлагает — ничего не меняется без «Применить». Фото — меню, вывески, ценники; не присылайте фото паспорта и карт, номера карт и коды.</p>`;
+    <div class="as-dock">
+      <div class="as-ex" id="asEx">${askSuggest().map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <form class="as-form" id="asForm">
+        <div class="as-field">
+          ${!askPhotos() ? '' : `<label class="as-ib" aria-label="Фото: меню, вывеска, билет">${icon('cam')}<input type="file" id="asPhoto" accept="image/*" hidden></label>`}
+          <textarea id="asText" rows="1" maxlength="2000" placeholder="Спросите Спутника…" aria-label="Вопрос ассистенту"></textarea>
+          <button type="button" class="as-ib" id="asMic" aria-label="Сказать голосом">${icon('mic')}</button>
+        </div>
+        <button type="submit" class="as-ib as-send" id="asSend" aria-label="Отправить"${ASK.busy ? ' disabled' : ''}>${icon('send')}</button>
+      </form>
+    </div>`;
 }
 const picsHTML = () => ASK.pics.map((p, i) => `<span class="as-pic"><img src="${p.thumb}" alt="Фото ${i + 1}"><button type="button" class="tc-x" data-unpic="${i}" aria-label="Убрать фото">${icon('close')}</button></span>`).join('');
 function logHTML() {
-  if (!ASK.turns.length) return `<div class="as-hello"><b>Чем помочь?</b><span class="tc-sub">План, места, перевод, деньги, как что работает в приложении. При беде — страховка и номера.</span>
-    <div class="as-ex">${EXAMPLES.map(x => `<button type="button" class="as-chip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div></div>`;
+  if (!ASK.turns.length) { const h = new Date(Date.now() + 9 * 3600e3).getUTCHours(), p = askProfile() || {};
+    const hi = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер', who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
+    return `<div class="as-hello"><b>${hi}${who ? ', ' + esc(who) : ''}</b><span class="tc-sub">Спросите про план, места, еду, дорогу или деньги — подскажу и, если нужно, предложу правку плана. Ничего не меняется без «Применить».</span>
+      <span class="as-fine">Номера карт, паспорта и коды не пишите.</span></div>`; }
   return ASK.turns.map((t, ti) => {
     if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}</p>`;
     if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
@@ -9036,8 +9117,8 @@ function wireChat(m) {
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askSend(ta.value); } });
+  m.querySelector('#asEx').addEventListener('click', e => { const ex = e.target.closest('[data-ex]'); if (ex) askSend(ex.dataset.ex); });
   m.querySelector('#asLog').addEventListener('click', e => {
-    const ex = e.target.closest('[data-ex]'); if (ex) { askSend(ex.dataset.ex); return; }
     const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
     if (ap || dm) { const [ti, id] = (ap || dm).dataset[ap ? 'apply' : 'dismiss'].split(':'); const t = ASK.turns[+ti], a = t && (t.actions || []).find(x => x.id === id);
       if (a && !a.status) { if (ap) askApply(a); else { a.status = 'dismissed'; askLogRefresh(); } } return; }
