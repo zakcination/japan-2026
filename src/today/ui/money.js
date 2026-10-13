@@ -189,7 +189,7 @@ function moneyHTML() {
           return `<button type="button" class="ex-item" data-exid="${esc(e.id)}"><i style="background:${c.color}22">${c.icon}</i>
             <span><b>${esc(second || c.name)}</b><small>${esc([second ? c.name : '', e.city, Exp.PAY[e.pay], partnerOf() && e.member && e.member !== Api.me().id ? (memberOf(e.member) || {}).name : ''].filter(Boolean).join(' · '))}</small></span>
             <em>${esc(Exp.fmt(e.amount, e.currency))}${e.currency !== cur ? `<small>${esc(f(Exp.inCur(e, cur)))}</small>` : ''}</em></button>`; }).join('')}</div>`; }).join('')}</div>
-    <div class="tc-actions two ex-tools"><button type="button" class="tc-btn" data-exset>${icon('gear')}Бюджет и курсы</button><button type="button" class="tc-btn" id="exExport">${icon('share')}Экспорт CSV</button></div>
+    <div class="tc-actions two ex-tools"><button type="button" class="tc-btn" data-exset>${icon('gear')}Бюджет и курсы</button><button type="button" class="tc-btn" id="exExport">${icon('down')}Экспорт CSV</button></div>
   </section>`;
 }
 function wireMoney(root) {
@@ -235,7 +235,7 @@ function openExpSettings() {
         <input type="radio" name="exPartner" value="${esc(m.id)}"${mine && mine.partner === m.id ? ' checked' : ''}></label>`).join('')}</div>
       <p class="tc-foot">${p ? `Вы и ${esc(p.name)} видите расходы друг друга и общий бюджет.` : 'Общие расходы и бюджет — когда вы выбрали друг друга. Группа видит только итоги.'}</p>` : ''}
     <span class="tc-sech">Данные</span>
-    <div class="tc-group"><button type="button" class="tc-act" id="exBackup">${icon('share')}<span>Резервная копия<small>файл со всеми расходами (JSON)</small></span></button>
+    <div class="tc-group"><button type="button" class="tc-act" id="exBackup">${icon('down')}<span>Резервная копия<small>файл со всеми расходами (JSON)</small></span></button>
       <label class="tc-act">${icon('clip')}<span>Восстановить из копии<small>дубли не создаются</small></span><input type="file" id="exRestore" accept="application/json,.json" hidden></label></div>
     <p class="tc-foot" id="exSetMsg" role="status"></p>
     <button type="button" class="tc-btn primary wide" id="exSetSave">Сохранить</button>`, m => {

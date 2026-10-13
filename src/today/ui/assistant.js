@@ -29,8 +29,8 @@ const askPhotos = () => { try { if (localStorage.getItem('japan2026.assistant.ph
 /* the Edge Function's name in Supabase (the owner deployed it as «clever-handler») */
 const askFn = () => (T.group && /^[a-z][a-z0-9_-]{0,62}$/.test(T.group.assistant_fn || '') ? T.group.assistant_fn : 'assistant');
 const askFull = () => askServer() && askOn() && askMine();
-/* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (tab === 'stats' || !askFull()) return '';
+/* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, on every tab */
+const askHTML = () => { if (!askFull()) return '';
   const link = askCompanion();
   if (link) return `<a class="tc-askfab" id="tcAsk" href="${link}" target="_blank" rel="noopener" aria-label="Спутник: ассистент на claude.ai">${icon('spark')}</a>`;
   const n = askPending().length;
@@ -155,7 +155,7 @@ function chatHeadHTML() {
   const x = ctx(), d = x.day, p = askProfile() || {}, who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
   return `<div class="as-head"><span class="as-orb" aria-hidden="true">${icon('spark')}</span>
     <span class="as-ttl"><b>Спутник</b><small>${esc(who ? who + ' · ' : '')}день ${d.n} · ${esc(d.city || d.label || '')}</small></span>
-    <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('speak')}</button>
+    <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('translate')}</button>
     <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
     ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
 }

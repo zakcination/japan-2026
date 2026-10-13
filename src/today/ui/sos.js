@@ -25,7 +25,7 @@ function openSos() {
       <table class="tc-sos-lim">${I.limits.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>
       <p class="tc-foot">${esc(I.limitsNote)}</p>
       <div class="tc-group">${I.claim.map(([t, href, show]) =>
-        `<a class="tc-act" href="${esc(href)}"${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${icon('share')}<span>${esc(show)}<small>${esc(t)} · заявка в течение 90 дней</small></span></a>`).join('')}</div></div>
+        `<a class="tc-act" href="${esc(href)}"${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${icon(href.startsWith('tel:') ? 'phone' : href.startsWith('mailto:') ? 'mail' : 'link')}<span>${esc(show)}<small>${esc(t)} · заявка в течение 90 дней</small></span></a>`).join('')}</div></div>
     <span class="tc-sech">Что делать</span>
     ${SOS.cases.map(steps).join('')}
     <details class="tc-more" id="sosPhr"><summary>Показать японцу</summary>
@@ -33,7 +33,7 @@ function openSos() {
     <details class="tc-more"><summary>Посольство и консульство</summary>
       ${SOS.embassy.map(e => `<div class="tc-group">${sosTel(e.tel, e.show)}<small>${esc(e.t)} · ${esc(e.a)}</small></span></a>
         ${e.tel2 ? `${sosTel(e.tel2, e.show2)}<small>${esc(e.t)}</small></span></a>` : ''}
-        <a class="tc-act" href="mailto:${esc(e.mail)}">${icon('share')}<span>${esc(e.mail)}${e.note ? `<small>${esc(e.note)}</small>` : ''}</span></a></div>`).join('')}</details>
+        <a class="tc-act" href="mailto:${esc(e.mail)}">${icon('mail')}<span>${esc(e.mail)}${e.note ? `<small>${esc(e.note)}</small>` : ''}</span></a></div>`).join('')}</details>
     <details class="tc-more"><summary>Карта Forte Travel: что даёт</summary>
       <dl class="tc-sos-card">${SOS.card.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl></details>
     <details class="tc-more" id="sosMe"${Object.values(me).some(Boolean) ? '' : ' open'}><summary>Мои данные для врача</summary>

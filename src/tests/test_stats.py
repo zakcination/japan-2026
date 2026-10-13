@@ -15,7 +15,9 @@ def marks(page):
 
 def test_rings_and_legend(app):
     a = stats(app, state={"done": {"d2e3": True, "d2e4": True}})
-    assert a.page.locator("#tcHead").is_hidden()
+    assert a.page.locator("#tcHead").is_visible()                       # the same header as on every tab: SOS left, ⚙ right
+    sos, gear = a.page.locator("#tcHead #tcSos").bounding_box(), a.page.locator("#tcHead #tcGear").bounding_box()
+    assert sos["x"] < 40 and gear["x"] > 300 and sos["height"] >= 44 and a.page.locator("#tcSos").count() == 1
     assert "Деньги" in a.page.inner_text(".tc-stats-title")
     assert a.page.locator(".tc-rings circle.fg").count() == 3
     legend = a.page.inner_text(".tc-legend")

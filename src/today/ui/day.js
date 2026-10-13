@@ -97,7 +97,7 @@ function openStop(day, id) {
       ${e.loc ? act('globe', e.locLang === 'zh' ? 'Показать по-китайски' : 'Показать по-японски', 'для такси и прохожих', 'data-local') : ''}
       ${link('map', 'Открыть в Google Maps', '', gmap(e))}
       ${e.bk ? act('tix', 'Билет', '', `data-ticket="${esc(e.bk)}"`) : ''}
-      ${Core.safeUrl(e.link) ? link('share', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
+      ${Core.safeUrl(e.link) ? link('link', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
     </div>
     ${typeof stopJoinHTML === 'function' ? stopJoinHTML(day, e) : ''}
     <div class="tc-grid4">
@@ -136,7 +136,7 @@ function showLocal(e) {
   m.innerHTML = `<p class="tc-local-ask" lang="${lang}">${esc(LOCAL_ASK[lang])}</p>
     <p class="tc-local-name" lang="${lang}">${esc(e.loc)}</p>
     <p class="tc-local-ru">${esc(e.t)}</p>
-    <div class="tc-local-acts"><button type="button" class="tc-btn" id="tcLocalCopy">${icon('share')}Скопировать</button>
+    <div class="tc-local-acts"><button type="button" class="tc-btn" id="tcLocalCopy">${icon('copy')}Скопировать</button>
       <button type="button" class="tc-btn primary" id="tcLocalClose">Закрыть</button></div>`;
   m.hidden = false; Ios.keepAwake(true);
   const close = () => { m.hidden = true; Ios.keepAwake(false); };

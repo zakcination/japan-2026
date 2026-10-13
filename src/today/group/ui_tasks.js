@@ -18,7 +18,7 @@ function taskHTML(t, host) {
     ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub">${s}</span>`).join('')}
     ${r.tips || k.note ? `<p class="tc-notepara">${esc(r.tips || k.note)}</p>` : ''}
     ${r.host_ref ? `<p class="tc-note tc-hostref"><b>Бронь хозяев:</b> ${esc(r.host_ref)}</p>` : ''}
-    <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('share')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
+    <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
       ${t.kind !== 'task' ? `<button type="button" class="tc-btn" data-attach-ref="${esc(t.ref)}" aria-label="Билет: прикрепить файл или ссылку">${icon('clip')}Билет</button>` : ''}
       ${host && t.kind === 'recipe' ? `<button type="button" class="tc-btn" data-recipe="${esc(r.bk)}" aria-label="Править: как купить">${icon('edit')}Править</button>` : ''}</div>
   </div>`;

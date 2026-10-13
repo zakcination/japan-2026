@@ -42,7 +42,7 @@ function bkRow(b, withDate) {
       ${when ? `<span class="tc-sub">${when}</span>` : ''}
       <button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
         aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button></div>
-    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('share')}Ссылка</button></div></div>`;
+    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div>`;
 }
 
 RENDER.tix = (x, root) => {

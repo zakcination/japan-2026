@@ -5,7 +5,7 @@ html { font-size: 17px; font: -apple-system-body; }
 /* ================= TODAY · design tokens (Apple style) =================
    Light by day, dark after sunset: the shell sets data-th on #today and on the sheet. */
 #today, .tc-sheet-bg, .tc-ticket {
-  --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --sec: #6E6E73; --sep: #E5E5EA; --inset: #F2F2F7;
+  --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --sec: #6E6E73; --sep: #E5E5EA; --inset: #E5E5EA; --fill: rgba(118,118,128,.24);
   --seg: #D1D1D6; --tint: #E4002B; --alert: #FFCC00; --ok: #34C759; --warn: #FF9500; --bad: #FF3B30;
   --ring1: #FF375F; --ring2: #34C759; --ring3: #0A84FF; --hl: #FFF8D6; --note: #FFF4D1; --late: #D70015;
   --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.07);
@@ -16,7 +16,7 @@ html { font-size: 17px; font: -apple-system-body; }
 }
 #today[data-th="dark"], .tc-sheet-bg[data-th="dark"] {
   --bg: #000000; --card: #1C1C1E; --text: #FFFFFF; --sec: #98989D; --sep: #2C2C2E; --inset: #2C2C2E;
-  --seg: #3A3A3C; --tint: #FF375F; --hl: #3A3000; --note: #3A3000; --shadow: none; --bar: rgba(22,22,24,.92); --late: #FF6961;
+  --seg: #3A3A3C; --fill: rgba(118,118,128,.32); --tint: #FF375F; --hl: #3A3000; --note: #3A3000; --shadow: none; --bar: rgba(22,22,24,.92); --late: #FF6961;
   color-scheme: dark;
 }
 #today { background: var(--bg); color: var(--text); font-family: var(--sf); -webkit-font-smoothing: antialiased; }

@@ -24,7 +24,7 @@ function openPrep(focus) {
       <label class="tc-check"><input type="checkbox" switch data-prep="${esc(i.id)}"${i.done ? ' checked' : ''}${i.checked === 'auto' ? ' disabled' : ''}
         aria-label="${esc(i.title)}"><span aria-hidden="true">${icon('check')}</span></label>
       <span class="tc-prep-t"><b>${esc(i.title)}</b>${i.checked === 'auto' ? '<small>проверено приложением</small>' : i.note ? `<small>${esc(i.note)}</small>` : ''}</span>
-      <span class="tc-prep-r">${i.due ? `<small>до ${esc(dm(i.due))}</small>` : ''}${Core.safeUrl(i.url) ? `<a class="tc-x" href="${Core.safeUrl(i.url)}" target="_blank" rel="noopener" aria-label="Открыть сайт">${icon('share')}</a>` : ''}
+      <span class="tc-prep-r">${i.due ? `<small>до ${esc(dm(i.due))}</small>` : ''}${Core.safeUrl(i.url) ? `<a class="tc-x" href="${Core.safeUrl(i.url)}" target="_blank" rel="noopener" aria-label="Открыть сайт">${icon('link')}</a>` : ''}
         ${i.own ? `<button type="button" class="tc-x" data-prep-del="${esc(i.id)}" aria-label="Удалить свой пункт">${icon('close')}</button>` : ''}</span></div>`;
   sheet('Подготовка', Prep.groups(list).map(g => `<section class="tc-prep-sec" data-group="${g.key}"><h3 class="tc-sech">${esc(g.title)} · ${g.done}/${g.total}</h3>
       <div class="tc-group">${list.filter(i => i.group === g.key).map(row).join('')}</div>

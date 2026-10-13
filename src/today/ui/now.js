@@ -173,7 +173,7 @@ function renderPre(x, root) {
       : `<span class="tc-sub">до первого дня поездки, ${Core.ddmmyyyy(dateOf(T.days[0])).slice(0, 5)}</span>`}</section>`;
   html += f.item ? `<section class="tc-card tc-first" id="tcFirst"><span class="tc-lbl">Сначала это</span><b>${esc(f.item.title)}</b>
       ${f.item.due ? `<span class="tc-sub${f.item.due.slice(0, 10) < japanNow().date ? ' tc-late' : ''}">${f.item.due.slice(0, 10) < japanNow().date ? 'срок был' : 'до'} ${Core.ddmmyyyy(f.item.due.slice(0, 10)).slice(0, 5)}</span>` : ''}
-      <div class="tc-actions two">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('share')}Открыть сайт</a>` : ''}${f.item.auto
+      <div class="tc-actions two">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}Открыть сайт</a>` : ''}${f.item.auto
         ? '' : `<button type="button" class="tc-btn${url ? '' : ' primary'}" data-first-done="${esc(f.item.id)}">${icon('check')}Готово</button>`}</div>
       <div class="tc-first-foot">${f.rest ? `<button type="button" class="tc-link" data-ready="all">ещё ${f.rest} ${word(f.rest)} ›</button>` : '<span></span>'}
         ${f.item.due || f.item.opens ? nudgeHTML(`${f.item.title} — ${f.item.due ? 'до ' + Core.ddmmyyyy(f.item.due.slice(0, 10)).slice(0, 5) : 'продажи ' + Core.ddmmyyyy(f.item.opens.slice(0, 10)).slice(0, 5)}`, deepLink('prep=' + f.item.group), true) : ''}</div></section>`

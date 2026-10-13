@@ -1011,7 +1011,7 @@ html { font-size: 17px; font: -apple-system-body; }
 /* ================= TODAY · design tokens (Apple style) =================
    Light by day, dark after sunset: the shell sets data-th on #today and on the sheet. */
 #today, .tc-sheet-bg, .tc-ticket {
-  --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --sec: #6E6E73; --sep: #E5E5EA; --inset: #F2F2F7;
+  --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --sec: #6E6E73; --sep: #E5E5EA; --inset: #E5E5EA; --fill: rgba(118,118,128,.24);
   --seg: #D1D1D6; --tint: #E4002B; --alert: #FFCC00; --ok: #34C759; --warn: #FF9500; --bad: #FF3B30;
   --ring1: #FF375F; --ring2: #34C759; --ring3: #0A84FF; --hl: #FFF8D6; --note: #FFF4D1; --late: #D70015;
   --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.07);
@@ -1022,7 +1022,7 @@ html { font-size: 17px; font: -apple-system-body; }
 }
 #today[data-th="dark"], .tc-sheet-bg[data-th="dark"] {
   --bg: #000000; --card: #1C1C1E; --text: #FFFFFF; --sec: #98989D; --sep: #2C2C2E; --inset: #2C2C2E;
-  --seg: #3A3A3C; --tint: #FF375F; --hl: #3A3000; --note: #3A3000; --shadow: none; --bar: rgba(22,22,24,.92); --late: #FF6961;
+  --seg: #3A3A3C; --fill: rgba(118,118,128,.32); --tint: #FF375F; --hl: #3A3000; --note: #3A3000; --shadow: none; --bar: rgba(22,22,24,.92); --late: #FF6961;
   color-scheme: dark;
 }
 #today { background: var(--bg); color: var(--text); font-family: var(--sf); -webkit-font-smoothing: antialiased; }
@@ -1101,9 +1101,13 @@ html { font-size: 17px; font: -apple-system-body; }
 .tc-grab { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--seg); }
 .tc-sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .tc-sheet-head h2 { margin: 0; font: 700 min(1.2941rem, 30.8px)/1.2 var(--sf); letter-spacing: -.01em; }
-.tc-x { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--inset); color: var(--sec);
+.tc-x { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--fill); color: var(--sec);
   display: flex; align-items: center; justify-content: center; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .tc-cap.go, .tc-sheet { animation: none; } }
+/* dark: a sheet is a raised surface (like iOS), lighter than the black page, over a deeper scrim; the full-screen chat stays black */
+.tc-sheet-bg[data-th="dark"]:not(.tc-full-bg) { background: rgba(0,0,0,.62); }
+.tc-sheet-bg[data-th="dark"] .tc-sheet:not(.tc-full) { --bg: #1C1C1E; --card: #2C2C2E; --inset: #3A3A3C; --sep: #3A3A3C; --seg: #48484A;
+  box-shadow: 0 -0.5px 0 #3A3A3C; }
 
 /* cards and content (tabs) */
 #today .tc-page { display: flex; flex-direction: column; gap: 12px; }
@@ -1134,6 +1138,10 @@ html { font-size: 17px; font: -apple-system-body; }
   text-decoration: none; padding: 0 14px; cursor: pointer; }
 .tc-btn .tc-ic { width: 18px; height: 18px; stroke-width: 2.4; }
 .tc-btn.primary { background: var(--text); color: var(--bg); }
+/* a secondary button on the page or a sheet is a raised pill with a hairline; inside a card it is the grey inset; inside an inset card, raised again */
+.tc-btn:not(.primary) { background: var(--card); box-shadow: 0 0 0 .5px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06); }
+.tc-card .tc-btn:not(.primary), .tc-mini .tc-btn:not(.primary), .as-msg.ai .tc-btn:not(.primary) { background: var(--inset); box-shadow: none; }
+.as-msg.ai .as-card .tc-btn:not(.primary), .as-card .tc-btn:not(.primary) { background: var(--card); box-shadow: 0 0 0 .5px rgba(0,0,0,.08); }
 .tc-btn.wide { width: 100%; min-height: 56px; font-size: min(1rem, 23.8px); }
 .tc-alert { background: var(--alert); color: #000; box-shadow: none; }
 .tc-alert .tc-what { color: #000; }
@@ -1240,7 +1248,7 @@ html { font-size: 17px; font: -apple-system-body; }
 .tc-tk-top .tc-tk-btn { min-height: 44px; }
 
 /* ---------- tab «Итоги» ---------- */
-.tc-stats-title { padding: calc(12px + var(--safe-t)) 4px 0; }
+.tc-stats-title { padding: 0 4px; }
 .tc-ringcard { flex-direction: row; align-items: center; gap: 18px; }
 .tc-rings { width: min(46vw, 190px); height: auto; flex: 0 0 auto; }
 .tc-rings circle { fill: none; stroke-width: 10; stroke-linecap: round; }
@@ -1271,7 +1279,6 @@ html { font-size: 17px; font: -apple-system-body; }
 #today .tc-gear .tc-ic { width: 22px; height: 22px; }
 .tc-head { position: relative; }
 .tc-head > .tc-gear { position: absolute; top: calc(12px + var(--safe-t)); right: 10px; }
-.tc-title .tc-gear { margin: 0 -10px 0 -4px; align-self: flex-end; }
 .tc-head:not(:has(.tc-cap)) { padding-top: calc(56px + var(--safe-t)); }
 .tc-form { display: flex; flex-direction: column; gap: 10px; }
 .tc-form2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -1327,7 +1334,8 @@ html { font-size: 17px; font: -apple-system-body; }
 .tc-fl-count b.rest { font-size: clamp(34px, 11vw, 44px); color: var(--alert); }
 .tc-fl-count span { font: 600 min(1rem, 23.8px)/1 var(--sf); color: #A1A1A8; margin-right: 8px; }
 .tc-fl-route { font: 600 min(1rem, 23.8px)/1.3 var(--sf); }
-.tc-flight .tc-btn { background: #2C2C2E; color: #fff; }
+.tc-card.tc-flight .tc-btn { background: #2C2C2E; color: #fff; box-shadow: none; }
+.tc-card.tc-flight.empty .tc-btn:not(.primary) { background: var(--inset); color: var(--text); }
 .tc-flight.empty .tc-btn.primary { background: var(--text); color: var(--bg); }
 .tc-flrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 8px 6px 16px;
   border-top: 1px solid var(--sep); }
@@ -1426,7 +1434,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-steps li.now > span small { color: inherit; opacity: .85; }
 .tc-steps li.tc-steps-fold { display: block; padding: 0 0 0 18px; }
 .tc-steps li.tc-steps-fold::before { top: 18px; }
-.tc-cap.tc-cap-pre { align-self: flex-start; max-width: calc(100% - 52px); gap: 5px; padding: 7px 16px; font-size: 15px; }
+.tc-cap.tc-cap-pre { align-self: flex-start; margin-left: 56px; max-width: calc(100% - 108px); gap: 5px; padding: 7px 16px; font-size: 15px; }
 .tc-cap.tc-cap-pre .tc-cap-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-cap.tc-cap-pre .tc-cap-when { flex: 0 0 auto; white-space: nowrap; }
 .tc-pvchip { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; min-height: 44px; margin: -8px -6px -6px 0; padding: 0 8px 0 12px;
@@ -1480,7 +1488,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-nudge-ic svg { width: 20px; height: 20px; }
 .tc-howto { margin: 4px 0 16px; padding-left: 1.4em; font-size: min(1rem, 23.8px); line-height: 1.4; }
 .tc-howto li { margin: 6px 0; }
-.tc-fr-row input { flex: 0 0 auto; min-width: 44px; min-height: 28px; }
+.tc-fr-row input:not([switch]) { flex: 0 0 auto; min-width: 44px; min-height: 28px; }
 .tc-funnel { margin-top: 8px; }
 .tc-flash { animation: tc-flash 1.6s ease-out 1; }
 @keyframes tc-flash { from { box-shadow: 0 0 0 3px var(--tint); } to { box-shadow: 0 0 0 0 transparent; } }
@@ -1647,10 +1655,9 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-kzspot input { width: 26px; height: 26px; accent-color: var(--kz-fg); }
 
 /* ---------- SOS ---------- */
-.tc-sosb { flex: 0 0 auto; height: 30px; padding: 0 10px; border: 0; border-radius: 15px; background: var(--red, #e5484d);
+.tc-sosb { flex: 0 0 auto; height: 44px; min-width: 56px; padding: 0 12px; border: 0; border-radius: 22px; background: var(--red, #e5484d);
   color: #fff; font: 700 min(0.75rem, 17px)/1 var(--sf); letter-spacing: .04em; cursor: pointer; }
-.tc-head > .tc-sosb { position: absolute; top: calc(19px + var(--safe-t)); left: 14px; }
-.tc-title .tc-sosb { align-self: flex-end; margin: 0 4px 7px auto; }
+.tc-head > .tc-sosb { position: absolute; top: calc(12px + var(--safe-t)); left: 12px; }
 .tc-sos-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; font: 400 min(0.9412rem, 22.4px)/1.35 var(--sf); }
 .tc-sos-lim { width: 100%; border-collapse: collapse; margin: 8px 0; font: 400 min(0.8824rem, 21px)/1.3 var(--sf); }
 .tc-sos-lim td { padding: 5px 0; border-top: 1px solid var(--sep); vertical-align: top; }
@@ -1699,7 +1706,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-ja-t { margin: 0; font: 700 min(1.6rem, 38px)/1.3 "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif; }
 .as-tr-t { margin: 0; font: 600 min(1.3rem, 31px)/1.3 var(--sf); }
 .as-src { margin: 0; font: 400 min(0.8235rem, 19.6px)/1.3 var(--sf); color: var(--sec); }
-.as-src a { color: var(--ring3); }
+.as-src a { color: var(--ring3); display: inline-block; padding: 12px 0; margin: -12px 0; }
 .as-pics { display: flex; gap: 8px; }
 .as-pics:empty { display: none; }
 .as-pic { position: relative; }
@@ -1762,9 +1769,9 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 /* ---------- Спутник chat (in-app): slim header, suggestions and composer at the thumb ---------- */
 .tc-sheet.as-chat .tc-sheet-head h2 { display: none; }
 .tc-sheet.as-chat .tc-sheet-head { position: absolute; top: calc(10px + var(--safe-t)); right: max(16px, var(--safe-r)); z-index: 2; }
-.tc-sheet.as-chat .tc-sheet-head .tc-x { width: 38px; height: 38px; }
+.tc-sheet.as-chat .tc-sheet-head .tc-x { width: 44px; height: 44px; }
 .tc-sheet.as-chat { position: relative; }
-.as-head { display: flex; align-items: center; gap: 10px; padding-right: 50px; min-height: 44px; }
+.as-head { display: flex; align-items: center; gap: 10px; padding-right: 52px; min-height: 44px; }
 .as-orb { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%; position: relative; display: grid; place-items: center; isolation: isolate;
   background: radial-gradient(circle at 30% 25%, #2a2a35, #0b0b0f 70%); color: #fff; }
 .as-orb::before { content: ''; position: absolute; inset: -2.5px; border-radius: 50%; z-index: -1; background: conic-gradient(from var(--as-turn), #ff9f0a, #ff375f, #bf5af2, #5e5ce6, #0a84ff, #64d2ff, #ff9f0a);
@@ -1773,16 +1780,16 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-ttl { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .as-ttl b { font: 700 min(1.0588rem, 25px)/1.15 var(--sf); }
 .as-ttl small { font: 400 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.as-hb { flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--inset); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.as-hb { flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--inset); color: var(--text); display: grid; place-items: center; cursor: pointer; }
 .as-hb .tc-ic { width: 20px; height: 20px; }
-.as-hb.as-sosb { width: auto; padding: 0 10px; border-radius: 19px; background: var(--bad); color: #fff; font: 700 min(0.7rem, 16px)/1 var(--sf); letter-spacing: .04em; }
+.as-hb.as-sosb { width: auto; padding: 0 10px; border-radius: 22px; background: var(--bad); color: #fff; font: 700 min(0.7rem, 16px)/1 var(--sf); letter-spacing: .04em; }
 .as-hello { display: grid; gap: 6px; margin-top: 12px; }
 .as-hello b { font: 700 min(1.4rem, 33px)/1.15 var(--sf); }
 .as-fine { color: var(--sec); font: 400 min(0.7647rem, 18.2px)/1.3 var(--sf); }
 .as-dock { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
 .as-dock .as-ex { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, var(--safe-l))); padding: 0 max(16px, var(--safe-l)); }
 .as-dock .as-ex::-webkit-scrollbar { display: none; }
-.as-dock .as-chip { flex: 0 0 auto; min-height: 38px; white-space: nowrap; box-shadow: none; border: 1px solid var(--sep); font-size: min(0.8824rem, 21px); }
+.as-dock .as-chip { flex: 0 0 auto; min-height: 44px; white-space: nowrap; box-shadow: none; border: 1px solid var(--sep); font-size: min(0.8824rem, 21px); }
 .as-form { position: static; padding-top: 0; align-items: flex-end; gap: 8px; }
 .as-field { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-end; background: var(--card); border: 1px solid var(--sep); border-radius: 24px; padding: 2px; }
 .as-field:focus-within { border-color: var(--tint); }
@@ -1794,11 +1801,25 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .as-dock .as-chip { max-width: 78vw; overflow: hidden; text-overflow: ellipsis; }
 .as-jtxt { width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; padding: 10px 12px; background: var(--inset); color: var(--text); font: 400 min(0.8824rem, 21px)/1.35 var(--sf); }
 
-.as-copy { justify-self: start; border: 0; background: none; padding: 0; min-height: 32px; color: var(--sec); font: 600 min(0.7647rem, 18.2px)/1 var(--sf); cursor: pointer; }
-.as-retry, .as-cancel { min-height: 32px; display: inline; padding: 0 4px; }
-.as-clear { align-self: center; min-height: 32px; color: var(--sec); font-size: min(0.7647rem, 18.2px); }
-.as-newpill { align-self: center; min-height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: var(--text); color: var(--bg); font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
+.as-copy { justify-self: start; border: 0; background: none; padding: 0 2px; margin: -6px 0; min-height: 44px; color: var(--sec); font: 600 min(0.7647rem, 18.2px)/1 var(--sf); cursor: pointer; }
+.as-retry, .as-cancel { min-height: 44px; display: inline-flex; align-items: center; vertical-align: middle; padding: 0 6px; }
+.as-clear { align-self: center; min-height: 44px; color: var(--sec); font-size: min(0.7647rem, 18.2px); }
+.as-newpill { align-self: center; min-height: 44px; padding: 0 14px; border: 0; border-radius: 18px; background: var(--text); color: var(--bg); font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
 .as-dock .as-ex[hidden], .as-newpill[hidden] { display: none; }
+
+/* iOS switch for every bare <input switch> (Safari draws its own; Chromium would show a 13 pt box); the knob is a gradient */
+:where(#today, .tc-sheet-bg) input[type=checkbox][switch]:not(.tc-check > input) { -webkit-appearance: none; appearance: none; flex: 0 0 auto;
+  width: 51px; height: 31px; margin: 0 0 0 auto; border: 0; border-radius: 16px; cursor: pointer; transition: background .2s;
+  background: radial-gradient(circle at 15.5px 50%, #fff 0 13px, rgba(0,0,0,.12) 13.5px, transparent 14.5px), var(--seg); }
+:where(#today, .tc-sheet-bg) input[type=checkbox][switch]:not(.tc-check > input):checked {
+  background: radial-gradient(circle at 35.5px 50%, #fff 0 13px, rgba(0,0,0,.12) 13.5px, transparent 14.5px), var(--ok); }
+:where(#today, .tc-sheet-bg) input[type=checkbox][switch]:not(.tc-check > input):disabled { opacity: .5; cursor: default; }
+@media (prefers-reduced-motion: reduce) { :where(#today, .tc-sheet-bg) input[switch] { transition: none; } }
+/* a letter face inside a row (`.tc-act span` is a column flexbox) stays a centred circle */
+span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction: row; gap: 0; }
+.tc-face.letter { line-height: 1; padding-top: 1px; box-sizing: border-box; }
+.as-ja .tc-actions.two { grid-template-columns: minmax(0, 1fr) auto; }
+.as-ja .tc-actions.two .tc-btn { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -4088,6 +4109,11 @@ const ICONS = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   walk: '<circle cx="13" cy="4" r="1.8"/><path d="M10 21l2-6-3-3 1.5-5 3 2.5 3 1M9 12l-3 2M12 15l3 6"/>',
   phone: '<path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  down: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  translate: '<path d="M3 5h9M7.5 3v2M10 5c-.8 4-3.2 7-6 8.5M5.5 8.5c1 2.2 3 3.8 5.5 4.5"/><path d="M12.5 21l4.25-10L21 21M14 17.5h5.5"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
@@ -4204,9 +4230,9 @@ function renderShell() {
   const x = ctx();
   applyTheme(x);
   const head = document.getElementById('tcHead');
-  const withHead = tab !== 'stats';
-  head.hidden = !withHead;
-  head.innerHTML = !withHead ? '' : x.quiet
+  // «Деньги» has its own large title: the header keeps only SOS, the capsule, ✦ and ⚙ — in the same places as on every tab
+  head.hidden = false;
+  head.innerHTML = tab === 'stats' ? gearHTML() + (x.quiet ? preCapsuleHTML() : capsuleHTML(x.urg)) : x.quiet
     ? gearHTML() + preCapsuleHTML() + (tab === 'now' ? preTitleHTML(x) : titleHTML(x.day))
     : x.ph.phase === 'transit'
     ? gearHTML() + capsuleHTML(x.urg) + (tab === 'now' ? transitTitleHTML(x) : titleHTML(x.day))
@@ -4459,7 +4485,7 @@ function openPrep(focus) {
       <label class="tc-check"><input type="checkbox" switch data-prep="${esc(i.id)}"${i.done ? ' checked' : ''}${i.checked === 'auto' ? ' disabled' : ''}
         aria-label="${esc(i.title)}"><span aria-hidden="true">${icon('check')}</span></label>
       <span class="tc-prep-t"><b>${esc(i.title)}</b>${i.checked === 'auto' ? '<small>проверено приложением</small>' : i.note ? `<small>${esc(i.note)}</small>` : ''}</span>
-      <span class="tc-prep-r">${i.due ? `<small>до ${esc(dm(i.due))}</small>` : ''}${Core.safeUrl(i.url) ? `<a class="tc-x" href="${Core.safeUrl(i.url)}" target="_blank" rel="noopener" aria-label="Открыть сайт">${icon('share')}</a>` : ''}
+      <span class="tc-prep-r">${i.due ? `<small>до ${esc(dm(i.due))}</small>` : ''}${Core.safeUrl(i.url) ? `<a class="tc-x" href="${Core.safeUrl(i.url)}" target="_blank" rel="noopener" aria-label="Открыть сайт">${icon('link')}</a>` : ''}
         ${i.own ? `<button type="button" class="tc-x" data-prep-del="${esc(i.id)}" aria-label="Удалить свой пункт">${icon('close')}</button>` : ''}</span></div>`;
   sheet('Подготовка', Prep.groups(list).map(g => `<section class="tc-prep-sec" data-group="${g.key}"><h3 class="tc-sech">${esc(g.title)} · ${g.done}/${g.total}</h3>
       <div class="tc-group">${list.filter(i => i.group === g.key).map(row).join('')}</div>
@@ -4665,7 +4691,7 @@ function renderPre(x, root) {
       : `<span class="tc-sub">до первого дня поездки, ${Core.ddmmyyyy(dateOf(T.days[0])).slice(0, 5)}</span>`}</section>`;
   html += f.item ? `<section class="tc-card tc-first" id="tcFirst"><span class="tc-lbl">Сначала это</span><b>${esc(f.item.title)}</b>
       ${f.item.due ? `<span class="tc-sub${f.item.due.slice(0, 10) < japanNow().date ? ' tc-late' : ''}">${f.item.due.slice(0, 10) < japanNow().date ? 'срок был' : 'до'} ${Core.ddmmyyyy(f.item.due.slice(0, 10)).slice(0, 5)}</span>` : ''}
-      <div class="tc-actions two">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('share')}Открыть сайт</a>` : ''}${f.item.auto
+      <div class="tc-actions two">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}Открыть сайт</a>` : ''}${f.item.auto
         ? '' : `<button type="button" class="tc-btn${url ? '' : ' primary'}" data-first-done="${esc(f.item.id)}">${icon('check')}Готово</button>`}</div>
       <div class="tc-first-foot">${f.rest ? `<button type="button" class="tc-link" data-ready="all">ещё ${f.rest} ${word(f.rest)} ›</button>` : '<span></span>'}
         ${f.item.due || f.item.opens ? nudgeHTML(`${f.item.title} — ${f.item.due ? 'до ' + Core.ddmmyyyy(f.item.due.slice(0, 10)).slice(0, 5) : 'продажи ' + Core.ddmmyyyy(f.item.opens.slice(0, 10)).slice(0, 5)}`, deepLink('prep=' + f.item.group), true) : ''}</div></section>`
@@ -4870,7 +4896,7 @@ function openStop(day, id) {
       ${e.loc ? act('globe', e.locLang === 'zh' ? 'Показать по-китайски' : 'Показать по-японски', 'для такси и прохожих', 'data-local') : ''}
       ${link('map', 'Открыть в Google Maps', '', gmap(e))}
       ${e.bk ? act('tix', 'Билет', '', `data-ticket="${esc(e.bk)}"`) : ''}
-      ${Core.safeUrl(e.link) ? link('share', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
+      ${Core.safeUrl(e.link) ? link('link', 'Официальный сайт', '', Core.safeUrl(e.link)) : ''}
     </div>
     ${typeof stopJoinHTML === 'function' ? stopJoinHTML(day, e) : ''}
     <div class="tc-grid4">
@@ -4909,7 +4935,7 @@ function showLocal(e) {
   m.innerHTML = `<p class="tc-local-ask" lang="${lang}">${esc(LOCAL_ASK[lang])}</p>
     <p class="tc-local-name" lang="${lang}">${esc(e.loc)}</p>
     <p class="tc-local-ru">${esc(e.t)}</p>
-    <div class="tc-local-acts"><button type="button" class="tc-btn" id="tcLocalCopy">${icon('share')}Скопировать</button>
+    <div class="tc-local-acts"><button type="button" class="tc-btn" id="tcLocalCopy">${icon('copy')}Скопировать</button>
       <button type="button" class="tc-btn primary" id="tcLocalClose">Закрыть</button></div>`;
   m.hidden = false; Ios.keepAwake(true);
   const close = () => { m.hidden = true; Ios.keepAwake(false); };
@@ -5036,7 +5062,7 @@ function bkRow(b, withDate) {
       ${when ? `<span class="tc-sub">${when}</span>` : ''}
       <button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
         aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button></div>
-    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('share')}Ссылка</button></div></div>`;
+    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div>`;
 }
 
 RENDER.tix = (x, root) => {
@@ -5176,7 +5202,7 @@ function statsDay(x, root) {
   const wx = weatherFor(day);
 
   root.innerHTML = `<div class="tc-page">
-    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
+    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span></div>
     <section class="tc-card tc-ringcard">
       ${ringsSVG([{ p: tripP, c: 'var(--ring1)' }, { p: counted.length ? doneN / counted.length : 0, c: 'var(--ring2)' },
                   { p: budP, c: 'var(--ring3)' }], +iso.slice(8))}
@@ -5415,7 +5441,7 @@ function moneyHTML() {
           return `<button type="button" class="ex-item" data-exid="${esc(e.id)}"><i style="background:${c.color}22">${c.icon}</i>
             <span><b>${esc(second || c.name)}</b><small>${esc([second ? c.name : '', e.city, Exp.PAY[e.pay], partnerOf() && e.member && e.member !== Api.me().id ? (memberOf(e.member) || {}).name : ''].filter(Boolean).join(' · '))}</small></span>
             <em>${esc(Exp.fmt(e.amount, e.currency))}${e.currency !== cur ? `<small>${esc(f(Exp.inCur(e, cur)))}</small>` : ''}</em></button>`; }).join('')}</div>`; }).join('')}</div>
-    <div class="tc-actions two ex-tools"><button type="button" class="tc-btn" data-exset>${icon('gear')}Бюджет и курсы</button><button type="button" class="tc-btn" id="exExport">${icon('share')}Экспорт CSV</button></div>
+    <div class="tc-actions two ex-tools"><button type="button" class="tc-btn" data-exset>${icon('gear')}Бюджет и курсы</button><button type="button" class="tc-btn" id="exExport">${icon('down')}Экспорт CSV</button></div>
   </section>`;
 }
 function wireMoney(root) {
@@ -5461,7 +5487,7 @@ function openExpSettings() {
         <input type="radio" name="exPartner" value="${esc(m.id)}"${mine && mine.partner === m.id ? ' checked' : ''}></label>`).join('')}</div>
       <p class="tc-foot">${p ? `Вы и ${esc(p.name)} видите расходы друг друга и общий бюджет.` : 'Общие расходы и бюджет — когда вы выбрали друг друга. Группа видит только итоги.'}</p>` : ''}
     <span class="tc-sech">Данные</span>
-    <div class="tc-group"><button type="button" class="tc-act" id="exBackup">${icon('share')}<span>Резервная копия<small>файл со всеми расходами (JSON)</small></span></button>
+    <div class="tc-group"><button type="button" class="tc-act" id="exBackup">${icon('down')}<span>Резервная копия<small>файл со всеми расходами (JSON)</small></span></button>
       <label class="tc-act">${icon('clip')}<span>Восстановить из копии<small>дубли не создаются</small></span><input type="file" id="exRestore" accept="application/json,.json" hidden></label></div>
     <p class="tc-foot" id="exSetMsg" role="status"></p>
     <button type="button" class="tc-btn primary wide" id="exSetSave">Сохранить</button>`, m => {
@@ -5555,7 +5581,7 @@ function openSettings() {
     <button type="button" class="tc-btn primary wide" id="setSave">Сохранить</button>
     <span class="tc-sech">Перенести на другой телефон</span>
     <div class="tc-group">
-      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
+      <button type="button" class="tc-act" id="setExport">${icon('down')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
       <label class="tc-act">${icon('clip')}<span>Открыть файл поездки<small>с другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
     </div>
     <label class="tc-f" for="setJson"><span>Поездка текстом — для переноса</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>
@@ -5854,7 +5880,7 @@ function openSos() {
       <table class="tc-sos-lim">${I.limits.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>
       <p class="tc-foot">${esc(I.limitsNote)}</p>
       <div class="tc-group">${I.claim.map(([t, href, show]) =>
-        `<a class="tc-act" href="${esc(href)}"${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${icon('share')}<span>${esc(show)}<small>${esc(t)} · заявка в течение 90 дней</small></span></a>`).join('')}</div></div>
+        `<a class="tc-act" href="${esc(href)}"${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${icon(href.startsWith('tel:') ? 'phone' : href.startsWith('mailto:') ? 'mail' : 'link')}<span>${esc(show)}<small>${esc(t)} · заявка в течение 90 дней</small></span></a>`).join('')}</div></div>
     <span class="tc-sech">Что делать</span>
     ${SOS.cases.map(steps).join('')}
     <details class="tc-more" id="sosPhr"><summary>Показать японцу</summary>
@@ -5862,7 +5888,7 @@ function openSos() {
     <details class="tc-more"><summary>Посольство и консульство</summary>
       ${SOS.embassy.map(e => `<div class="tc-group">${sosTel(e.tel, e.show)}<small>${esc(e.t)} · ${esc(e.a)}</small></span></a>
         ${e.tel2 ? `${sosTel(e.tel2, e.show2)}<small>${esc(e.t)}</small></span></a>` : ''}
-        <a class="tc-act" href="mailto:${esc(e.mail)}">${icon('share')}<span>${esc(e.mail)}${e.note ? `<small>${esc(e.note)}</small>` : ''}</span></a></div>`).join('')}</details>
+        <a class="tc-act" href="mailto:${esc(e.mail)}">${icon('mail')}<span>${esc(e.mail)}${e.note ? `<small>${esc(e.note)}</small>` : ''}</span></a></div>`).join('')}</details>
     <details class="tc-more"><summary>Карта Forte Travel: что даёт</summary>
       <dl class="tc-sos-card">${SOS.card.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl></details>
     <details class="tc-more" id="sosMe"${Object.values(me).some(Boolean) ? '' : ' open'}><summary>Мои данные для врача</summary>
@@ -6223,7 +6249,7 @@ function taskHTML(t, host) {
     ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub">${s}</span>`).join('')}
     ${r.tips || k.note ? `<p class="tc-notepara">${esc(r.tips || k.note)}</p>` : ''}
     ${r.host_ref ? `<p class="tc-note tc-hostref"><b>Бронь хозяев:</b> ${esc(r.host_ref)}</p>` : ''}
-    <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('share')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
+    <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
       ${t.kind !== 'task' ? `<button type="button" class="tc-btn" data-attach-ref="${esc(t.ref)}" aria-label="Билет: прикрепить файл или ссылку">${icon('clip')}Билет</button>` : ''}
       ${host && t.kind === 'recipe' ? `<button type="button" class="tc-btn" data-recipe="${esc(r.bk)}" aria-label="Править: как купить">${icon('edit')}Править</button>` : ''}</div>
   </div>`;
@@ -8927,8 +8953,8 @@ const askPhotos = () => { try { if (localStorage.getItem('japan2026.assistant.ph
 /* the Edge Function's name in Supabase (the owner deployed it as «clever-handler») */
 const askFn = () => (T.group && /^[a-z][a-z0-9_-]{0,62}$/.test(T.group.assistant_fn || '') ? T.group.assistant_fn : 'assistant');
 const askFull = () => askServer() && askOn() && askMine();
-/* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, so not on «Деньги» */
-const askHTML = () => { if (tab === 'stats' || !askFull()) return '';
+/* a round button above the tab bar, bottom right (the header is full: SOS, capsule, gear); rendered with the header, on every tab */
+const askHTML = () => { if (!askFull()) return '';
   const link = askCompanion();
   if (link) return `<a class="tc-askfab" id="tcAsk" href="${link}" target="_blank" rel="noopener" aria-label="Спутник: ассистент на claude.ai">${icon('spark')}</a>`;
   const n = askPending().length;
@@ -9053,7 +9079,7 @@ function chatHeadHTML() {
   const x = ctx(), d = x.day, p = askProfile() || {}, who = String(p.name || (Api.me() || {}).name || '').split(/\s+/)[0];
   return `<div class="as-head"><span class="as-orb" aria-hidden="true">${icon('spark')}</span>
     <span class="as-ttl"><b>Спутник</b><small>${esc(who ? who + ' · ' : '')}день ${d.n} · ${esc(d.city || d.label || '')}</small></span>
-    <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('speak')}</button>
+    <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('translate')}</button>
     <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
     ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
 }

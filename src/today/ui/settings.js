@@ -47,7 +47,7 @@ function openSettings() {
     <button type="button" class="tc-btn primary wide" id="setSave">Сохранить</button>
     <span class="tc-sech">Перенести на другой телефон</span>
     <div class="tc-group">
-      <button type="button" class="tc-act" id="setExport">${icon('share')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
+      <button type="button" class="tc-act" id="setExport">${icon('down')}<span>Сохранить файл поездки<small>чтобы открыть на другом телефоне</small></span></button>
       <label class="tc-act">${icon('clip')}<span>Открыть файл поездки<small>с другого телефона</small></span><input type="file" id="setFile" accept="application/json,.json" hidden></label>
     </div>
     <label class="tc-f" for="setJson"><span>Поездка текстом — для переноса</span><textarea id="setJson" rows="4" spellcheck="false"></textarea></label>

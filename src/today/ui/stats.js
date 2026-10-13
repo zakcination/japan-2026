@@ -38,7 +38,7 @@ function statsDay(x, root) {
   const wx = weatherFor(day);
 
   root.innerHTML = `<div class="tc-page">
-    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span>${gearHTML()}</div>
+    <div class="tc-title tc-stats-title"><h1>Деньги</h1><span>${WD2[w]} ${+iso.slice(8)}</span></div>
     <section class="tc-card tc-ringcard">
       ${ringsSVG([{ p: tripP, c: 'var(--ring1)' }, { p: counted.length ? doneN / counted.length : 0, c: 'var(--ring2)' },
                   { p: budP, c: 'var(--ring3)' }], +iso.slice(8))}

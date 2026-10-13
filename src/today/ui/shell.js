@@ -29,6 +29,11 @@ const ICONS = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   walk: '<circle cx="13" cy="4" r="1.8"/><path d="M10 21l2-6-3-3 1.5-5 3 2.5 3 1M9 12l-3 2M12 15l3 6"/>',
   phone: '<path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  down: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  translate: '<path d="M3 5h9M7.5 3v2M10 5c-.8 4-3.2 7-6 8.5M5.5 8.5c1 2.2 3 3.8 5.5 4.5"/><path d="M12.5 21l4.25-10L21 21M14 17.5h5.5"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
@@ -145,9 +150,9 @@ function renderShell() {
   const x = ctx();
   applyTheme(x);
   const head = document.getElementById('tcHead');
-  const withHead = tab !== 'stats';
-  head.hidden = !withHead;
-  head.innerHTML = !withHead ? '' : x.quiet
+  // «Деньги» has its own large title: the header keeps only SOS, the capsule, ✦ and ⚙ — in the same places as on every tab
+  head.hidden = false;
+  head.innerHTML = tab === 'stats' ? gearHTML() + (x.quiet ? preCapsuleHTML() : capsuleHTML(x.urg)) : x.quiet
     ? gearHTML() + preCapsuleHTML() + (tab === 'now' ? preTitleHTML(x) : titleHTML(x.day))
     : x.ph.phase === 'transit'
     ? gearHTML() + capsuleHTML(x.urg) + (tab === 'now' ? transitTitleHTML(x) : titleHTML(x.day))
