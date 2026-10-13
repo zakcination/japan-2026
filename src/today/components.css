@@ -609,3 +609,24 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-kzspot { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 6px; cursor: pointer;
   font: 600 min(0.8824rem, 21px)/1.2 var(--sf); }
 .tc-kzspot input { width: 26px; height: 26px; accent-color: var(--kz-fg); }
+
+/* ---------- SOS ---------- */
+.tc-sosb { flex: 0 0 auto; height: 30px; padding: 0 10px; border: 0; border-radius: 15px; background: var(--red, #e5484d);
+  color: #fff; font: 700 min(0.75rem, 17px)/1 var(--sf); letter-spacing: .04em; cursor: pointer; }
+.tc-head > .tc-sosb { position: absolute; top: calc(19px + var(--safe-t)); left: 14px; }
+.tc-title .tc-sosb { align-self: flex-end; margin: 0 4px 7px auto; }
+.tc-sos-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; font: 400 min(0.9412rem, 22.4px)/1.35 var(--sf); }
+.tc-sos-lim { width: 100%; border-collapse: collapse; margin: 8px 0; font: 400 min(0.8824rem, 21px)/1.3 var(--sf); }
+.tc-sos-lim td { padding: 5px 0; border-top: 1px solid var(--sep); vertical-align: top; }
+.tc-sos-lim td + td { text-align: right; font-weight: 600; padding-left: 10px; white-space: nowrap; }
+.tc-sos-card { margin: 0; display: grid; gap: 4px; }
+.tc-sos-card dt { font-weight: 600; margin-top: 8px; }
+.tc-sos-card dd { margin: 0; color: var(--sec); }
+.tc-sos-ja { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 54px; padding: 8px 12px;
+  border: 0; border-radius: 12px; background: var(--inset); color: var(--text); text-align: left; cursor: pointer; }
+.tc-sos-ja b { font: 600 min(1.0588rem, 25px)/1.3 var(--sf); }
+.tc-sos-ja small { color: var(--sec); }
+.tc-sos-big { position: fixed; inset: 0; z-index: 2147483000; background: #fff; color: #000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 24px; }
+.tc-sos-big p { margin: 0; font: 700 clamp(32px, 11vw, 64px)/1.3 -apple-system, "Hiragino Sans", sans-serif; }
+.tc-sos-big small { color: #666; }

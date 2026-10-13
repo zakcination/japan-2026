@@ -11,7 +11,7 @@ window.openToday = openToday;
 
 document.getElementById('btnToday').addEventListener('click', openToday);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTicket(); closeSheet(); const l = document.getElementById('tcLocal'); if (l && !l.hidden) l.click(); } });
-document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-gear]')) openSettings(); });
+document.getElementById('today').addEventListener('click', e => { if (e.target.closest('[data-gear]')) openSettings(); if (e.target.closest('[data-sos-open]')) openSos(); });
 setTitle();
 
 tripFromHash().then(ok => { if (ok) { setTitle(); viewDay = null; renderShell(); startGroup(); } });

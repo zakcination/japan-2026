@@ -28,6 +28,7 @@ const ICONS = {
   sunset: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 4.5 12 7l2.5-2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   walk: '<circle cx="13" cy="4" r="1.8"/><path d="M10 21l2-6-3-3 1.5-5 3 2.5 3 1M9 12l-3 2M12 15l3 6"/>',
+  phone: '<path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
 };
 const icon = (k, cls = '') => `<svg class="tc-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ''}</svg>`;
@@ -84,7 +85,8 @@ function segmentsHTML(x) {
 
 /* in a preview the title's date becomes a pill that says so and leaves it (the date is in the preview line below) */
 const pvTopHTML = x => `<button type="button" class="tc-pvchip" id="tcPvExitTop" aria-label="Предпросмотр: ${Core.ddmmyyyy(dateOf(x.cday)).slice(0, 5)}, ${hm(x.c.min)}. Выйти из предпросмотра">Предпросмотр${icon('close')}</button>`;
-const gearHTML = () => `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
+const gearHTML = () => `<button type="button" class="tc-sosb" id="tcSos" data-sos-open aria-label="SOS: экстренная помощь и страховка">SOS</button>`
+  + `<button type="button" class="tc-gear" id="tcGear" data-gear aria-label="Моя поездка: настройки">${icon('gear')}</button>`;
 function titleHTML(day, side) {
   const iso = dateOf(day), w = new Date(iso + 'T12:00:00Z').getUTCDay();
   return `<div class="tc-title"><h1>${esc(day.label)}</h1>${side || `<span>${WD2[w]} ${+iso.slice(8)} · ${day.n}/${T.days.length}</span>`}</div>`;
