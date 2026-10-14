@@ -32,7 +32,7 @@ def test_switches_targets_and_icons(app):
     pg.click("#tcSheetX"); pg.click("#tcAsk")
     fake.assistant_reply = {"reply": "Да.", "actions": []}
     ask(pg, "Привет")
-    for sel in ("#asToTr", "#asToProf", ".as-hb.as-sosb", "#tcSheetX", ".as-copy"):
+    for sel in ("#asToTr", "#asMore", ".as-hb.as-sosb", "#tcSheetX", ".as-copy", "#asNewChat"):
         assert pg.locator(sel).first.bounding_box()["height"] >= 44, sel
     assert not a.errors
 

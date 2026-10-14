@@ -345,6 +345,65 @@ def test_errors_offer_retry_history_survives_reopen_and_enter_is_a_new_line_on_p
     pg.click("#tcSheetX"); pg.reload(); pg.wait_for_selector("#today", state="attached")
     pg.evaluate("renderShell()"); pg.click("#tcAsk")
     assert "Рамен у станции." in pg.inner_text("#asLog")                                 # kept on the phone
-    pg.click("#asClear"); pg.click("#asClear")
+    pg.click("#asNewChat")                                                               # a new chat; the old one is kept
     assert pg.locator(".as-hello").count() == 1
     assert not a.errors
+
+
+def _hist(pg):
+    pg.click("#asMore"); pg.click("#asMHist"); pg.wait_for_selector("#asHNew")
+
+
+def test_conversations_new_history_continue_and_delete(app):
+    fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
+    pg.evaluate("localStorage.removeItem('japan2026.assistant.convs.v1'); localStorage.setItem('japan2026.assistant.chat.v1', JSON.stringify([{role: 'user', text: 'Где обед в Киото, чтобы без свинины и недалеко от вокзала?'}, {role: 'assistant', text: 'Старый ответ'}]))")
+    pg.reload(); pg.wait_for_selector("#today", state="attached"); pg.evaluate("renderShell()")
+    pg.click("#tcAsk")
+    assert "Старый ответ" in pg.inner_text("#asLog")                                      # the old single chat became the first conversation
+    assert pg.evaluate("localStorage.getItem('japan2026.assistant.chat.v1')") is None
+    fake.assistant_reply = {"reply": "Рамен у станции.", "actions": []}
+    ask(pg, "А подешевле?")
+    pg.click("#asNewChat")
+    assert pg.locator(".as-hello").count() == 1
+    fake.assistant_reply = {"reply": "Кинкаку-дзи в 10:10.", "actions": []}
+    ask(pg, "Что дальше?")
+    assert [m["text"] for m in fake.assistant_requests[-1]["messages"]] == ["Что дальше?"]  # a new chat sends no old history
+    _hist(pg)
+    rows = pg.locator("#asHList .as-hrow")
+    assert rows.count() == 2
+    text = pg.inner_text("#asHList")
+    assert "Что дальше?" in text and "Где обед в Киото, чтобы без свинины и н…" in text
+    import re
+    assert re.search(r"\d\d\.\d\d \d\d:\d\d", text)                                          # Tokyo dd.mm hh:mm
+    pg.locator("#asHList .as-hrow", has_text="Где обед").locator("[data-conv]").click()
+    assert "Рамен у станции." in pg.inner_text("#asLog") and "Кинкаку-дзи" not in pg.inner_text("#asLog")
+    fake.assistant_reply = {"reply": "Да, рядом.", "actions": []}
+    ask(pg, "А рядом есть?")
+    hist = [m["text"] for m in fake.assistant_requests[-1]["messages"]]
+    assert hist[0].startswith("Где обед в Киото") and "А подешевле?" in hist and "Рамен у станции." in hist and hist[-1] == "А рядом есть?"
+    _hist(pg)
+    row = pg.locator("#asHList .as-hrow", has_text="Что дальше?")
+    row.locator("[data-convdel]").click()
+    assert pg.locator("#asHList .as-hrow").count() == 2                                     # the first tap only asks
+    row.locator("[data-convdel]").click()
+    assert pg.locator("#asHList .as-hrow").count() == 1 and "Что дальше?" not in pg.inner_text("#asHList")
+    saved = json.loads(pg.evaluate("localStorage.getItem('japan2026.assistant.convs.v1')"))
+    assert len(saved["list"]) == 1 and all(not t.get("thumbs") and not t.get("images") for t in saved["list"][0]["turns"])
+    assert not a.errors
+
+
+def test_menu_reaches_requests_and_the_journal_after_a_message(app):
+    fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
+    pg.click("#tcAsk"); fake.assistant_reply = {"reply": "Да.", "actions": []}; ask(pg, "Привет")
+    assert pg.locator("#asReq").count() == 0                                              # the greeting is gone
+    pg.click("#asMore")
+    assert pg.locator("#asMJournal").count() == 0 and pg.locator("#asMenu").is_visible()
+    assert all(b.bounding_box()["height"] >= 44 for b in pg.locator("#asMenu [role=menuitem]").all())
+    pg.click("#asMReq"); assert pg.locator("#asReqText").is_visible()
+    h = logged(app, fake, fake.host_id, fake.host_pin, state={"prevDay": 3, "prevTime": "06:00"})
+    h.page.evaluate("localStorage.setItem('japan2026.assistant.server', 'all')")
+    h.page.evaluate(f"localStorage.setItem('japan2026.assistant.profile.v1', {json.dumps(json.dumps(PROFILE))})")
+    h.page.evaluate("renderShell()"); h.page.click("#tcAsk"); ask(h.page, "Привет")
+    h.page.click("#asMore"); h.page.click("#asMJournal")
+    h.page.wait_for_selector("#asJBack")
+    assert not a.errors and not h.errors

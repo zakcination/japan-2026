@@ -2,17 +2,47 @@
    It only proposes: plan changes and expenses come back as cards, and nothing changes until «Применить».
    Also: a profile kept on this phone (how to call me, language, tone…), photos, dictation, a voice translator. */
 const ASK_PROFILE = 'japan2026.assistant.profile.v1';
-const ASK_CHAT = 'japan2026.assistant.chat.v1';
-const ASK = { turns: (() => { try { const t = JSON.parse(localStorage.getItem(ASK_CHAT) || '[]'); return Array.isArray(t) ? t.slice(-30) : []; } catch (e) { return []; } })(),
-              busy: false, view: 'chat', pics: [], rec: null, req: 0 };
-/* the conversation stays on this phone (text only, last 30 turns) — reopening the chat continues it */
-function askSaveChat() {
-  try { localStorage.setItem(ASK_CHAT, JSON.stringify(ASK.turns.slice(-30).map(t => ({ ...t, images: null, thumbs: [] })))); } catch (e) {}
+const ASK_CHAT = 'japan2026.assistant.chat.v1';          // the old single chat: moved into the first conversation
+const ASK_CONVS = 'japan2026.assistant.convs.v1';
+/* conversations stay on this phone: ≤20, ≤30 turns each, text only; the current one goes to the server as history */
+function askLoadConvs() {
+  let c = null; try { c = JSON.parse(localStorage.getItem(ASK_CONVS) || 'null'); } catch (e) {}
+  if (!c || typeof c !== 'object' || !Array.isArray(c.list)) {
+    c = { cur: null, list: [] };
+    try { const t = JSON.parse(localStorage.getItem(ASK_CHAT) || '[]');
+      if (Array.isArray(t) && t.length) { c.cur = 'c' + Date.now().toString(36); c.list.push({ id: c.cur, at: Date.now(), turns: t.slice(-30) }); }
+      localStorage.setItem(ASK_CONVS, JSON.stringify(c)); localStorage.removeItem(ASK_CHAT); } catch (e) {}
+  }
+  c.list = c.list.filter(x => x && typeof x.id === 'string' && Array.isArray(x.turns)).slice(0, 20);
+  if (!c.list.some(x => x.id === c.cur)) c.cur = null;
+  return c;
 }
+const ASK = { convs: askLoadConvs(), busy: false, view: 'chat', pics: [], rec: null, req: 0 };
+ASK.convId = ASK.convs.cur; ASK.turns = ((ASK.convs.list.find(x => x.id === ASK.convId) || {}).turns || []).slice(-30);
+const askPutConvs = () => { try { localStorage.setItem(ASK_CONVS, JSON.stringify(ASK.convs)); } catch (e) {} };
+function askSaveChat() {
+  const C = ASK.convs;
+  if (ASK.turns.length) {
+    if (!ASK.convId) ASK.convId = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const rec = { id: ASK.convId, at: Date.now(), turns: ASK.turns.slice(-30).map(t => ({ ...t, images: null, thumbs: [] })) };
+    C.list = [rec].concat(C.list.filter(x => x.id !== ASK.convId)).slice(0, 20);
+  }
+  C.cur = ASK.convId; askPutConvs();
+}
+/* leave the current conversation (it stays in «История»); a reply still on its way is dropped */
+function askSwitch(id) {
+  ASK.req++; ASK.busy = false; ASK.slow = false; askSaveChat();
+  const c = id && ASK.convs.list.find(x => x.id === id);
+  ASK.convId = c ? c.id : null; ASK.turns = c ? c.turns.map(t => ({ ...t })) : [];
+  ASK.convs.cur = ASK.convId; askPutConvs(); ASK.view = 'chat'; askRender();
+}
+const askConvTitle = c => { const q = String((c.turns.find(t => t.role === 'user' && t.text) || {}).text || 'Фото').replace(/\s+/g, ' ').trim();
+  return q.length > 40 ? q.slice(0, 39) + '…' : q; };
 ICONS.spark = '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"/>';
 ICONS.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
 ICONS.cam = '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
 ICONS.speak = '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>';
+ICONS.more = '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>';
 ICONS.send = '<path d="M12 19V5M6 11l6-6 6 6"/>';
 
 const askOn = () => typeof Api !== 'undefined' && Api.enabled() && !!Api.me();
@@ -54,12 +84,13 @@ function openAssistant() {
   askRender();
 }
 function askRender() {
-  const title = ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал и заявки' : ASK.view === 'request' ? 'Улучшить приложение' : 'Спутник';
-  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : ASK.view === 'request' ? requestHTML() : chatHTML()}</div>`, m => {
+  const title = ASK.view === 'history' ? 'История' : ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал и заявки' : ASK.view === 'request' ? 'Улучшить приложение' : 'Спутник';
+  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : ASK.view === 'request' ? requestHTML() : ASK.view === 'history' ? historyHTML() : chatHTML()}</div>`, m => {
     fullSheet(m);
     m.querySelector('.tc-sheet').classList.toggle('as-chat', ASK.view === 'chat');
     if (ASK.view === 'journal') { wireJournal(m); return; }
     if (ASK.view === 'request') { wireRequest(m); return; }
+    if (ASK.view === 'history') { wireHistory(m); return; }
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
 }
@@ -155,8 +186,36 @@ function chatHeadHTML() {
   return `<div class="as-head"><span class="as-orb" aria-hidden="true">${icon('spark')}</span>
     <span class="as-ttl"><b>Спутник</b><small>${esc(who ? who + ' · ' : '')}день ${d.n} · ${esc(d.city || d.label || '')}</small></span>
     <button type="button" class="as-hb" id="asToTr" aria-label="Переводчик">${icon('translate')}</button>
-    <button type="button" class="as-hb" id="asToProf" aria-label="Профиль">${icon('person')}</button>
-    ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>`;
+    <button type="button" class="as-hb" id="asMore" aria-label="Ещё: новый чат, история, профиль" aria-haspopup="menu" aria-expanded="false">${icon('more')}</button>
+    ${typeof openSos === 'function' ? '<button type="button" class="as-hb as-sosb" data-sos aria-label="SOS">SOS</button>' : ''}</div>
+    <div class="as-menu tc-group" id="asMenu" role="menu" hidden>
+      <button type="button" class="tc-act" role="menuitem" id="asMNew">${icon('edit')}<span>Новый чат</span></button>
+      <button type="button" class="tc-act" role="menuitem" id="asMHist">${icon('clock')}<span>История<small>${ASK.convs.list.length ? Core.plural(ASK.convs.list.length, 'разговор', 'разговора', 'разговоров').replace(/^/, ASK.convs.list.length + ' ') : 'пока пусто'}</small></span></button>
+      <button type="button" class="tc-act" role="menuitem" id="asToProf">${icon('person')}<span>Профиль</span></button>
+      <button type="button" class="tc-act" role="menuitem" id="asMReq">${icon('bulb')}<span>Предложить улучшение</span></button>
+      ${(Api.me() || {}).role === 'host' ? `<button type="button" class="tc-act" role="menuitem" id="asMJournal">${icon('day')}<span>Журнал и заявки</span></button>` : ''}</div>`;
+}
+/* past conversations: tap one to continue it; delete with a second tap */
+function historyHTML() {
+  const L = ASK.convs.list;
+  return `<button type="button" class="tc-btn primary wide" id="asHNew">${icon('edit')}Новый чат</button>
+    ${L.length ? `<div class="tc-group" id="asHList">${L.map(c => `<div class="as-hrow${c.id === ASK.convId ? ' cur' : ''}">
+      <button type="button" class="tc-act as-hopen" data-conv="${esc(c.id)}"><span>${esc(askConvTitle(c))}<small>${esc(japan(new Date(c.at).toISOString()))} · ${c.turns.filter(t => t.role === 'user').length} ${Core.plural(c.turns.filter(t => t.role === 'user').length, 'вопрос', 'вопроса', 'вопросов')}${c.id === ASK.convId ? ' · открыт' : ''}</small></span></button>
+      <button type="button" class="tc-x" data-convdel="${esc(c.id)}" aria-label="Удалить разговор: ${esc(askConvTitle(c))}">${icon('close')}</button></div>`).join('')}</div>`
+      : '<p class="tc-sub">Разговоров пока нет. Они хранятся только на этом телефоне.</p>'}
+    <p class="tc-foot">Хранятся на этом телефоне: до 20 разговоров, текст без фото.</p>
+    <button type="button" class="tc-btn" id="asHBack">Назад к чату</button>`;
+}
+function wireHistory(m) {
+  m.querySelector('#asHNew').addEventListener('click', () => askSwitch(null));
+  m.querySelector('#asHBack').addEventListener('click', () => { ASK.view = 'chat'; askRender(); });
+  m.querySelectorAll('[data-conv]').forEach(b => b.addEventListener('click', () => askSwitch(b.dataset.conv)));
+  m.querySelectorAll('[data-convdel]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Удалить?', () => {
+    const id = b.dataset.convdel;
+    ASK.convs.list = ASK.convs.list.filter(x => x.id !== id);
+    if (id === ASK.convId) { ASK.req++; ASK.busy = false; ASK.convId = null; ASK.turns = []; ASK.convs.cur = null; }
+    askPutConvs(); askRender();
+  })));
 }
 /* anyone: a request to improve or fix the app — goes to the hosts' queue (app_requests), then to Claude Code as a task */
 function requestHTML() {
@@ -240,7 +299,7 @@ function logHTML() {
       <span class="as-fine">Номера карт, паспорта и коды не пишите. Вопросы сохраняются в журнал — его видят хозяева.</span>
       <button type="button" class="tc-link as-jbtn" id="asReq">Предложить улучшение приложения ›</button>
       ${(Api.me() || {}).role === 'host' ? '<button type="button" class="tc-link as-jbtn" id="asJournal">Журнал вопросов и заявки ›</button>' : ''}</div>`; }
-  return '<button type="button" class="tc-link as-clear" id="asClear">Очистить чат</button>' + ASK.turns.map((t, ti) => {
+  return '<button type="button" class="tc-link as-clear" id="asNewChat">Новый чат</button>' + ASK.turns.map((t, ti) => {
     if (t.role === 'note') return `<p class="as-note${t.bad ? ' bad' : ''}" role="status">${esc(t.text)}${t.retry ? ` <button type="button" class="tc-link as-retry" data-retry="${ti}">Повторить</button>` : ''}</p>`;
     if (t.role === 'user') return `<div class="as-msg me">${(t.thumbs || []).map(s => `<img class="as-thumb" src="${s}" alt="Фото">`).join('')}${t.text ? `<p>${nl(t.text)}</p>` : ''}</div>`;
     return `<div class="as-msg ai"><p>${nl(t.text)}</p><button type="button" class="as-copy" data-copy="${ti}" aria-label="Скопировать ответ">Копировать</button>
@@ -301,7 +360,16 @@ function wireChat(m) {
   wireRate(m);
   const ta = m.querySelector('#asText'), form = m.querySelector('#asForm');
   m.querySelector('#asToTr').addEventListener('click', () => { ASK.view = 'translate'; askRender(); });
-  m.querySelector('#asToProf').addEventListener('click', () => { ASK.view = 'profile'; askRender(); });
+  const menu = m.querySelector('#asMenu'), more = m.querySelector('#asMore');
+  const showMenu = on => { menu.hidden = !on; more.setAttribute('aria-expanded', String(on)); };
+  more.addEventListener('click', e => { e.stopPropagation(); showMenu(menu.hidden); });
+  m.querySelector('.tc-sheet').addEventListener('click', e => { if (!menu.hidden && !e.target.closest('#asMenu, #asMore')) showMenu(false); });
+  const to = v => () => { ASK.view = v; if (v === 'journal') ASK.journal = null; askRender(); };
+  m.querySelector('#asMNew').addEventListener('click', () => askSwitch(null));
+  m.querySelector('#asMHist').addEventListener('click', to('history'));
+  m.querySelector('#asToProf').addEventListener('click', to('profile'));
+  m.querySelector('#asMReq').addEventListener('click', to('request'));
+  const mj = m.querySelector('#asMJournal'); if (mj) mj.addEventListener('click', to('journal'));
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
   const desk = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;   // phones: Enter = new line
@@ -321,8 +389,7 @@ function wireChat(m) {
     const cpb = e.target.closest('[data-copy]');
     if (cpb) { const t = ASK.turns[+cpb.dataset.copy]; if (t) (navigator.clipboard ? navigator.clipboard.writeText(t.text) : Promise.reject())
       .then(() => { cpb.textContent = 'Скопировано'; }, () => { cpb.textContent = 'Не вышло'; }); return; }
-    if (e.target.closest('#asClear')) { if (!ASK.clearArmed) { ASK.clearArmed = true; e.target.textContent = 'Точно очистить?'; return; }
-      ASK.clearArmed = false; ASK.turns = []; askSaveChat(); askLogRefresh(); return; }
+    if (e.target.closest('#asNewChat')) { askSwitch(null); return; }       // the old one stays in «История»
     const ap = e.target.closest('[data-apply]'), dm = e.target.closest('[data-dismiss]');
     if (ap || dm) { const [ti, id] = (ap || dm).dataset[ap ? 'apply' : 'dismiss'].split(':'); const t = ASK.turns[+ti], a = t && (t.actions || []).find(x => x.id === id);
       if (a && !a.status) { if (ap) askApply(a); else { a.status = 'dismissed'; askLogRefresh(); } } return; }

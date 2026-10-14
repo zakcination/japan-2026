@@ -785,7 +785,8 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction: row; gap: 0; }
 .tc-face.letter { line-height: 1; padding-top: 1px; box-sizing: border-box; }
 .as-ja .tc-actions.two { grid-template-columns: minmax(0, 1fr) auto; }
-.as-ja .tc-actions.two .tc-btn { white-space: nowrap; }
+.as-ja .tc-actions.two .tc-btn:not(.primary) { white-space: nowrap; }
+.as-ja .tc-actions.two .tc-btn.primary { line-height: 1.15; text-align: center; padding-block: 6px; }
 .tc-joinseg { margin-top: -4px; }
 .tc-joinseg button { min-height: 46px; }
 .tc-sos-first { margin: 0; padding: 12px 16px; border-radius: 16px; background: var(--note); font: 600 min(0.9412rem, 22.4px)/1.35 var(--sf); }
@@ -795,3 +796,13 @@ span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction
 .ex-amount:focus-within { box-shadow: inset 0 0 0 2px var(--ring3); }
 /* an empty chat: the greeting sits just above the composer, not at the far top */
 .as-log:has(> .as-hello:only-child) { justify-content: flex-end; }
+/* ✦ chat: the «⋯» menu under the header, and «История» rows */
+.as-menu { position: absolute; top: calc(60px + var(--safe-t)); right: max(16px, var(--safe-r)); z-index: 3; width: min(280px, calc(100% - 32px));
+  box-shadow: 0 0 0 .5px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.24); }
+.as-menu[hidden] { display: none; }
+.as-hrow { display: flex; align-items: center; border-top: 1px solid var(--sep); padding-right: 8px; }
+.as-hrow:first-child { border-top: 0; }
+.as-hrow .tc-act { border-top: 0; flex: 1; min-width: 0; }
+.as-hrow .tc-act span { min-width: 0; overflow-wrap: anywhere; }
+.as-hrow.cur .tc-act { color: var(--tint); }
+.as-hrow .tc-x[data-sure] { color: var(--late); }
