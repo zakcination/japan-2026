@@ -9,13 +9,13 @@ function taskHTML(t, host) {
   const hotel = /забронировать/i.test(t.title || '');                 // «…: выбрать и забронировать» reads as «Забронировать: …»
   const title = hotel ? Prep.taskTitle(t.title) : t.title;
   const by = r.buy_by || k.due ? `${t.kind === 'task' ? 'сделать' : hotel ? 'забронировать' : 'купить'} до ${Core.ddmmyyyy(r.buy_by || k.due).slice(0, 5)}` : '';
-  const url = Core.safeUrl(r.url || k.url);
+  const url = Core.safeUrl(r.url || k.url), late = !t.done && !!(r.buy_by || k.due) && String(r.buy_by || k.due).slice(0, 10) < japanNow().date;
   const when = r.opens && Date.parse(r.opens) > Date.now() ? `продажи с ${almaty(r.opens)} по Алматы` : by;
   return `<div class="tc-card tc-task${t.done ? ' done' : ''}${t.ref === FLASH ? ' tc-flash' : ''}" data-ref="${esc(t.ref)}">
     <div class="tc-row"><b>${t.dropped ? 'Вы отписались — сдайте или перенесите билет: ' : ''}${esc(title)}</b>
       <span class="tc-task-top">${t.kind !== 'task' && !t.done && when ? nudgeHTML(`${title} — ${when}`, deepLink('task=' + t.ref), 'icon') : ''}
       <label class="tc-check"><input type="checkbox" switch data-done="${esc(t.ref)}"${t.done ? ' checked' : ''} aria-label="${t.kind === 'task' ? 'Сделано' : 'Куплено'}"><span aria-hidden="true">${icon('check')}</span></label></span></div>
-    ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub">${s}</span>`).join('')}
+    ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub${s === by && late ? ' tc-late' : ''}">${s}</span>`).join('')}
     ${r.tips || k.note ? `<p class="tc-notepara">${esc(r.tips || k.note)}</p>` : ''}
     ${r.host_ref ? `<p class="tc-note tc-hostref"><b>Бронь хозяев:</b> ${esc(r.host_ref)}</p>` : ''}
     <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
@@ -28,7 +28,7 @@ function tasksHTML(nowMs) {
   const all = Group.tasks(planDoc(), Api.state(), Api.me().id, nowMs), host = Api.me().role === 'host';
   const buy = all.filter(t => t.kind !== 'task'), todo = all.filter(t => t.kind === 'task');
   return `<section id="grTasks"><h2 class="tc-sech">Мне купить</h2>${buy.length ? buy.map(t => taskHTML(t, host)).join('') : '<p class="tc-empty">Присоединитесь к части поездки — здесь появятся билеты.</p>'}
-    <h2 class="tc-sech">Сделать</h2>${todo.map(t => taskHTML(t, host)).join('') || '<p class="tc-empty">Пусто.</p>'}
+    ${todo.length ? `<h2 class="tc-sech">Сделать</h2>${todo.map(t => taskHTML(t, host)).join('')}` : ''}
     ${host ? '<button type="button" class="tc-btn wide" id="tkImport">Импорт задач из старого трекера</button>' : ''}</section>`;
 }
 function wireTasks(root) {

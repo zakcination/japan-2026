@@ -8,6 +8,7 @@ const Prep = (() => {
   /* «Купить: …» for tickets; a recipe that already says «забронировать» (hotels) becomes «Забронировать: …» */
   function taskTitle(what) {
     const w = String(what || '');
+    if (/^(Рейс|Прилёт|Вылет)\s/.test(w)) return 'Авиабилет: ' + w.charAt(0).toLowerCase() + w.slice(1);
     if (!/забронировать/i.test(w)) return 'Купить: ' + w;
     const t = w.replace(/\s*:?\s*(выбрать\s+и\s+)?забронировать\s*$/i, '').trim();
     return 'Забронировать: ' + t.charAt(0).toLowerCase() + t.slice(1);

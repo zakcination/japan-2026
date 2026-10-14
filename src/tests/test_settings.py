@@ -51,7 +51,7 @@ def test_prices_are_per_person(app):
     assert s.locator("#setTrav").count() == 0
     a.page.keyboard.press("Escape")
     a.page.click(".tc-tab[data-tab='day']")
-    assert "¥210/чел" in a.page.inner_text("#tcList").replace("\u00a0", " ")
+    assert "¥210/чел" in a.page.inner_text("#tcList").replace("\u2060", "").replace("\u00a0", " ")
 
 
 def test_edit_add_and_day_label(app):

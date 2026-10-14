@@ -7,7 +7,10 @@ const Core = (() => {
     return m ? +m[1] * 60 + +m[2] : NaN;
   };
   const hm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
-  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? `${h} ч ${pad(m % 60)} мин` : `${m} мин`; };
+  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? (m % 60 ? `${h} ч ${pad(m % 60)} мин` : `${h} ч`) : `${m} мин`; };
+  /* Russian plural: plural(2, 'вопрос', 'вопроса', 'вопросов') → «вопроса» */
+  const plural = (n, one, few, many) => { const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
+    return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
   // «2 ч 51» / «51 мин»: «2:51» read as both hours and minutes:seconds
   const cd = m => { m = Math.max(0, Math.round(m)); return m >= 60 ? Math.floor(m / 60) + ' ч ' + pad(m % 60) : m + ' мин'; };
   const ddmmyyyy = iso => { const [y, mo, d] = String(iso).split('-'); return `${d}.${mo}.${y}`; };
@@ -152,6 +155,6 @@ const Core = (() => {
   }
   const safeUrl = u => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u)) ? u : '';
 
-  return { pad, toMin, hm, dur, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
+  return { pad, toMin, hm, dur, plural, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
            shiftOf, localMin, plan, urgent, themeFor, dayProgress, validTrip, cleanTrip, safeUrl };
 })();

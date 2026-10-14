@@ -1130,7 +1130,7 @@ html { font-size: 17px; font: -apple-system-body; }
 .tc-inset { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--inset);
   border-radius: 18px; padding: 12px 16px; }
 .tc-inset > div { display: flex; flex-direction: column; gap: 2px; }
-.tc-count { font: 700 40px/1 var(--rd); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tc-count { font: 700 40px/1 var(--rd); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tc-actions { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
 .tc-actions:has(> :nth-child(2):last-child) { grid-template-columns: 1.4fr 1fr; }
 .tc-btn { min-height: 50px; border: 0; border-radius: 999px; background: var(--inset); color: var(--text);
@@ -1213,11 +1213,12 @@ html { font-size: 17px; font: -apple-system-body; }
 /* ---------- tab «Брони» ---------- */
 #tcBkToday, #tcBkAll { display: flex; flex-direction: column; gap: 8px; }
 .tc-sech { margin: 6px 4px 0; font: 600 min(0.7647rem, 18.2px)/1.2 var(--sf); color: var(--sec); text-transform: uppercase; letter-spacing: .03em; }
-.tc-bk { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--sep); }
+.tc-bk { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 10px 16px; border-top: 1px solid var(--sep); }
+.tc-bkfoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .tc-bk:first-child { border-top: 0; }
 .tc-bkbody { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; flex: 1; min-width: 0; }
 .tc-bkt { font: 600 min(0.9412rem, 22.4px)/1.3 var(--sf); }
-.tc-bkst { min-height: 44px; margin: -6px 0 -10px; padding: 0 10px 0 0; border: 0; background: none; cursor: pointer; }
+.tc-bkst { min-height: 44px; margin: 0; padding: 0 10px 0 0; border: 0; background: none; cursor: pointer; }
 .tc-qr, .tc-file { flex: 0 0 auto; min-height: 44px; min-width: 64px; padding: 0 14px; border: 0; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 600 min(0.8235rem, 19.6px)/1 var(--sf); cursor: pointer; }
 .tc-qr { background: var(--tint); color: #fff; }
@@ -1464,7 +1465,7 @@ button.tc-day1 { border: 0; text-align: left; font: inherit; cursor: pointer; mi
 .tc-task.done .tc-row b { color: var(--sec); text-decoration: line-through; }
 .tc-task.done { opacity: .75; }
 .tc-hostref { margin: 0; padding: 10px 12px; border-radius: 12px; font: 400 min(0.8235rem, 19.6px)/1.4 var(--sf); }
-.tc-bkr { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 55%; }
+.tc-bkr { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 
 /* ticket sharing switch: a full 44 pt row like the other toggles */
 .tc-share { flex: 0 0 auto; min-height: 44px; min-width: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -1820,6 +1821,15 @@ span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction
 .tc-face.letter { line-height: 1; padding-top: 1px; box-sizing: border-box; }
 .as-ja .tc-actions.two { grid-template-columns: minmax(0, 1fr) auto; }
 .as-ja .tc-actions.two .tc-btn { white-space: nowrap; }
+.tc-joinseg { margin-top: -4px; }
+.tc-joinseg button { min-height: 46px; }
+.tc-sos-first { margin: 0; padding: 12px 16px; border-radius: 16px; background: var(--note); font: 600 min(0.9412rem, 22.4px)/1.35 var(--sf); }
+.ex-tools .tc-btn { white-space: nowrap; padding-inline: 10px; }
+/* the amount field: the ring goes round the rounded box, not the bare input */
+.tc-sheet-bg .ex-amount input:focus-visible, #today .ex-amount input:focus-visible { outline: none; }
+.ex-amount:focus-within { box-shadow: inset 0 0 0 2px var(--ring3); }
+/* an empty chat: the greeting sits just above the composer, not at the far top */
+.as-log:has(> .as-hello:only-child) { justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -2845,7 +2855,10 @@ const Core = (() => {
     return m ? +m[1] * 60 + +m[2] : NaN;
   };
   const hm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
-  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? `${h} ч ${pad(m % 60)} мин` : `${m} мин`; };
+  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60); return h ? (m % 60 ? `${h} ч ${pad(m % 60)} мин` : `${h} ч`) : `${m} мин`; };
+  /* Russian plural: plural(2, 'вопрос', 'вопроса', 'вопросов') → «вопроса» */
+  const plural = (n, one, few, many) => { const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
+    return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
   // «2 ч 51» / «51 мин»: «2:51» read as both hours and minutes:seconds
   const cd = m => { m = Math.max(0, Math.round(m)); return m >= 60 ? Math.floor(m / 60) + ' ч ' + pad(m % 60) : m + ' мин'; };
   const ddmmyyyy = iso => { const [y, mo, d] = String(iso).split('-'); return `${d}.${mo}.${y}`; };
@@ -2990,7 +3003,7 @@ const Core = (() => {
   }
   const safeUrl = u => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u)) ? u : '';
 
-  return { pad, toMin, hm, dur, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
+  return { pad, toMin, hm, dur, plural, cd, ddmmyyyy, addDays, japanNow, sunTimes, isAnchor, isKey, travel,
            shiftOf, localMin, plan, urgent, themeFor, dayProgress, validTrip, cleanTrip, safeUrl };
 })();
 
@@ -3165,6 +3178,7 @@ const Prep = (() => {
   /* «Купить: …» for tickets; a recipe that already says «забронировать» (hotels) becomes «Забронировать: …» */
   function taskTitle(what) {
     const w = String(what || '');
+    if (/^(Рейс|Прилёт|Вылет)\s/.test(w)) return 'Авиабилет: ' + w.charAt(0).toLowerCase() + w.slice(1);
     if (!/забронировать/i.test(w)) return 'Купить: ' + w;
     const t = w.replace(/\s*:?\s*(выбрать\s+и\s+)?забронировать\s*$/i, '').trim();
     return 'Забронировать: ' + t.charAt(0).toLowerCase() + t.slice(1);
@@ -3254,10 +3268,10 @@ const plan = (day, now) => Core.plan(day, now, S, dateOf(day));
 
 /* ---------- time ---------- */
 const yen = v => v == null ? '—' : '¥' + Math.round(v).toLocaleString('ru-RU');
-const home = v => SET.cur === 'JPY' || v == null ? '' : Math.round(v * SET.rate).toLocaleString('ru-RU') + ' ' + (CUR[SET.cur] || CUR.KZT).sym;
+const home = v => SET.cur === 'JPY' || v == null ? '' : Math.round(v * SET.rate).toLocaleString('ru-RU') + '\u00a0' + (CUR[SET.cur] || CUR.KZT).sym;
 const both = v => v == null || !v ? '—' : `${yen(v)}${home(v) ? ' · ' + home(v) : ''}`;
 /* costs are per person (owners' choice): «¥210/чел · 590 ₸» */
-const money = pp => pp == null || !pp ? '—' : `${yen(pp)}/чел${home(pp) ? ' · ' + home(pp) : ''}`;
+const money = pp => pp == null || !pp ? '—' : `${yen(pp)}/\u2060чел${home(pp) ? ' · ' + home(pp) : ''}`;
 
 const liveDayN = () => { const n = japanNow(); const d = T.days.find(x => dateOf(x) === n.date); return d ? d.n : null; };
 /* the clock the screen reasons with: real Japan time during the trip; outside it, the preview clock
@@ -4441,7 +4455,7 @@ function weatherTileHTML(x) {
     return `<div class="tc-mini tc-wx" id="tcWx" role="group" aria-label="Погода: ${d.hi}°, ночью ${d.lo ?? '—'}°">
       <span class="tc-mini-lbl">${WX_ICON(d.code)} Погода</span><b>${d.hi}°<span class="lo">/${d.lo ?? '—'}°</span></b>
       <small>${d.forecast ? esc(WX_WORD(d.code)) : 'обычно в эти дни'}${d.prob != null ? ' · дождь ' + d.prob + '%' : ''}</small>
-      <small class="tc-wx-note">по часам — с ${Core.ddmmyyyy(on).slice(0, 5)}</small></div>`;
+      <small class="tc-wx-note">почасовой прогноз — с ${Core.ddmmyyyy(on).slice(0, 5)}</small></div>`;
   }
   // the day's span: from the first stop (or now) to the last one, 4 steps across it
   const first = evs.length ? Math.floor(evs[0].ns / 60) : 7, last = evs.length ? Math.ceil(evs[evs.length - 1].ne / 60) : 21;
@@ -4562,7 +4576,7 @@ function nextCard(x, next, u) {
     <div class="tc-when"><span class="tc-big">${hm(next.ns)}</span>
       <span class="tc-whatbox"><span class="tc-what">${esc(next.t)}</span>${subOf(next) ? `<span class="tc-sub">${subOf(next)}</span>` : ''}</span></div>
     ${hasTravel ? `<div class="tc-inset"><div><span class="tc-lbl">Выйти через</span><span class="tc-count">${Core.cd(leaveIn)}</span></div>
-      <span class="tc-sub right">в ${hm(next.leave)}${next.ride ? `<br>дорога ${next.ride} мин` : ''}${next.walk ? `<br>пешком ${next.walk}` : ''}${next.buf ? ` · запас ${next.buf}` : ''}</span></div>` : ''}
+      <span class="tc-sub right">в ${hm(next.leave)}${next.ride ? `<br>дорога ${next.ride} мин` : ''}${next.walk || next.buf ? '<br>' + [next.walk ? `пешком ${next.walk}` : '', next.buf ? `запас ${next.buf}` : ''].filter(Boolean).join(' · ') + ' мин' : ''}</span></div>` : ''}
     ${next.conflict ? `<p class="tc-warn">Не успеваете на ${dur(next.conflict)} — пропустите гибкий пункт.</p>` : ''}
     <div class="tc-actions">
       <a class="tc-btn primary" href="${routeUrl(next)}" target="_blank" rel="noopener">${icon('arrow')}Маршрут</a>
@@ -4661,7 +4675,7 @@ function day1HTML(expanded) {
   let cur = -1; steps.forEach((s, i) => { if (s.at <= now) cur = i; });
   if (!expanded) {
     const first = steps.find(s => s.leg) || steps[0];
-    const key = [first, ...steps.filter(s => !s.leg && /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
+    const key = [first, ...steps.filter(s => s !== first && !s.leg && /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
     return `<button type="button" class="tc-card tc-day1" id="tcDay1"><span class="tc-row"><span class="tc-lbl">Первые сутки</span>${icon('arrow')}</span>
       <span class="tc-sub">${key.map(s => esc(s.short + ' ' + s.brief)).join(' → ')}</span></button>`;
   }
@@ -4750,12 +4764,13 @@ RENDER.now = (x, root) => {
   const next = evs.find(e => e.ns > now && Core.isKey(e)) || evs.find(e => e.ns > now) || null;
   const u = x.urg;
   const dark = document.getElementById('today').dataset.th === 'dark';
-  let html = Ios.installHint() + topRowHTML(x) + flightCardHTML(x);
+  let html = Ios.installHint() + topRowHTML(x);
   const asked = Trips.asked();
   if (asked) html += `<section class="tc-card tc-note" id="tcAsked"><span class="tc-lbl">Ссылка на другую поездку</span>
     <span class="tc-sub">Ссылка ведёт на «${esc(Trips.nameOf(asked))}», а на телефоне ваша версия с правками.</span>
     <button type="button" class="tc-btn primary" id="tcAskedGo">Открыть «${esc(Trips.nameOf(asked))}»</button></section>`;
-  if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
+  const alert = u && next && u.ev === next && u.state === 'go';
+  if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u && !alert ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
   if (!x.cevs.length) {
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">Нет пунктов</h2>
       <span class="tc-sub">Добавьте пункт во вкладке «День».</span></section>`;
@@ -4771,7 +4786,7 @@ RENDER.now = (x, root) => {
     if (cut.length) html += `<section class="tc-card tc-note"><span class="tc-lbl">План пересчитан</span>
       <span class="tc-sub">${cut.map(e => e.auto ? `убрано: ${esc(e.t)}` : `${esc(e.t)} −${e.cut} мин`).join(' · ')}</span></section>`;
   }
-  html += flightTileHTML(x);                   // below now / next: a low-priority prompt
+  html += flightCardHTML(x) + flightTileHTML(x);  // below now / next: during the trip the flight is not the first thing
   if (x.pv && !x.c.live) {
     const d0 = dateOf(T.days[0]), days = Math.round((Date.parse(d0) - Date.parse(japanNow().date)) / 864e5);
     html += `<p class="tc-preview">${days > 0 ? `Предпросмотр · поездка через ${days} дн.` : 'Предпросмотр'} ·
@@ -4837,7 +4852,7 @@ RENDER.day = (x, root) => {
     ${dayStrip(x)}
     ${typeof joinBarHTML === 'function' ? joinBarHTML(x) : ''}
     <button type="button" class="tc-flline" id="tcDayMap">${icon('map')}<span>Карта дня<small>места, маршрут, «Степной след»</small></span>${icon('arrow')}</button>
-    ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
+    ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">Открыть этот день в «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e, ov)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
     <div class="tc-actions two"><button type="button" class="tc-btn" id="tcAdd">${icon('plus')}Пункт</button>
@@ -5050,7 +5065,7 @@ const bkDay = b => T.days.find(d => d.n === (b.days || [])[0]);
 
 function bkRow(b, withDate) {
   const d = bkDay(b), fixed = b.st === 'fixed';
-  const when = [withDate && d ? Core.ddmmyyyy(dateOf(d)).slice(0, 5) : '', esc(b.when || ''), b.cost ? money(b.cost) : '']
+  const when = [withDate && d && !/\d\d\.\d\d/.test(b.when || '') ? Core.ddmmyyyy(dateOf(d)).slice(0, 5) : '', esc(b.when || ''), b.cost ? money(b.cost) : '']
     .filter(Boolean).join(' · ');
   const right = haveTicket[b.id]
     ? `<button type="button" class="tc-qr" data-ticket="${esc(b.id)}" aria-label="Показать билет: ${esc(b.t)}">QR</button>`
@@ -5059,10 +5074,10 @@ function bkRow(b, withDate) {
   const links = typeof attachLinksFor === 'function' ? attachLinksFor(b.id) : [];
   const linkBtns = links.map(l => Core.safeUrl(l.url) ? `<a class="tc-qr" href="${Core.safeUrl(l.url)}" target="_blank" rel="noopener">${esc(l.site || 'Бронь')}</a>` : '').join('');
   return `<div class="tc-bk"><div class="tc-bkbody"><span class="tc-bkt">${esc(b.t)}</span>
-      ${when ? `<span class="tc-sub">${when}</span>` : ''}
-      <button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
-        aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button></div>
-    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div>`;
+      ${when ? `<span class="tc-sub">${when}</span>` : ''}</div>
+    <div class="tc-bkfoot"><button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
+        aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button>
+    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div></div>`;
 }
 
 RENDER.tix = (x, root) => {
@@ -5214,7 +5229,7 @@ function statsDay(x, root) {
     </section>
     <section class="tc-card" id="tcBudget">
       <div class="tc-row"><span class="tc-lbl">Бюджет на человека, ¥</span><span class="tc-lbl">всего ${both(total)}</span></div>
-      <div class="tc-bars" role="img" aria-label="Бюджет по дням, всего ${yen(total)}">${budgets.map(b =>
+      <div class="tc-bars" style="grid-template-columns:repeat(${budgets.length}, minmax(0, 1fr))" role="img" aria-label="Бюджет по дням, всего ${yen(total)}">${budgets.map(b =>
         `<div class="tc-barcol${b.d.n < x.cday.n ? ' done' : b.d.n === x.cday.n ? ' cur' : ''}${b.d === day ? ' on' : ''}">
           <i style="height:${Math.max(4, Math.round(b.v / max * 100))}%"></i><small>${+dateOf(b.d).slice(8)}</small></div>`).join('')}</div>
     </section>
@@ -5427,7 +5442,7 @@ function moneyHTML() {
     <h2 class="tc-sech">Расходы</h2>
     <div class="ex-filters">
       <input id="exQ" type="search" placeholder="Поиск: магазин, город, маршрут" value="${esc(expFilter.q)}" aria-label="Поиск по расходам">
-      <div class="ex-chips">${[['all', 'Всё'], ['today', 'Сегодня'], ['yesterday', 'Вчера'], ['7d', '7 дней']].map(([k, n]) =>
+      <div class="ex-chips">${[['all', 'Все дни'], ['today', 'Сегодня'], ['yesterday', 'Вчера'], ['7d', '7 дней']].map(([k, n]) =>
         `<button type="button" data-period="${k}" aria-pressed="${expFilter.period === k}">${n}</button>`).join('')}
         <select id="exFCat" aria-label="Категория"><option value="">Все категории</option>${Exp.CATS.map(c => `<option value="${c.code}"${expFilter.cat === c.code ? ' selected' : ''}>${c.icon} ${esc(c.name)}</option>`).join('')}</select>
         ${cities.length > 1 ? `<select id="exFCity" aria-label="Город"><option value="">Все города</option>${cities.map(c => `<option${expFilter.city === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}
@@ -5871,7 +5886,9 @@ function openSos() {
   const steps = c => `<details class="tc-more" data-sos="${c.k}"><summary>${esc(c.t)}</summary>
     <ol class="tc-sos-steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`;
   const I = SOS.insurance;
+  const ins = SOS.calls.find(c => /страх/i.test(c.t));
   sheet('SOS', `
+    ${ins ? `<p class="tc-sos-first" id="sosFirst">Сначала — страховая: <a class="tc-inl" href="tel:${esc(ins.n)}">${esc(ins.show || ins.n)}</a></p>` : ''}
     <div class="tc-group" id="sosCalls">${SOS.calls.map(call).join('')}</div>
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
       <div class="tc-group">${SOS.china.map(call).join('')}</div></details>
@@ -6093,7 +6110,7 @@ function autoSyncPlan() {
   return true;
 }
 
-/* ---------- joining on «День»: my plan / group plan, parts, «Я еду / Без меня», own stops ---------- */
+/* ---------- joining on «День»: my plan / group plan, parts, «Иду / Без меня», own stops ---------- */
 const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
   const me = Api.me().id; s.joins = s.joins.filter(j => !(j.member === me && j.scope === scope && j.ref === String(ref)));
   if (mode !== 'none') s.joins.push({ member: me, scope, ref: String(ref), mode });
@@ -6161,13 +6178,13 @@ function stopJoinHTML(day, e) {
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
   const whoIds = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.id);
   return `<p class="tc-sub tc-who">Идут: ${whoIds.length ? facesHTML(whoIds) + ' ' + esc(who.join(', ')) : '—'}</p>
-    <div class="tc-actions two"><button type="button" class="tc-btn ${going ? '' : 'primary'}" data-join="in">Я еду</button>
-      <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>
+    <div class="tc-seg3s two tc-joinseg" role="group" aria-label="Я в этом пункте"><button type="button" data-join="in" aria-pressed="${going}">Иду</button><button type="button" data-join="out" aria-pressed="${!going}">Без меня</button></div>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" data-propose>${icon('edit')}Предложить изменение</button>`}`;
 }
 function wireStopJoin(m, day, e) {
   if (!Api.me()) return;
-  m.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => { setJoin('stop', e.id, b.dataset.join); closeSheet(); renderShell(); }));
+  m.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => { if (b.getAttribute('aria-pressed') === 'true') return;
+    setJoin('stop', e.id, b.dataset.join); closeSheet(); renderShell(); }));
   const pr = m.querySelector('[data-propose]'); if (pr) pr.addEventListener('click', () => { closeSheet(); openPropose(day, e); });
   const jm = m.querySelector('[data-joinmine]'); if (jm) jm.addEventListener('click', () => { setJoin('mine', e.id, jm.dataset.joinmine); closeSheet(); renderShell(); });
   const sh = m.querySelector('#grShare'); if (sh) sh.addEventListener('change', () => {
@@ -6240,13 +6257,13 @@ function taskHTML(t, host) {
   const hotel = /забронировать/i.test(t.title || '');                 // «…: выбрать и забронировать» reads as «Забронировать: …»
   const title = hotel ? Prep.taskTitle(t.title) : t.title;
   const by = r.buy_by || k.due ? `${t.kind === 'task' ? 'сделать' : hotel ? 'забронировать' : 'купить'} до ${Core.ddmmyyyy(r.buy_by || k.due).slice(0, 5)}` : '';
-  const url = Core.safeUrl(r.url || k.url);
+  const url = Core.safeUrl(r.url || k.url), late = !t.done && !!(r.buy_by || k.due) && String(r.buy_by || k.due).slice(0, 10) < japanNow().date;
   const when = r.opens && Date.parse(r.opens) > Date.now() ? `продажи с ${almaty(r.opens)} по Алматы` : by;
   return `<div class="tc-card tc-task${t.done ? ' done' : ''}${t.ref === FLASH ? ' tc-flash' : ''}" data-ref="${esc(t.ref)}">
     <div class="tc-row"><b>${t.dropped ? 'Вы отписались — сдайте или перенесите билет: ' : ''}${esc(title)}</b>
       <span class="tc-task-top">${t.kind !== 'task' && !t.done && when ? nudgeHTML(`${title} — ${when}`, deepLink('task=' + t.ref), 'icon') : ''}
       <label class="tc-check"><input type="checkbox" switch data-done="${esc(t.ref)}"${t.done ? ' checked' : ''} aria-label="${t.kind === 'task' ? 'Сделано' : 'Куплено'}"><span aria-hidden="true">${icon('check')}</span></label></span></div>
-    ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub">${s}</span>`).join('')}
+    ${[opens, by, r.price_pp ? money(r.price_pp) : ''].filter(Boolean).map(s => `<span class="tc-sub${s === by && late ? ' tc-late' : ''}">${s}</span>`).join('')}
     ${r.tips || k.note ? `<p class="tc-notepara">${esc(r.tips || k.note)}</p>` : ''}
     ${r.host_ref ? `<p class="tc-note tc-hostref"><b>Бронь хозяев:</b> ${esc(r.host_ref)}</p>` : ''}
     <div class="tc-actions tc-task-acts">${url ? `<a class="tc-btn primary" href="${url}" target="_blank" rel="noopener">${icon('link')}${esc(r.site || Group.siteOf(url).site)}</a>` : ''}
@@ -6259,7 +6276,7 @@ function tasksHTML(nowMs) {
   const all = Group.tasks(planDoc(), Api.state(), Api.me().id, nowMs), host = Api.me().role === 'host';
   const buy = all.filter(t => t.kind !== 'task'), todo = all.filter(t => t.kind === 'task');
   return `<section id="grTasks"><h2 class="tc-sech">Мне купить</h2>${buy.length ? buy.map(t => taskHTML(t, host)).join('') : '<p class="tc-empty">Присоединитесь к части поездки — здесь появятся билеты.</p>'}
-    <h2 class="tc-sech">Сделать</h2>${todo.map(t => taskHTML(t, host)).join('') || '<p class="tc-empty">Пусто.</p>'}
+    ${todo.length ? `<h2 class="tc-sech">Сделать</h2>${todo.map(t => taskHTML(t, host)).join('')}` : ''}
     ${host ? '<button type="button" class="tc-btn wide" id="tkImport">Импорт задач из старого трекера</button>' : ''}</section>`;
 }
 function wireTasks(root) {
@@ -8974,7 +8991,7 @@ function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
   askSyncProfile(); askLoadAi(); askLoadSeed();
-  ASK.view = askProfile() ? (ASK.view === 'profile' ? 'chat' : ASK.view) : 'profile';
+  ASK.view = askProfile() ? 'chat' : 'profile';
   askRender();
 }
 function askRender() {
@@ -9007,7 +9024,7 @@ function profileHTML() {
   const sw = (k, l, sub) => `<label class="tc-act"><span>${l}<small>${sub}</small></span><input type="checkbox" switch data-notify="${k}"${n[k] === false ? '' : ' checked'}></label>`;
   return `${seed ? `<div class="tc-card tc-note" id="asSeed"><b>Заполнили по вашей анкете</b>
       <span class="tc-sub">Проверьте и поправьте: как к вам обращаться, язык и тон — в анкете их не было.</span></div>` : ''}
-    <p class="tc-sub">Пара вопросов, чтобы отвечать по-вашему. Хранится только на этом телефоне и отправляется вместе с вопросом.</p>
+    <p class="tc-sub">Пара вопросов, чтобы отвечать по-вашему. ${askP1() ? 'Видите вы и Спутник; хозяева — нет.' : 'Хранится только на этом телефоне и отправляется вместе с вопросом.'}</p>
     ${fld('asName', 'Как к вам обращаться', p.name || (Api.me() || {}).name || '', 'text', 'maxlength="40" autocomplete="nickname"')}
     <span class="tc-lbl">Язык ответов</span>${seg('lang', p.lang || 'ru', [['ru', 'Русский'], ['kk', 'Қазақша'], ['en', 'English']])}
     <span class="tc-lbl">Тон</span>${seg('tone', p.tone || 'calm', [['calm', 'Спокойно'], ['fun', 'С юмором'], ['strict', 'Строго']])}
@@ -9046,8 +9063,7 @@ function askSuggest() {
   const out = [], add = q => { if (q && !out.includes(q) && out.length < 6) out.push(q); };
   let x; try { x = ctx(); } catch (e) { return EXAMPLES; }
   const ph = (x.ph && x.ph.phase) || 'live', min = x.c ? x.c.min : null, h = min == null ? 12 : Math.floor(min / 60);
-  const evs = (x.cevs || []).filter(e => e.st !== 'skip' && e.st !== 'done');
-  const m = s => { const r = /^(\d{1,2}):(\d{2})/.exec(s || ''); return r ? +r[1] * 60 + +r[2] : null; };
+  const evs = (x.cevs || []).filter(e => !e.skip && !e.auto && !e.bad && !e.done);
   const cut = t => { t = String(t || ''); return t.length > 24 ? t.slice(0, 23) + '…' : t; };
   if (ph === 'pre') {
     add('Что осталось сделать до вылета?'); add('Что взять в ручную кладь?'); add('Как пройти пересадку в Пудуне?');
@@ -9058,8 +9074,8 @@ function askSuggest() {
     add('Где поесть в аэропорту без свинины?'); return out;
   }
   if (ph === 'post') { add('Как вернуть tax-free при вылете?'); add('Что купить в аэропорту?'); return out; }
-  const cur = min == null ? null : evs.find(e => m(e.s) != null && m(e.s) <= min && (m(e.e) ?? m(e.s) + 60) > min);
-  const next = min == null ? evs[0] : evs.find(e => m(e.s) != null && m(e.s) > min);
+  const cur = min == null ? null : evs.find(e => e.ns <= min && min < e.ne);
+  const next = min == null ? evs[0] : evs.find(e => e.ns > min);
   if (next) {
     if (next.cat === 'transport') add(`Где сесть на «${cut(next.t)}» в ${next.s}?`);
     else add(`Как добраться до «${cut(next.t)}» к ${next.s}?`);
@@ -9109,12 +9125,12 @@ function journalHTML() {
   rows.forEach(r => { by[r.who] = (by[r.who] || 0) + 1; tin += +r.in || 0; tout += +r.out || 0;
     String(r.q || '').toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, ' ').split(/\s+/).filter(w => w.length > 4).forEach(w => { words[w] = (words[w] || 0) + 1; }); });
   const top = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  return `<div class="tc-card"><span class="tc-lbl">За 7 дней</span><b>${rows.length} вопрос${rows.length % 10 === 1 && rows.length % 100 !== 11 ? '' : 'ов'} · токены ${tin.toLocaleString('ru-RU')} → ${tout.toLocaleString('ru-RU')}</b>
+  return `<div class="tc-card"><span class="tc-lbl">За 7 дней</span><b>${rows.length} ${Core.plural(rows.length, 'вопрос', 'вопроса', 'вопросов')} · объём ${tin.toLocaleString('ru-RU')} → ${tout.toLocaleString('ru-RU')}</b>
       <span class="tc-sub">${Object.entries(by).map(([k, v]) => `${esc(k)} — ${v}`).join(' · ') || 'пока пусто'}</span>
       ${top.length ? `<span class="tc-sub">Частые слова: ${top.map(([w, n]) => `${esc(w)} (${n})`).join(', ')}</span>` : ''}</div>
-    <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 16).replace('T', ' '))} UTC · ${esc(r.kind || '')}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
-    <span class="tc-sech">Заявки на улучшение · ${(J.reqs || []).filter(r => r.status === 'new').length} новых</span>
-    <div class="tc-group">${(J.reqs || []).slice(0, 60).map(r => `<div class="tc-act"><span>${esc(r.body)}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 10))} · ${r.source === 'assistant' ? 'через Спутника' : 'сам'} · ${esc({ new: 'новая', queued: 'передана', done: 'сделано', dropped: 'отклонена' }[r.status] || r.status)}</small></span></div>`).join('') || '<p class="tc-sub" style="padding:12px 16px">Пока заявок нет.</p>'}</div>
+    <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(japan(r.at))}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
+    <span class="tc-sech">Заявки на улучшение · ${(n => n + ' ' + Core.plural(n, 'новая', 'новые', 'новых'))((J.reqs || []).filter(r => r.status === 'new').length)}</span>
+    <div class="tc-group">${(J.reqs || []).slice(0, 60).map(r => `<div class="tc-act"><span>${esc(r.body)}<small>${esc(r.who || '')} · ${esc(japan(r.at))} · ${r.source === 'assistant' ? 'через Спутника' : 'сам'} · ${esc({ new: 'новая', queued: 'передана', done: 'сделано', dropped: 'отклонена' }[r.status] || r.status)}</small></span></div>`).join('') || '<p class="tc-sub" style="padding:12px 16px">Пока заявок нет.</p>'}</div>
     ${(J.reqs || []).some(r => r.status === 'new') ? '<button type="button" class="tc-btn primary" id="asJCopy">Скопировать новые для Claude Code</button>' : ''}
     <p class="as-note" id="asJMsg" role="status"></p>
     <button type="button" class="tc-btn" id="asJBack">Назад к чату</button>`;
@@ -9305,7 +9321,8 @@ async function askSend(text0) {
   const stage = (ms, t, slow) => setTimeout(() => { if (ASK.req !== id || !ASK.busy) return; ASK.waitText = t; if (slow) ASK.slow = true;
     const w = document.getElementById('asWaitT'); if (w && !slow) w.textContent = t; else askLogRefresh(); }, ms);
   const timers = [stage(4000, 'Смотрю план и карту…'), stage(10000, 'Почти готово…', true), stage(25000, 'Долго отвечает — можно отменить и спросить короче.', true)];
-  const ta = document.getElementById('asText'); if (ta) ta.value = '';
+  const ta = document.getElementById('asText'); if (ta) { ta.value = ''; ta.style.height = ''; }
+  const exs = document.getElementById('asEx'); if (exs) exs.hidden = false;
   const pp = document.getElementById('asPics'); if (pp) pp.innerHTML = '';
   askLogRefresh();
   try {

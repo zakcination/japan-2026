@@ -30,7 +30,7 @@ const bkDay = b => T.days.find(d => d.n === (b.days || [])[0]);
 
 function bkRow(b, withDate) {
   const d = bkDay(b), fixed = b.st === 'fixed';
-  const when = [withDate && d ? Core.ddmmyyyy(dateOf(d)).slice(0, 5) : '', esc(b.when || ''), b.cost ? money(b.cost) : '']
+  const when = [withDate && d && !/\d\d\.\d\d/.test(b.when || '') ? Core.ddmmyyyy(dateOf(d)).slice(0, 5) : '', esc(b.when || ''), b.cost ? money(b.cost) : '']
     .filter(Boolean).join(' · ');
   const right = haveTicket[b.id]
     ? `<button type="button" class="tc-qr" data-ticket="${esc(b.id)}" aria-label="Показать билет: ${esc(b.t)}">QR</button>`
@@ -39,10 +39,10 @@ function bkRow(b, withDate) {
   const links = typeof attachLinksFor === 'function' ? attachLinksFor(b.id) : [];
   const linkBtns = links.map(l => Core.safeUrl(l.url) ? `<a class="tc-qr" href="${Core.safeUrl(l.url)}" target="_blank" rel="noopener">${esc(l.site || 'Бронь')}</a>` : '').join('');
   return `<div class="tc-bk"><div class="tc-bkbody"><span class="tc-bkt">${esc(b.t)}</span>
-      ${when ? `<span class="tc-sub">${when}</span>` : ''}
-      <button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
-        aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button></div>
-    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div>`;
+      ${when ? `<span class="tc-sub">${when}</span>` : ''}</div>
+    <div class="tc-bkfoot"><button type="button" class="tc-bkst" data-bkst="${esc(b.id)}" aria-pressed="${fixed}"
+        aria-label="${fixed ? 'Куплено — отменить отметку' : 'Отметить как купленное'}">${stDot(fixed ? 'fixed' : 'input')}</button>
+    <div class="tc-bkr">${right}${linkBtns}<button type="button" class="tc-file" data-link="${esc(b.id)}" aria-label="Ссылка на бронь: ${esc(b.t)}">${icon('link')}Ссылка</button></div></div></div>`;
 }
 
 RENDER.tix = (x, root) => {

@@ -37,7 +37,7 @@ def test_prices_stay_per_person_whatever_the_group_size(app):
     a = app(settings={"travelers": 4, "start": "2026-10-17", "cur": "KZT", "rate": 2.81},
             state={"prevDay": 2, "prevTime": "05:20"})
     a.page.click(".tc-tab[data-tab='day']")
-    text = a.page.inner_text("#today")
+    text = a.page.inner_text("#today").replace("\u2060", "")    # a word joiner keeps «/чел» on the line
     assert "¥210/чел" in text      # JR Yamanote, per person (owners' choice)
 
 

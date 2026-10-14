@@ -175,7 +175,7 @@ function moneyHTML() {
     <h2 class="tc-sech">Расходы</h2>
     <div class="ex-filters">
       <input id="exQ" type="search" placeholder="Поиск: магазин, город, маршрут" value="${esc(expFilter.q)}" aria-label="Поиск по расходам">
-      <div class="ex-chips">${[['all', 'Всё'], ['today', 'Сегодня'], ['yesterday', 'Вчера'], ['7d', '7 дней']].map(([k, n]) =>
+      <div class="ex-chips">${[['all', 'Все дни'], ['today', 'Сегодня'], ['yesterday', 'Вчера'], ['7d', '7 дней']].map(([k, n]) =>
         `<button type="button" data-period="${k}" aria-pressed="${expFilter.period === k}">${n}</button>`).join('')}
         <select id="exFCat" aria-label="Категория"><option value="">Все категории</option>${Exp.CATS.map(c => `<option value="${c.code}"${expFilter.cat === c.code ? ' selected' : ''}>${c.icon} ${esc(c.name)}</option>`).join('')}</select>
         ${cities.length > 1 ? `<select id="exFCity" aria-label="Город"><option value="">Все города</option>${cities.map(c => `<option${expFilter.city === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}

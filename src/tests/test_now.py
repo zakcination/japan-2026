@@ -88,4 +88,4 @@ def test_weather_tile_before_the_forecast_shows_typical_weather(app):
     a = at(app, "13:24")                                  # 30.09: the 18th is beyond 16 days
     wx = a.page.locator("#tcWx")
     if wx.count():                                        # the climate data may be missing offline
-        assert "по часам — с 02.10" in wx.inner_text()
+        assert "почасовой прогноз — с 02.10" in wx.inner_text()

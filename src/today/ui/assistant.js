@@ -50,7 +50,7 @@ function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
   askSyncProfile(); askLoadAi(); askLoadSeed();
-  ASK.view = askProfile() ? (ASK.view === 'profile' ? 'chat' : ASK.view) : 'profile';
+  ASK.view = askProfile() ? 'chat' : 'profile';
   askRender();
 }
 function askRender() {
@@ -83,7 +83,7 @@ function profileHTML() {
   const sw = (k, l, sub) => `<label class="tc-act"><span>${l}<small>${sub}</small></span><input type="checkbox" switch data-notify="${k}"${n[k] === false ? '' : ' checked'}></label>`;
   return `${seed ? `<div class="tc-card tc-note" id="asSeed"><b>Заполнили по вашей анкете</b>
       <span class="tc-sub">Проверьте и поправьте: как к вам обращаться, язык и тон — в анкете их не было.</span></div>` : ''}
-    <p class="tc-sub">Пара вопросов, чтобы отвечать по-вашему. Хранится только на этом телефоне и отправляется вместе с вопросом.</p>
+    <p class="tc-sub">Пара вопросов, чтобы отвечать по-вашему. ${askP1() ? 'Видите вы и Спутник; хозяева — нет.' : 'Хранится только на этом телефоне и отправляется вместе с вопросом.'}</p>
     ${fld('asName', 'Как к вам обращаться', p.name || (Api.me() || {}).name || '', 'text', 'maxlength="40" autocomplete="nickname"')}
     <span class="tc-lbl">Язык ответов</span>${seg('lang', p.lang || 'ru', [['ru', 'Русский'], ['kk', 'Қазақша'], ['en', 'English']])}
     <span class="tc-lbl">Тон</span>${seg('tone', p.tone || 'calm', [['calm', 'Спокойно'], ['fun', 'С юмором'], ['strict', 'Строго']])}
@@ -122,8 +122,7 @@ function askSuggest() {
   const out = [], add = q => { if (q && !out.includes(q) && out.length < 6) out.push(q); };
   let x; try { x = ctx(); } catch (e) { return EXAMPLES; }
   const ph = (x.ph && x.ph.phase) || 'live', min = x.c ? x.c.min : null, h = min == null ? 12 : Math.floor(min / 60);
-  const evs = (x.cevs || []).filter(e => e.st !== 'skip' && e.st !== 'done');
-  const m = s => { const r = /^(\d{1,2}):(\d{2})/.exec(s || ''); return r ? +r[1] * 60 + +r[2] : null; };
+  const evs = (x.cevs || []).filter(e => !e.skip && !e.auto && !e.bad && !e.done);
   const cut = t => { t = String(t || ''); return t.length > 24 ? t.slice(0, 23) + '…' : t; };
   if (ph === 'pre') {
     add('Что осталось сделать до вылета?'); add('Что взять в ручную кладь?'); add('Как пройти пересадку в Пудуне?');
@@ -134,8 +133,8 @@ function askSuggest() {
     add('Где поесть в аэропорту без свинины?'); return out;
   }
   if (ph === 'post') { add('Как вернуть tax-free при вылете?'); add('Что купить в аэропорту?'); return out; }
-  const cur = min == null ? null : evs.find(e => m(e.s) != null && m(e.s) <= min && (m(e.e) ?? m(e.s) + 60) > min);
-  const next = min == null ? evs[0] : evs.find(e => m(e.s) != null && m(e.s) > min);
+  const cur = min == null ? null : evs.find(e => e.ns <= min && min < e.ne);
+  const next = min == null ? evs[0] : evs.find(e => e.ns > min);
   if (next) {
     if (next.cat === 'transport') add(`Где сесть на «${cut(next.t)}» в ${next.s}?`);
     else add(`Как добраться до «${cut(next.t)}» к ${next.s}?`);
@@ -185,12 +184,12 @@ function journalHTML() {
   rows.forEach(r => { by[r.who] = (by[r.who] || 0) + 1; tin += +r.in || 0; tout += +r.out || 0;
     String(r.q || '').toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, ' ').split(/\s+/).filter(w => w.length > 4).forEach(w => { words[w] = (words[w] || 0) + 1; }); });
   const top = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  return `<div class="tc-card"><span class="tc-lbl">За 7 дней</span><b>${rows.length} вопрос${rows.length % 10 === 1 && rows.length % 100 !== 11 ? '' : 'ов'} · токены ${tin.toLocaleString('ru-RU')} → ${tout.toLocaleString('ru-RU')}</b>
+  return `<div class="tc-card"><span class="tc-lbl">За 7 дней</span><b>${rows.length} ${Core.plural(rows.length, 'вопрос', 'вопроса', 'вопросов')} · объём ${tin.toLocaleString('ru-RU')} → ${tout.toLocaleString('ru-RU')}</b>
       <span class="tc-sub">${Object.entries(by).map(([k, v]) => `${esc(k)} — ${v}`).join(' · ') || 'пока пусто'}</span>
       ${top.length ? `<span class="tc-sub">Частые слова: ${top.map(([w, n]) => `${esc(w)} (${n})`).join(', ')}</span>` : ''}</div>
-    <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 16).replace('T', ' '))} UTC · ${esc(r.kind || '')}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
-    <span class="tc-sech">Заявки на улучшение · ${(J.reqs || []).filter(r => r.status === 'new').length} новых</span>
-    <div class="tc-group">${(J.reqs || []).slice(0, 60).map(r => `<div class="tc-act"><span>${esc(r.body)}<small>${esc(r.who || '')} · ${esc(String(r.at || '').slice(5, 10))} · ${r.source === 'assistant' ? 'через Спутника' : 'сам'} · ${esc({ new: 'новая', queued: 'передана', done: 'сделано', dropped: 'отклонена' }[r.status] || r.status)}</small></span></div>`).join('') || '<p class="tc-sub" style="padding:12px 16px">Пока заявок нет.</p>'}</div>
+    <div class="tc-group">${rows.slice(0, 100).map(r => `<div class="tc-act"><span>${esc(r.q || '—')}<small>${esc(r.who || '')} · ${esc(japan(r.at))}${r.ok ? '' : ' · ошибка'}</small></span></div>`).join('')}</div>
+    <span class="tc-sech">Заявки на улучшение · ${(n => n + ' ' + Core.plural(n, 'новая', 'новые', 'новых'))((J.reqs || []).filter(r => r.status === 'new').length)}</span>
+    <div class="tc-group">${(J.reqs || []).slice(0, 60).map(r => `<div class="tc-act"><span>${esc(r.body)}<small>${esc(r.who || '')} · ${esc(japan(r.at))} · ${r.source === 'assistant' ? 'через Спутника' : 'сам'} · ${esc({ new: 'новая', queued: 'передана', done: 'сделано', dropped: 'отклонена' }[r.status] || r.status)}</small></span></div>`).join('') || '<p class="tc-sub" style="padding:12px 16px">Пока заявок нет.</p>'}</div>
     ${(J.reqs || []).some(r => r.status === 'new') ? '<button type="button" class="tc-btn primary" id="asJCopy">Скопировать новые для Claude Code</button>' : ''}
     <p class="as-note" id="asJMsg" role="status"></p>
     <button type="button" class="tc-btn" id="asJBack">Назад к чату</button>`;
@@ -381,7 +380,8 @@ async function askSend(text0) {
   const stage = (ms, t, slow) => setTimeout(() => { if (ASK.req !== id || !ASK.busy) return; ASK.waitText = t; if (slow) ASK.slow = true;
     const w = document.getElementById('asWaitT'); if (w && !slow) w.textContent = t; else askLogRefresh(); }, ms);
   const timers = [stage(4000, 'Смотрю план и карту…'), stage(10000, 'Почти готово…', true), stage(25000, 'Долго отвечает — можно отменить и спросить короче.', true)];
-  const ta = document.getElementById('asText'); if (ta) ta.value = '';
+  const ta = document.getElementById('asText'); if (ta) { ta.value = ''; ta.style.height = ''; }
+  const exs = document.getElementById('asEx'); if (exs) exs.hidden = false;
   const pp = document.getElementById('asPics'); if (pp) pp.innerHTML = '';
   askLogRefresh();
   try {

@@ -41,3 +41,51 @@ def test_assistant_on_the_money_tab_too(app):
     fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
     pg.click(".tc-tab[data-tab='stats']")
     assert pg.locator("#tcAsk").count() == 1 and pg.locator("#tcSos").count() == 1 and pg.locator("#tcGear").count() == 1
+
+
+def test_plural_and_whole_hours(core):
+    pg = core()
+    got = pg.evaluate("[1, 2, 5, 11, 12, 21, 22, 25, 111].map(n => Core.plural(n, 'вопрос', 'вопроса', 'вопросов'))")
+    assert got == ["вопрос", "вопроса", "вопросов", "вопросов", "вопросов", "вопрос", "вопроса", "вопросов", "вопросов"]
+    assert pg.evaluate("[Core.dur(60), Core.dur(65), Core.dur(45)]") == ["1 ч", "1 ч 05 мин", "45 мин"]
+
+
+def test_going_is_a_segmented_control_showing_my_state(app):
+    fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
+    pg.click(".tc-tab[data-tab='day']"); pg.click("#grView [data-view='group']")      # the group plan keeps stops I skip
+    sid = pg.locator(".tc-item >> nth=2").get_attribute("data-id"); pg.click(f".tc-item[data-id='{sid}'] .tc-open")
+    seg = pg.locator("#tcSheet .tc-joinseg")
+    assert seg.locator("[data-join='in']").inner_text() == "Иду"
+    assert seg.locator("[data-join='in']").get_attribute("aria-pressed") == "true"      # she is in «Идут»
+    assert seg.locator("[data-join='out']").get_attribute("aria-pressed") == "false"
+    seg.locator("[data-join='out']").click()
+    pg.click(f".tc-item[data-id='{sid}'] .tc-open")
+    assert pg.locator("#tcSheet .tc-joinseg [data-join='out']").get_attribute("aria-pressed") == "true"
+
+
+def test_reopening_the_assistant_lands_on_the_chat_and_the_field_shrinks_back(app):
+    fake = FakeSupabase.seeded(); a, _ = guest(app, fake); pg = a.page
+    pg.click("#tcAsk"); pg.click("#asToTr"); pg.click("#tcSheetX"); pg.click("#tcAsk")
+    assert pg.locator("#asText").count() == 1 and pg.locator("#trMe").count() == 0
+    h0 = pg.locator("#asText").bounding_box()["height"]
+    fake.assistant_reply = {"reply": "Да.", "actions": []}
+    pg.fill("#asText", "строка\nещё строка\nи ещё одна"); pg.dispatch_event("#asText", "input")
+    assert pg.locator("#asText").bounding_box()["height"] > h0 and pg.locator("#asEx").is_hidden()
+    pg.click("#asSend")
+    from conftest import until
+    until(pg, "!document.getElementById('asWait')")
+    assert abs(pg.locator("#asText").bounding_box()["height"] - h0) < 2 and pg.locator("#asEx").is_visible()
+    assert pg.locator(".as-chip").first.bounding_box()["height"] >= 44
+
+
+def test_money_bars_one_column_per_day_and_sos_insurance_first(app):
+    a = app(trip=OURS, state={"prevDay": 3, "prevTime": "12:00"})
+    a.page.click(".tc-tab[data-tab='stats']")
+    bars = a.page.locator(".tc-bars .tc-barcol")
+    tops = {round(bars.nth(i).bounding_box()["y"]) for i in range(bars.count())}
+    assert bars.count() == len(OURS["days"]) and len(tops) == 1                         # one row, «28» doesn't wrap
+    a.page.click("#tcSos")
+    first = a.page.locator("#sosFirst")
+    assert "Сначала — страховая" in first.inner_text() and first.locator("a").get_attribute("href") == "tel:+441273765321"
+    box = first.bounding_box(); calls = a.page.locator("#sosCalls").bounding_box()
+    assert box["y"] < calls["y"]

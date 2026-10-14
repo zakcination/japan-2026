@@ -44,7 +44,7 @@ function nextCard(x, next, u) {
     <div class="tc-when"><span class="tc-big">${hm(next.ns)}</span>
       <span class="tc-whatbox"><span class="tc-what">${esc(next.t)}</span>${subOf(next) ? `<span class="tc-sub">${subOf(next)}</span>` : ''}</span></div>
     ${hasTravel ? `<div class="tc-inset"><div><span class="tc-lbl">Выйти через</span><span class="tc-count">${Core.cd(leaveIn)}</span></div>
-      <span class="tc-sub right">в ${hm(next.leave)}${next.ride ? `<br>дорога ${next.ride} мин` : ''}${next.walk ? `<br>пешком ${next.walk}` : ''}${next.buf ? ` · запас ${next.buf}` : ''}</span></div>` : ''}
+      <span class="tc-sub right">в ${hm(next.leave)}${next.ride ? `<br>дорога ${next.ride} мин` : ''}${next.walk || next.buf ? '<br>' + [next.walk ? `пешком ${next.walk}` : '', next.buf ? `запас ${next.buf}` : ''].filter(Boolean).join(' · ') + ' мин' : ''}</span></div>` : ''}
     ${next.conflict ? `<p class="tc-warn">Не успеваете на ${dur(next.conflict)} — пропустите гибкий пункт.</p>` : ''}
     <div class="tc-actions">
       <a class="tc-btn primary" href="${routeUrl(next)}" target="_blank" rel="noopener">${icon('arrow')}Маршрут</a>
@@ -143,7 +143,7 @@ function day1HTML(expanded) {
   let cur = -1; steps.forEach((s, i) => { if (s.at <= now) cur = i; });
   if (!expanded) {
     const first = steps.find(s => s.leg) || steps[0];
-    const key = [first, ...steps.filter(s => !s.leg && /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
+    const key = [first, ...steps.filter(s => s !== first && !s.leg && /^Шанхай|^Прилёт|Заселение/.test(s.t)).slice(0, 3)];
     return `<button type="button" class="tc-card tc-day1" id="tcDay1"><span class="tc-row"><span class="tc-lbl">Первые сутки</span>${icon('arrow')}</span>
       <span class="tc-sub">${key.map(s => esc(s.short + ' ' + s.brief)).join(' → ')}</span></button>`;
   }
@@ -232,12 +232,13 @@ RENDER.now = (x, root) => {
   const next = evs.find(e => e.ns > now && Core.isKey(e)) || evs.find(e => e.ns > now) || null;
   const u = x.urg;
   const dark = document.getElementById('today').dataset.th === 'dark';
-  let html = Ios.installHint() + topRowHTML(x) + flightCardHTML(x);
+  let html = Ios.installHint() + topRowHTML(x);
   const asked = Trips.asked();
   if (asked) html += `<section class="tc-card tc-note" id="tcAsked"><span class="tc-lbl">Ссылка на другую поездку</span>
     <span class="tc-sub">Ссылка ведёт на «${esc(Trips.nameOf(asked))}», а на телефоне ваша версия с правками.</span>
     <button type="button" class="tc-btn primary" id="tcAskedGo">Открыть «${esc(Trips.nameOf(asked))}»</button></section>`;
-  if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
+  const alert = u && next && u.ev === next && u.state === 'go';
+  if (dark) html += `<div class="tc-bignow"><span>${hm(now)}</span>${u && !alert ? `<em>${u.state === 'go' ? 'пора выходить' : 'выйти через ' + dur(u.leaveIn)}</em>` : ''}</div>`;
   if (!x.cevs.length) {
     html += `<section class="tc-card" id="tcNow"><span class="tc-lbl">Сегодня</span><h2 class="tc-h2">Нет пунктов</h2>
       <span class="tc-sub">Добавьте пункт во вкладке «День».</span></section>`;
@@ -253,7 +254,7 @@ RENDER.now = (x, root) => {
     if (cut.length) html += `<section class="tc-card tc-note"><span class="tc-lbl">План пересчитан</span>
       <span class="tc-sub">${cut.map(e => e.auto ? `убрано: ${esc(e.t)}` : `${esc(e.t)} −${e.cut} мин`).join(' · ')}</span></section>`;
   }
-  html += flightTileHTML(x);                   // below now / next: a low-priority prompt
+  html += flightCardHTML(x) + flightTileHTML(x);  // below now / next: during the trip the flight is not the first thing
   if (x.pv && !x.c.live) {
     const d0 = dateOf(T.days[0]), days = Math.round((Date.parse(d0) - Date.parse(japanNow().date)) / 864e5);
     html += `<p class="tc-preview">${days > 0 ? `Предпросмотр · поездка через ${days} дн.` : 'Предпросмотр'} ·

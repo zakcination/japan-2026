@@ -16,7 +16,9 @@ function openSos() {
   const steps = c => `<details class="tc-more" data-sos="${c.k}"><summary>${esc(c.t)}</summary>
     <ol class="tc-sos-steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`;
   const I = SOS.insurance;
+  const ins = SOS.calls.find(c => /страх/i.test(c.t));
   sheet('SOS', `
+    ${ins ? `<p class="tc-sos-first" id="sosFirst">Сначала — страховая: <a class="tc-inl" href="tel:${esc(ins.n)}">${esc(ins.show || ins.n)}</a></p>` : ''}
     <div class="tc-group" id="sosCalls">${SOS.calls.map(call).join('')}</div>
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
       <div class="tc-group">${SOS.china.map(call).join('')}</div></details>

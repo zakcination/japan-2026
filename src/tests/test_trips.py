@@ -173,7 +173,7 @@ def test_organiser_changes_to_start_and_people_reach_the_phone(app, site):
     expect(a.page).to_have_title("Мирас +1")
     a.page.click(".tc-tab[data-tab='day']")
     assert "Пн 19" in a.page.inner_text(".tc-title")          # day 2 is now the 19th
-    assert "¥210/чел" in a.page.inner_text("#tcList").replace(" ", " ")
+    assert "¥210/чел" in a.page.inner_text("#tcList").replace("\u2060", "").replace(" ", " ")
 
 
 def test_home_screen_app_opens_the_chosen_trip(app, site):

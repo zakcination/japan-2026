@@ -38,7 +38,7 @@ RENDER.day = (x, root) => {
     ${dayStrip(x)}
     ${typeof joinBarHTML === 'function' ? joinBarHTML(x) : ''}
     <button type="button" class="tc-flline" id="tcDayMap">${icon('map')}<span>Карта дня<small>места, маршрут, «Степной след»</small></span>${icon('arrow')}</button>
-    ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">▶ Как «Сейчас»</button>`}
+    ${!x.canPreview || x.c.live ? '' : `<button type="button" class="tc-btn" id="tcPreviewDay">Открыть этот день в «Сейчас»</button>`}
     <div class="tc-row tc-daysum"><span>${doneN} из ${counted.length} выполнено</span><span>${budget ? money(budget) : ''}</span></div>
     <div class="tc-list" id="tcList">${x.evs.length ? x.evs.map(e => itemRow(x, e, ov)).join('') : '<p class="tc-empty">Нет пунктов</p>'}</div>
     <div class="tc-actions two"><button type="button" class="tc-btn" id="tcAdd">${icon('plus')}Пункт</button>

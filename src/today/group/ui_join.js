@@ -1,4 +1,4 @@
-/* ---------- joining on «День»: my plan / group plan, parts, «Я еду / Без меня», own stops ---------- */
+/* ---------- joining on «День»: my plan / group plan, parts, «Иду / Без меня», own stops ---------- */
 const setJoin = (scope, ref, mode) => (mode === 'in' && track('joined'), Api.call('set_join', { p_scope: scope, p_ref: String(ref), p_mode: mode }, s => {
   const me = Api.me().id; s.joins = s.joins.filter(j => !(j.member === me && j.scope === scope && j.ref === String(ref)));
   if (mode !== 'none') s.joins.push({ member: me, scope, ref: String(ref), mode });
@@ -66,13 +66,13 @@ function stopJoinHTML(day, e) {
   const who = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.name);
   const whoIds = s.members.filter(m => Group.effective(planDoc(), s, m.id).has(e.id)).map(m => m.id);
   return `<p class="tc-sub tc-who">Идут: ${whoIds.length ? facesHTML(whoIds) + ' ' + esc(who.join(', ')) : '—'}</p>
-    <div class="tc-actions two"><button type="button" class="tc-btn ${going ? '' : 'primary'}" data-join="in">Я еду</button>
-      <button type="button" class="tc-btn ${going ? 'primary' : ''}" data-join="out">Без меня</button></div>
+    <div class="tc-seg3s two tc-joinseg" role="group" aria-label="Я в этом пункте"><button type="button" data-join="in" aria-pressed="${going}">Иду</button><button type="button" data-join="out" aria-pressed="${!going}">Без меня</button></div>
     ${Api.me().role === 'host' ? '' : `<button type="button" class="tc-btn wide" data-propose>${icon('edit')}Предложить изменение</button>`}`;
 }
 function wireStopJoin(m, day, e) {
   if (!Api.me()) return;
-  m.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => { setJoin('stop', e.id, b.dataset.join); closeSheet(); renderShell(); }));
+  m.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => { if (b.getAttribute('aria-pressed') === 'true') return;
+    setJoin('stop', e.id, b.dataset.join); closeSheet(); renderShell(); }));
   const pr = m.querySelector('[data-propose]'); if (pr) pr.addEventListener('click', () => { closeSheet(); openPropose(day, e); });
   const jm = m.querySelector('[data-joinmine]'); if (jm) jm.addEventListener('click', () => { setJoin('mine', e.id, jm.dataset.joinmine); closeSheet(); renderShell(); });
   const sh = m.querySelector('#grShare'); if (sh) sh.addEventListener('change', () => {

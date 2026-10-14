@@ -45,7 +45,7 @@ function weatherTileHTML(x) {
     return `<div class="tc-mini tc-wx" id="tcWx" role="group" aria-label="Погода: ${d.hi}°, ночью ${d.lo ?? '—'}°">
       <span class="tc-mini-lbl">${WX_ICON(d.code)} Погода</span><b>${d.hi}°<span class="lo">/${d.lo ?? '—'}°</span></b>
       <small>${d.forecast ? esc(WX_WORD(d.code)) : 'обычно в эти дни'}${d.prob != null ? ' · дождь ' + d.prob + '%' : ''}</small>
-      <small class="tc-wx-note">по часам — с ${Core.ddmmyyyy(on).slice(0, 5)}</small></div>`;
+      <small class="tc-wx-note">почасовой прогноз — с ${Core.ddmmyyyy(on).slice(0, 5)}</small></div>`;
   }
   // the day's span: from the first stop (or now) to the last one, 4 steps across it
   const first = evs.length ? Math.floor(evs[0].ns / 60) : 7, last = evs.length ? Math.ceil(evs[evs.length - 1].ne / 60) : 21;

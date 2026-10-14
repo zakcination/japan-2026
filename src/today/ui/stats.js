@@ -50,7 +50,7 @@ function statsDay(x, root) {
     </section>
     <section class="tc-card" id="tcBudget">
       <div class="tc-row"><span class="tc-lbl">Бюджет на человека, ¥</span><span class="tc-lbl">всего ${both(total)}</span></div>
-      <div class="tc-bars" role="img" aria-label="Бюджет по дням, всего ${yen(total)}">${budgets.map(b =>
+      <div class="tc-bars" style="grid-template-columns:repeat(${budgets.length}, minmax(0, 1fr))" role="img" aria-label="Бюджет по дням, всего ${yen(total)}">${budgets.map(b =>
         `<div class="tc-barcol${b.d.n < x.cday.n ? ' done' : b.d.n === x.cday.n ? ' cur' : ''}${b.d === day ? ' on' : ''}">
           <i style="height:${Math.max(4, Math.round(b.v / max * 100))}%"></i><small>${+dateOf(b.d).slice(8)}</small></div>`).join('')}</div>
     </section>
