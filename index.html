@@ -5994,9 +5994,13 @@ let docsSyncing = null;
 function docsSync(onStep) {
   if (docsSyncing) return docsSyncing;
   const want = docsMine();
-  if (!want.length || !navigator.onLine) return Promise.resolve({ got: 0, left: want.length });
+  let live = false; try { live = Api.enabled() && !!Api.me() && Array.isArray((Api.state() || {}).attachments) && Api.status().online !== false; } catch (e) {}
+  if (!navigator.onLine || !live) return Promise.resolve({ got: 0, left: want.length });
   docsSyncing = DocStore.all().then(async have => {
-    const ids = new Set(have.map(d => d.id)); let got = 0, failed = 0;
+    /* a server document that is no longer mine (re-filed, removed) leaves this phone too */
+    const keep = new Set(want.map(a => 'srv-' + a.id));
+    for (const d of have) if (d.src === 'server' && !keep.has(d.id)) { try { await DocStore.del(d.id); } catch (e) {} }
+    const ids = new Set(have.filter(d => d.src !== 'server' || keep.has(d.id)).map(d => d.id)); let got = 0, failed = 0;
     for (const a of want) {
       if (ids.has('srv-' + a.id)) continue;
       try { const blob = await Api.download(a.path);
@@ -9874,6 +9878,7 @@ if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.a
 /* my documents (QR receipts, tickets) come down to the phone on their own whenever the app is online */
 setTimeout(() => { try { if (typeof docsSync === 'function') docsSync(); } catch (e) {} }, 4000);
 addEventListener('online', () => { try { docsSync(); } catch (e) {} });
+setInterval(() => { try { if (navigator.onLine) docsSync(); } catch (e) {} }, 60000);   // re-filed documents follow within a minute
 
 
 })();</script>

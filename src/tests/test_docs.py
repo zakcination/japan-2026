@@ -51,3 +51,25 @@ def test_my_documents_come_down_from_the_server_and_open_offline(app):
     pg.click("#docList [data-doc]"); pg.wait_for_selector(".tc-docview img")
     assert pg.evaluate("document.querySelector('.tc-docview img').naturalWidth") == 1
     assert a.errors == []
+
+
+def test_a_document_taken_away_on_the_server_leaves_the_phone(app):
+    from fake_supabase import FakeSupabase
+    from test_group_join import logged
+    fake = FakeSupabase.seeded(); me = fake.host_id
+    fake.files[f"{me}/docs/China_QR_Aikosh.png"] = (PNG, "image/png")
+    fake.attachments["d9"] = {"id": "d9", "member": me, "ref": "doc:wallet", "kind": "file", "path": f"{me}/docs/China_QR_Aikosh.png", "name": "China_QR_Aikosh.png", "shared": False}
+    a = logged(app, fake, me, fake.host_pin, state={"prevDay": 1, "prevTime": "05:00"})
+    pg = a.page
+    until(pg, "Api.status().pending === 0")
+    pg.click("#tcSos"); pg.click("#sosDocs")
+    until(pg, "document.querySelectorAll('#docList [data-doc]').length === 1 || !document.getElementById('docSync').hidden")
+    if pg.locator("#docSync").is_visible(): pg.click("#docSync")
+    until(pg, "document.querySelectorAll('#docList [data-doc]').length === 1")
+    del fake.attachments["d9"]                                              # the owner re-files it to someone else
+    pg.click("#tcSheetX"); pg.reload(); pg.wait_for_selector("#today", state="attached")
+    until(pg, "Api.status().pending === 0")
+    pg.wait_for_timeout(5000)                                               # the background sync runs ~4 s after start
+    pg.click("#tcSos"); pg.click("#sosDocs")
+    until(pg, "document.querySelectorAll('#docList [data-doc]').length === 0 && !/Загружаю/.test(document.getElementById('docList').textContent)")
+    assert a.errors == []

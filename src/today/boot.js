@@ -59,4 +59,5 @@ if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.a
 /* my documents (QR receipts, tickets) come down to the phone on their own whenever the app is online */
 setTimeout(() => { try { if (typeof docsSync === 'function') docsSync(); } catch (e) {} }, 4000);
 addEventListener('online', () => { try { docsSync(); } catch (e) {} });
+setInterval(() => { try { if (navigator.onLine) docsSync(); } catch (e) {} }, 60000);   // re-filed documents follow within a minute
 

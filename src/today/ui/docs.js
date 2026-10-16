@@ -37,9 +37,13 @@ let docsSyncing = null;
 function docsSync(onStep) {
   if (docsSyncing) return docsSyncing;
   const want = docsMine();
-  if (!want.length || !navigator.onLine) return Promise.resolve({ got: 0, left: want.length });
+  let live = false; try { live = Api.enabled() && !!Api.me() && Array.isArray((Api.state() || {}).attachments) && Api.status().online !== false; } catch (e) {}
+  if (!navigator.onLine || !live) return Promise.resolve({ got: 0, left: want.length });
   docsSyncing = DocStore.all().then(async have => {
-    const ids = new Set(have.map(d => d.id)); let got = 0, failed = 0;
+    /* a server document that is no longer mine (re-filed, removed) leaves this phone too */
+    const keep = new Set(want.map(a => 'srv-' + a.id));
+    for (const d of have) if (d.src === 'server' && !keep.has(d.id)) { try { await DocStore.del(d.id); } catch (e) {} }
+    const ids = new Set(have.filter(d => d.src !== 'server' || keep.has(d.id)).map(d => d.id)); let got = 0, failed = 0;
     for (const a of want) {
       if (ids.has('srv-' + a.id)) continue;
       try { const blob = await Api.download(a.path);
