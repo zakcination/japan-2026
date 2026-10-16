@@ -93,3 +93,12 @@ def test_direct_messages_from_the_assistant_go_only_to_this_trips_members_with_t
         {"to": [H], "title": "z" * 300, "body": "b", "url": base + "rate=d3e3", "tag": "ai-place:d3e3"}]}
     m = run(ev, "2026-10-19T00:00:00Z")
     assert [x["to"] for x in m] == [[S], [H]] and m[0]["url"] == base + "ask" and len(m[1]["title"]) == 120
+
+
+def test_take_off_and_landing_greetings():
+    t = lambda iso: [m["title"] for m in run({"type": "countdown"}, iso)]
+    assert t("2026-10-16T15:50:00Z") == ["Взлетаем! ✈️"]                       # MU6042 leaves Almaty 20:50 (UTC+5)
+    assert t("2026-10-16T21:50:00Z") == ["Добро пожаловать в Шанхай 🇨🇳"]      # lands Pudong 05:30 (UTC+8) next day
+    assert t("2026-10-17T12:50:00Z") == ["Добро пожаловать в Японию 🇯🇵"]      # MU575 lands Haneda 21:20 (UTC+9)
+    assert t("2026-10-17T13:50:00Z") == []                                      # once
+    assert t("2026-10-28T14:50:00Z") == ["С возвращением домой 🏡"]            # MU6041 lands Almaty 19:35

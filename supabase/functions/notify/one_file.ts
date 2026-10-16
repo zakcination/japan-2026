@@ -32,7 +32,22 @@ const COUNTDOWN = {
   24: ['Сутки до вылета', 'Онлайн-регистрация на рейс и посадочный офлайн. Проверьте «Перед выходом из дома».'],
   12: ['12 часов до вылета', 'Паспорт, карты, наличные, зарядка и лекарства — в ручную кладь.'],
   5: ['5 часов до вылета', 'Перед выходом: паспорт, телефон, ключи; газ, вода, окна. Список — в приложении.'],
+  0: ['Взлетаем! ✈️', 'SHF Power Trip начинается. Хорошего полёта — до встречи на земле!'],
 };
+/* a warm hello on landing, about 20 minutes after each arrival (the hourly :50 cron) */
+const LANDED = {
+  PVG: ['Добро пожаловать в Шанхай 🇨🇳', 'На контроле: паспорт + QR въезда — SOS → «Документы в телефоне». Хорошего дня!'],
+  HND: ['Добро пожаловать в Японию 🇯🇵', 'Visit Japan Web QR — в «Документах». Отдыхайте, дальше всё в «Сейчас».'],
+  NRT: ['Добро пожаловать в Японию 🇯🇵', 'Visit Japan Web QR — в «Документах». Отдыхайте, дальше всё в «Сейчас».'],
+  ALA: ['С возвращением домой 🏡', 'Спасибо за поездку! Расходы и фото — в приложении.'],
+};
+function landings(doc) {
+  return ((doc && doc.flights) || []).filter(x => x && x.date && x.arr && TZ[x.to] != null && LANDED[x.to]).map(x => {
+    let t = Date.parse(`${x.date}T${x.arr}:00Z`) - TZ[x.to] * 3600e3;
+    if (x.dep && x.arr < x.dep) t += 864e5;                       // lands the next day
+    return { at: t, to: x.to, no: x.no };
+  }).filter(x => Number.isFinite(x.at));
+}
 function firstDeparture(doc) {
   const f = ((doc && doc.flights) || []).filter(x => x && x.date && x.dep && TZ[x.frm] != null)
     .map(x => Date.parse(`${x.date}T${x.dep}:00Z`) - TZ[x.frm] * 3600e3).filter(Number.isFinite).sort((a, b) => a - b);
@@ -69,9 +84,11 @@ function messages(ev, D, now) {
   } else if (ev.type === 'plan') {
     out.push({ to: guests, title: 'План поездки обновился', body: 'Откройте «Мой план» — там уже новая версия.', url: url('tab=day'), tag: 'plan' });
   } else if (ev.type === 'countdown') {
-    const dep = firstDeparture(doc); if (dep == null) return out;
+    const dep = firstDeparture(doc);
     const h = Math.round((dep - now) / 3600e3), c = COUNTDOWN[h];
-    if (c) out.push({ to: D.members.map(m => m.id), title: c[0], body: c[1], url: url(h >= 24 ? 'prep=money' : 'prep=door'), tag: 'countdown' });
+    if (c && dep > now - 1800e3) out.push({ to: D.members.map(m => m.id), title: c[0], body: c[1], url: url(h >= 24 ? 'prep=money' : h > 0 ? 'prep=door' : 'tab=now'), tag: 'countdown' });
+    for (const l of landings(doc)) if (now - l.at >= 0 && now - l.at < 3600e3)
+      out.push({ to: D.members.map(m => m.id), title: LANDED[l.to][0], body: LANDED[l.to][1], url: url('tab=now'), tag: 'landed-' + l.no });
   } else if (ev.type === 'deadlines') {
     const today = almaty(now).slice(0, 10), in3 = almaty(now + 3 * 864e5).slice(0, 10);
     // tasks due today: to their assignee (everyone when unassigned), unless already ticked
