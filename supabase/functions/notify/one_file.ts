@@ -25,18 +25,19 @@ function describe(p, doc) {
   return `${what}: ${p.note || 'комментарий'}`;
 }
 
-// countdown to the first flight, said in the departure city's clock; the hourly cron asks, we answer at 36/24/12/5 h
+// countdown to the first flight; the cron asks every 5 minutes, a message fires once in the window [point, point + 5 min)
 const TZ = { ALA: 5, NQZ: 5, TSE: 5, PVG: 8, SHA: 8, HND: 9, NRT: 9, KIX: 9, NGO: 9 };
 const COUNTDOWN = {
   36: ['36 часов до вылета', 'Сегодня — бумаги: Visit Japan Web, карта прибытия в Китай, письмо о страховке. Всё в «Подготовке».'],
   24: ['Сутки до вылета', 'Онлайн-регистрация на рейс и посадочный офлайн. Проверьте «Перед выходом из дома».'],
-  12: ['12 часов до вылета', 'Паспорт, карты, наличные, зарядка и лекарства — в ручную кладь.'],
+  12: ['12 часов до вылета', 'Паспорт, карты, наличные, зарядка и лекарства — в ручную кладь. eSIM или роуминг — подключите сегодня.'],
   5: ['5 часов до вылета', 'Перед выходом: паспорт, телефон, ключи; газ, вода, окна. Список — в приложении.'],
+  2: ['Интернет в поездке 📶', 'Включите eSIM или роуминг до посадки. В Китае WhatsApp и Google работают только через роуминг или eSIM.'],
   0: ['Взлетаем! ✈️', 'SHF Power Trip начинается. Хорошего полёта — до встречи на земле!'],
 };
-/* a warm hello on landing, about 20 minutes after each arrival (the hourly :50 cron) */
+/* a warm hello 5 minutes before each landing (delivered as the phone comes off airplane mode) */
 const LANDED = {
-  PVG: ['Добро пожаловать в Шанхай 🇨🇳', 'На контроле: паспорт + QR въезда — SOS → «Документы в телефоне». Хорошего дня!'],
+  PVG: ['Добро пожаловать в Шанхай 🇨🇳', 'Включите роуминг или eSIM. На контроле: паспорт + QR въезда — SOS → «Документы в телефоне». Хорошего дня!'],
   HND: ['Добро пожаловать в Японию 🇯🇵', 'Visit Japan Web QR — в «Документах». Отдыхайте, дальше всё в «Сейчас».'],
   NRT: ['Добро пожаловать в Японию 🇯🇵', 'Visit Japan Web QR — в «Документах». Отдыхайте, дальше всё в «Сейчас».'],
   ALA: ['С возвращением домой 🏡', 'Спасибо за поездку! Расходы и фото — в приложении.'],
@@ -84,10 +85,12 @@ function messages(ev, D, now) {
   } else if (ev.type === 'plan') {
     out.push({ to: guests, title: 'План поездки обновился', body: 'Откройте «Мой план» — там уже новая версия.', url: url('tab=day'), tag: 'plan' });
   } else if (ev.type === 'countdown') {
-    const dep = firstDeparture(doc);
-    const h = Math.round((dep - now) / 3600e3), c = COUNTDOWN[h];
-    if (c && dep > now - 1800e3) out.push({ to: D.members.map(m => m.id), title: c[0], body: c[1], url: url(h >= 24 ? 'prep=money' : h > 0 ? 'prep=door' : 'tab=now'), tag: 'countdown' });
-    for (const l of landings(doc)) if (now - l.at >= 0 && now - l.at < 3600e3)
+    const dep = firstDeparture(doc), WIN = 5 * 60e3, inWin = t => now >= t && now < t + WIN;
+    if (dep != null) for (const h of Object.keys(COUNTDOWN).map(Number)) if (inWin(dep - h * 3600e3)) {
+      const c = COUNTDOWN[h];
+      out.push({ to: D.members.map(m => m.id), title: c[0], body: c[1], url: url(h >= 24 ? 'prep=money' : h === 2 ? 'prep=phone' : h > 0 ? 'prep=door' : 'tab=now'), tag: 'countdown' });
+    }
+    for (const l of landings(doc)) if (inWin(l.at - WIN))
       out.push({ to: D.members.map(m => m.id), title: LANDED[l.to][0], body: LANDED[l.to][1], url: url('tab=now'), tag: 'landed-' + l.no });
   } else if (ev.type === 'deadlines') {
     const today = almaty(now).slice(0, 10), in3 = almaty(now + 3 * 864e5).slice(0, 10);

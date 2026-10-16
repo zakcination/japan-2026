@@ -69,21 +69,18 @@ def test_a_task_due_today_reaches_its_assignee_at_eight():
     assert not any(x["tag"] == "task-t-shakhi" for x in m)                             # ticked: left alone
 
 
-def test_countdown_to_the_first_flight_at_36_24_12_5_hours():
-    # MU6042 leaves Almaty 16.10 at 20:50 (UTC+5) = 15:50Z; the cron runs hourly at :50
-    seen = {}
-    for iso in ["2026-10-15T02:50:00Z", "2026-10-15T03:50:00Z", "2026-10-15T15:50:00Z", "2026-10-16T03:50:00Z",
-                "2026-10-16T10:50:00Z", "2026-10-16T11:50:00Z", "2026-10-16T16:50:00Z"]:
-        m = run({"type": "countdown"}, iso)
-        seen[iso] = m[0]["title"] if m else None
-        if m:
-            assert sorted(m[0]["to"]) == sorted([H, A, S, M]) and m[0]["tag"] == "countdown"
-    assert seen == {"2026-10-15T02:50:00Z": None, "2026-10-15T03:50:00Z": "36 часов до вылета",
-                    "2026-10-15T15:50:00Z": "Сутки до вылета", "2026-10-16T03:50:00Z": "12 часов до вылета",
-                    "2026-10-16T10:50:00Z": "5 часов до вылета", "2026-10-16T11:50:00Z": None, "2026-10-16T16:50:00Z": None}
-    assert run({"type": "countdown"}, "2026-10-16T10:50:00Z")[0]["url"].endswith("#prep=door")
+def test_countdown_to_the_first_flight_fires_once_per_window():
+    # MU6042 leaves Almaty 16.10 at 20:50 (UTC+5) = 15:50Z; the cron runs every 5 minutes
+    t = lambda iso: [m["title"] for m in run({"type": "countdown"}, iso)]
+    assert t("2026-10-15T03:50:00Z") == ["36 часов до вылета"] and t("2026-10-15T03:55:00Z") == []
+    assert t("2026-10-15T15:52:00Z") == ["Сутки до вылета"]
+    assert t("2026-10-16T03:50:00Z") == ["12 часов до вылета"] and "eSIM" in run({"type": "countdown"}, "2026-10-16T03:50:00Z")[0]["body"]
+    assert t("2026-10-16T10:50:00Z") == ["5 часов до вылета"]
+    m = run({"type": "countdown"}, "2026-10-16T13:50:00Z")
+    assert [x["title"] for x in m] == ["Интернет в поездке 📶"] and m[0]["url"].endswith("#prep=phone")
+    assert sorted(m[0]["to"]) == sorted([H, A, S, M]) and m[0]["tag"] == "countdown"
+    assert t("2026-10-16T15:50:00Z") == ["Взлетаем! ✈️"] and t("2026-10-16T15:45:00Z") == []
     assert run({"type": "countdown"}, "2026-10-15T03:50:00Z", plan={"doc": {"flights": []}}) == []
-
 
 def test_direct_messages_from_the_assistant_go_only_to_this_trips_members_with_this_trips_link():
     base = "https://zakcination.github.io/japan-2026/?trip=miras-aikosh#"
@@ -95,10 +92,9 @@ def test_direct_messages_from_the_assistant_go_only_to_this_trips_members_with_t
     assert [x["to"] for x in m] == [[S], [H]] and m[0]["url"] == base + "ask" and len(m[1]["title"]) == 120
 
 
-def test_take_off_and_landing_greetings():
+def test_landing_hellos_five_minutes_before_touchdown():
     t = lambda iso: [m["title"] for m in run({"type": "countdown"}, iso)]
-    assert t("2026-10-16T15:50:00Z") == ["Взлетаем! ✈️"]                       # MU6042 leaves Almaty 20:50 (UTC+5)
-    assert t("2026-10-16T21:50:00Z") == ["Добро пожаловать в Шанхай 🇨🇳"]      # lands Pudong 05:30 (UTC+8) next day
-    assert t("2026-10-17T12:50:00Z") == ["Добро пожаловать в Японию 🇯🇵"]      # MU575 lands Haneda 21:20 (UTC+9)
-    assert t("2026-10-17T13:50:00Z") == []                                      # once
-    assert t("2026-10-28T14:50:00Z") == ["С возвращением домой 🏡"]            # MU6041 lands Almaty 19:35
+    assert t("2026-10-16T21:25:00Z") == ["Добро пожаловать в Шанхай 🇨🇳"]       # Pudong 05:30 (UTC+8) next day
+    assert t("2026-10-16T21:30:00Z") == [] and t("2026-10-16T21:20:00Z") == []
+    assert t("2026-10-17T12:15:00Z") == ["Добро пожаловать в Японию 🇯🇵"]       # Haneda 21:20 (UTC+9)
+    assert t("2026-10-28T14:30:00Z") == ["С возвращением домой 🏡"]             # Almaty 19:35

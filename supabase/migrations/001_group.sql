@@ -518,9 +518,9 @@ do $$ begin
   create extension if not exists pg_cron;
   perform cron.unschedule('trip-deadlines') where exists (select 1 from cron.job where jobname = 'trip-deadlines');
   perform cron.schedule('trip-deadlines', '0 3 * * *', $c$select public._notify('{"type":"deadlines"}'::jsonb)$c$);
-  -- hourly, for the 36/24/12/5-hour countdown to the first flight (departures on the hour or at :50 both round right)
+  -- every 5 minutes: the countdown to the first flight (36/24/12/5/2 h, take-off) and the hello 5 min before each landing
   perform cron.unschedule('trip-countdown') where exists (select 1 from cron.job where jobname = 'trip-countdown');
-  perform cron.schedule('trip-countdown', '50 * * * *', $c$select public._notify('{"type":"countdown"}'::jsonb)$c$);
+  perform cron.schedule('trip-countdown', '*/5 * * * *', $c$select public._notify('{"type":"countdown"}'::jsonb)$c$);
 exception when others then raise notice 'pg_cron unavailable: %', sqlerrm; end $$;
 
 -- Deny-by-default: revoke the implicit grants Postgres/Supabase hand out on function creation (to PUBLIC,
