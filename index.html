@@ -5982,6 +5982,14 @@ const DOC_MAX = 15 * 1024 * 1024;                               // one file; QR 
 /* my documents on the server (attachments ref 'doc:wallet', in my own private storage folder) → this phone, once */
 const docsMine = () => { try { const me = Api.enabled() && Api.me(); if (!me) return [];
   return (Api.state().attachments || []).filter(a => a.member === me.id && a.ref === 'doc:wallet' && a.kind === 'file' && a.path && !/^\./.test(String(a.name || ''))); } catch (e) { return []; } };
+/* storage file names are Latin (Supabase refuses Cyrillic): show them in Russian */
+function docTitle(n) {
+  const s = String(n || 'Документ').replace(/\.[a-z0-9]+$/i, '');
+  let m;
+  if (/^China_QR/i.test(s)) return 'Китай · QR въезда';
+  if ((m = /^Shinkansen_(\d{2})-(\d{2})/i.exec(s))) return `Синкансэн ${m[1]}.${m[2]}`;
+  return s.replace(/_/g, ' ').slice(0, 80);
+}
 let docsSyncing = null;
 function docsSync(onStep) {
   if (docsSyncing) return docsSyncing;
@@ -5992,7 +6000,7 @@ function docsSync(onStep) {
     for (const a of want) {
       if (ids.has('srv-' + a.id)) continue;
       try { const blob = await Api.download(a.path);
-        await DocStore.put({ id: 'srv-' + a.id, name: String(a.name || 'Документ').replace(/\.[a-z0-9]+$/i, '').slice(0, 80), type: blob.type || 'image/png',
+        await DocStore.put({ id: 'srv-' + a.id, name: docTitle(a.name), type: blob.type || 'image/png',
           size: blob.size, blob, at: Date.now() + got, src: 'server' });
         got++; if (onStep) onStep(got);
       } catch (e) { failed++; }
