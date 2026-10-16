@@ -24,7 +24,7 @@ function openSos() {
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
       <div class="tc-group">${SOS.china.map(call).join('')}</div></details>
     <span class="tc-sech">Страховка — сначала</span>
-    <div class="tc-card tc-note" id="sosIns"><p>${esc(I.who)}</p>
+    <div class="tc-card tc-note" id="sosIns">${I.freedom ? `<p><b>${esc(I.freedom)}</b></p>` : ''}<p>${esc(I.who)}</p>
       <table class="tc-sos-lim">${I.limits.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>
       <p class="tc-foot">${esc(I.limitsNote)}</p>
       <div class="tc-group">${I.claim.map(([t, href, show]) =>

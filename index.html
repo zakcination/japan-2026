@@ -5803,7 +5803,9 @@ const SOS = {
     { n: '110', t: 'Полиция Японии', s: 'кража, драка, ДТП · бесплатно' },
     { n: '119', t: 'Скорая и пожарные', s: 'скажите «кюкю» — скорая, «кадзи» — пожар' },
     { n: '+815038162787', show: '050-3816-2787', t: 'Japan Visitor Hotline', s: 'JNTO · 24/7 · английский · врач, авария, потеря' },
-    { n: '+441273765321', show: '+44 1273 765321', t: 'Страховка Mastercard', s: 'assistance 24/7 · английский · звонить до больницы' },
+    { n: '+74959871775', show: '+7 495 987 17 75', t: 'Страховка Freedom «Саяхат» (Мирас, Айкош)', s: 'Savitar Group 24/7 · по-русски · только Япония 17–27.10 · ещё +7 495 987 17 76, +7 499 284 54 02' },
+    { n: '+79067624170', show: 'WhatsApp +7 906 762 41 70', t: 'Freedom «Саяхат» — WhatsApp', s: 'Savitar Group · Telegram @Savitargrbot · svg@savitar-gr.com' },
+    { n: '+441273765321', show: '+44 1273 765321', t: 'Страховка Mastercard (все)', s: 'assistance 24/7 · английский · звонить до больницы · в Шанхае — только она' },
     { n: '6161', t: 'Forte Bank', s: 'блокировка карты, консьерж · из-за границы через приложение Forte' },
     { n: '0570550142', show: '0570-550-142', t: 'Бюро находок Токио', s: 'полиция Токио · потерянные вещи' },
   ],
@@ -5817,6 +5819,7 @@ const SOS = {
       mail: 'shanghai@mfa.kz', note: 'по справочникам — уточнить через МИД' },
   ],
   insurance: {
+    freedom: 'У Мираса и Айкош есть полис Freedom Life «Саяхат»: лечение до €70 000, только Япония, 17–27.10. Звонить в Savitar Group (по-русски, 24/7): +7 495 987 17 75, WhatsApp +7 906 762 41 70. В Шанхае (17.10, 27–28.10) он не действует — там страховка Mastercard. Полис — в «Документах в телефоне».',
     who: 'Страховка карты Forte Travel (Mastercard Black Edition) включается сама, полиса нет. Работает, только если билеты оплачены этой картой. Покрывает держателя, супруга, детей и родителей до 80 лет.',
     limits: [
       ['Лечение', 'до $500 000'], ['Эвакуация, репатриация', '$500 000'], ['Больница', '$100 в день'],
@@ -5917,7 +5920,7 @@ function openSos() {
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
       <div class="tc-group">${SOS.china.map(call).join('')}</div></details>
     <span class="tc-sech">Страховка — сначала</span>
-    <div class="tc-card tc-note" id="sosIns"><p>${esc(I.who)}</p>
+    <div class="tc-card tc-note" id="sosIns">${I.freedom ? `<p><b>${esc(I.freedom)}</b></p>` : ''}<p>${esc(I.who)}</p>
       <table class="tc-sos-lim">${I.limits.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>
       <p class="tc-foot">${esc(I.limitsNote)}</p>
       <div class="tc-group">${I.claim.map(([t, href, show]) =>
