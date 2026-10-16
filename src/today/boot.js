@@ -56,3 +56,7 @@ window.addEventListener('japan2026:tick', renderShell);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderShell(); clearBadge(); } });
 clearBadge();
 if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings, ExpStore, Exp });
+/* my documents (QR receipts, tickets) come down to the phone on their own whenever the app is online */
+setTimeout(() => { try { if (typeof docsSync === 'function') docsSync(); } catch (e) {} }, 4000);
+addEventListener('online', () => { try { docsSync(); } catch (e) {} });
+

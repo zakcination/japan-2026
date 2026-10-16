@@ -463,7 +463,8 @@ class FakeSupabase:
                 r = self.assistant_reply(body) if callable(self.assistant_reply) else (200, self.assistant_reply)
                 return send(r[0], r[1])
             if path.startswith("/storage/v1/object/authenticated/tickets/"):
-                body, ctype = self.download(tok, path.split("/tickets/", 1)[1]); return send(200, body=body, ctype=ctype)
+                from urllib.parse import unquote
+                body, ctype = self.download(tok, unquote(path.split("/tickets/", 1)[1])); return send(200, body=body, ctype=ctype)
             if path.rstrip("/") == "/storage/v1/object/tickets" and req.method == "DELETE":
                 return send(200, self.remove(tok, json.loads(req.post_data or "{}").get("prefixes") or []))
             if path.startswith("/storage/v1/object/tickets/") and req.method == "POST":

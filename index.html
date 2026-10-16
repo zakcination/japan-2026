@@ -5979,11 +5979,36 @@ const DocStore = (() => {
 })();
 const DOC_MAX = 15 * 1024 * 1024;                               // one file; QR receipts are ~100 KB
 
+/* my documents on the server (attachments ref 'doc:wallet', in my own private storage folder) → this phone, once */
+const docsMine = () => { try { const me = Api.enabled() && Api.me(); if (!me) return [];
+  return (Api.state().attachments || []).filter(a => a.member === me.id && a.ref === 'doc:wallet' && a.kind === 'file' && a.path); } catch (e) { return []; } };
+let docsSyncing = null;
+function docsSync(onStep) {
+  if (docsSyncing) return docsSyncing;
+  const want = docsMine();
+  if (!want.length || !navigator.onLine) return Promise.resolve({ got: 0, left: want.length });
+  docsSyncing = DocStore.all().then(async have => {
+    const ids = new Set(have.map(d => d.id)); let got = 0, failed = 0;
+    for (const a of want) {
+      if (ids.has('srv-' + a.id)) continue;
+      try { const blob = await Api.download(a.path);
+        await DocStore.put({ id: 'srv-' + a.id, name: String(a.name || 'Документ').replace(/\.[a-z0-9]+$/i, '').slice(0, 80), type: blob.type || 'image/png',
+          size: blob.size, blob, at: Date.now() + got, src: 'server' });
+        got++; if (onStep) onStep(got);
+      } catch (e) { failed++; }
+    }
+    return { got, failed };
+  }).finally(() => { docsSyncing = null; });
+  return docsSyncing;
+}
+const docsPending = () => DocStore.all().then(have => { const ids = new Set(have.map(d => d.id)); return docsMine().filter(a => !ids.has('srv-' + a.id)).length; }).catch(() => 0);
+
 function openDocs() {
   sheet('Документы в телефоне', `
     <p class="tc-sub">QR для въезда в Китай, письмо страховки, копия паспорта — откроются без интернета. Хранятся только на этом телефоне, никуда не отправляются.</p>
+    <button type="button" class="tc-btn primary wide" id="docSync" hidden>${icon('down')}Скачать мои документы</button>
     <div class="tc-group" id="docList"><p class="tc-sub" style="padding:12px 16px">Загружаю…</p></div>
-    <label class="tc-btn primary wide">${icon('plus')}Добавить файлы<input type="file" id="docFile" accept="image/*,application/pdf" multiple hidden></label>
+    <label class="tc-btn wide">${icon('plus')}Добавить файлы с телефона<input type="file" id="docFile" accept="image/*,application/pdf" multiple hidden></label>
     <p class="tc-foot" id="docMsg" role="status">Картинка (PNG, JPG) открывается надёжнее, чем PDF. Удаление — только с этого телефона.</p>`, m => {
     const msg = t => { m.querySelector('#docMsg').textContent = t; };
     const render = () => DocStore.all().then(xs => {
@@ -5994,6 +6019,15 @@ function openDocs() {
         : '<p class="tc-sub" style="padding:12px 16px">Пока пусто. Добавьте QR-квитанции для Шанхая — до вылета, пока есть интернет.</p>';
     }).catch(() => { msg('Хранилище недоступно в этом режиме браузера (например, приватном).'); });
     render();
+    const sb = m.querySelector('#docSync');
+    const showSync = () => docsPending().then(n => { if (!sb.isConnected) return; sb.hidden = !n; sb.lastChild.textContent = `Скачать мои документы (${n})`; });
+    showSync();
+    sb.addEventListener('click', () => {
+      if (!navigator.onLine) { msg('Нужен интернет, чтобы скачать. Потом документы откроются и без него.'); return; }
+      sb.disabled = true; msg('Скачиваю…');
+      docsSync(n => msg(`Скачано: ${n}…`)).then(r => { sb.disabled = false;
+        msg(r.failed ? `Скачано ${r.got}, не вышло ${r.failed} — повторите позже.` : `Готово: ${r.got} — теперь открываются без интернета.`); render(); showSync(); });
+    });
     m.querySelector('#docFile').addEventListener('change', e => {
       const fs = [...(e.target.files || [])]; e.target.value = '';
       const ok = fs.filter(f => f.size <= DOC_MAX && (/^image\//.test(f.type) || f.type === 'application/pdf'));
@@ -9829,6 +9863,10 @@ window.addEventListener('japan2026:tick', renderShell);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderShell(); clearBadge(); } });
 clearBadge();
 if (location.protocol === 'file:' || location.hostname === '127.0.0.1') Object.assign(window, { renderShell, openPrep, Api, track, setJoin, openSettings, ExpStore, Exp });
+/* my documents (QR receipts, tickets) come down to the phone on their own whenever the app is online */
+setTimeout(() => { try { if (typeof docsSync === 'function') docsSync(); } catch (e) {} }, 4000);
+addEventListener('online', () => { try { docsSync(); } catch (e) {} });
+
 
 })();</script>
 </body>
