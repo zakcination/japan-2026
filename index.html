@@ -5981,7 +5981,7 @@ const DOC_MAX = 15 * 1024 * 1024;                               // one file; QR 
 
 /* my documents on the server (attachments ref 'doc:wallet', in my own private storage folder) → this phone, once */
 const docsMine = () => { try { const me = Api.enabled() && Api.me(); if (!me) return [];
-  return (Api.state().attachments || []).filter(a => a.member === me.id && a.ref === 'doc:wallet' && a.kind === 'file' && a.path); } catch (e) { return []; } };
+  return (Api.state().attachments || []).filter(a => a.member === me.id && a.ref === 'doc:wallet' && a.kind === 'file' && a.path && !/^\./.test(String(a.name || ''))); } catch (e) { return []; } };
 let docsSyncing = null;
 function docsSync(onStep) {
   if (docsSyncing) return docsSyncing;
