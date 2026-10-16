@@ -15,7 +15,7 @@ assistant with write access to the plan:
 - **A change to the plan** (move, add, drop a stop; a new booking; a note): edit `src/today_data.py` only (the single
   source; `trips/*.json` are generated), then publish (below). Say in one line what changed and that the app updates on
   next open. If the request is ambiguous, ask one short question first.
-- **Emergency or insurance**: the facts are in `src/today/sos_data.js`. Insurance first (Mastercard assistance
+- **Emergency or insurance**: the facts are in `src/today/sos_data.js`. Мирас and Айкош: Freedom «Саяхат» (Japan only, Savitar +7 495 987 17 75); the others: Mastercard (assistance
   +44 1273 765321; claims at mcpeaceofmind.com within 90 days); life at risk → 119 (Japan) / 120 (China) first.
 - Keep the answer short. Don't summarise the repo or the diff unless asked.
 
