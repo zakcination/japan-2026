@@ -229,10 +229,10 @@ BOOKINGS = [
     dict(id="bus_mishima", days=[2], t="Автобус Fujikyu: Кавагутико → Мисима", when=P("18.10 · 17:00 → 18:30 · рейс 0122, до Северного выхода", "18.10 · 17:00 → 18:40"), st=P("fixed", "input"), cost=P(5000, 5400)),
     dict(id="shin18", days=[2], t="Синкансэн Мисима → Киото", when=P("18.10 · 19:46 → 21:49 · Hikari 659, Green, без пересадки", "18.10 · после 19:00"), st=P("fixed", "input"), cost=21000),
     dict(id="h_kyoto", days=[2, 3, 4], t=P("Дом в Киото у станции Нидзё", "Отель в Киото"), when=P("18.10 → 20.10 · 2 ночи · на 5 человек · выезд до 10:00", "18.10 → 20.10 · 2 ночи"), st=P("fixed", "input"), cost=None),
-    dict(id="shin20", days=[4], t="Синкансэн Киото → Нагоя", when="20.10 · ~18:30", st="input", cost=11800),
+    dict(id="shin20", days=[4], t="Синкансэн Киото → Нагоя", when="20.10 · 14:10 → 15:02 · Kodama 832, Green", st="fixed", cost=11800),
     dict(id="h_nagoya", days=[4, 5, 6], t="Отель в Нагое", when="20.10 → 22.10 · 2 ночи", st="input", cost=None),
     dict(id="judo", days=[5], t="Пара-дзюдо PJU06, финалы", when="21.10 · 16:00 · Aichi Budokan", st="input", cost=4000),
-    dict(id="shin22", days=[6], t="Синкансэн Нагоя → Токио", when="22.10 · 18:00–19:00", st="input", cost=22600),
+    dict(id="shin22", days=[6], t="Синкансэн Нагоя → Токио", when="22.10 · 13:08 → 15:48 · Kodama 824, Green", st="fixed", cost=22600),
     dict(id="h_tokyo", days=[6, 7, 8, 9, 10, 11], t="Отель в Токио", when="22.10 → 27.10 · 5 ночей", st="input", cost=None),
     dict(id="disney", days=[8], t="Tokyo Disneyland", when="24.10 · 09:00–21:00", st="input", cost=24800),
     dict(id="sky", days=[9], t="Shibuya Sky", when="25.10 · ~16:30", st="input", cost=6800),
@@ -358,10 +358,10 @@ DAYS = [
    E("21:00", "21:20", "Обратно в отель", P("kyoto_house", "kyoto_h"), "transport", "planned", walk=5, mode="Метро / такси", cost=500),
  ]),
  dict(n=4, city="Киото → Нагоя", label="Киото → Нагоя", wcity="Kyoto", sun=(35.0, 135.76),
-      summary="Фусими-Инари на рассвете, Киёмидзу, Гинкаку-дзи и Тропа философа; вечером синкансэн в Нагою",
+      summary="Фусими-Инари на рассвете, Киёмидзу и Санэндзака; в 14:10 синкансэн в Нагою, вечер у вокзала Нагоя",
       konbini="Lawson на рассвете: кофе перед Фусими-Инари",
-      transfer=dict(frm="Киото", to="Нагоя", s="18:30", e="19:05", how="Синкансэн Nozomi", dur="35 мин",
-                    after=["Поздний заезд в отель", "Ужин у вокзала"]),
+      transfer=dict(frm="Киото", to="Нагоя", s="14:10", e="15:02", how="Синкансэн Kodama 832", dur="52 мин",
+                    after=["Заселение", "Вечер у вокзала", "Ужин"]),
       ev=[
    E("05:40", "06:10", "Выезд из дома, вещи — в камеры хранения вокзала Киото", "kyoto_st", "hotel", "planned", ride=15, mode="Такси", only="own",
      note="После выезда в доме вещи оставить нельзя (стойки нет). Большие ячейки на вокзале Киото — ¥700–1 000 (проверить); ключ дома оставить по инструкции хозяина."),
@@ -373,15 +373,15 @@ DAYS = [
      note="Вход ¥500 на человека."),
    E("11:15", "12:00", "Санэндзака, Нинэндзака, Starbucks в доме-матия", "sannen", "activity", "flex", walk=5, cost=1500, km=1.0),
    E("12:15", "13:00", "Обед", "gion", "food", "planned", walk=10, cost=3000),
-   E("13:30", "16:30", "Гинкаку-дзи и Тропа философа", "ginkaku", "activity", "flex", ride=20, walk=10, mode="Такси / автобус 100", cost=1000, km=2.5,
-     note="Серебряный павильон и сад из песка, потом пешком 2 км вдоль канала к Нанзэн-дзи. Вход ¥500 на человека (проверить)."),
-   E("17:15", "17:45", "Забрать вещи из отеля", P("kyoto_st", "kyoto_h"), "hotel", "planned", ride=25, mode="Такси",
-     note=P("Вещи — в камерах хранения вокзала Киото, синкансэн уходит оттуда же.", "")),
-   E("18:30", "19:05", "Киото → Нагоя", "nagoya_st", "transport", "input", mode="Синкансэн Nozomi", frm="Киото", to="Нагоя", walk=10, buf=20, cost=11800, bk="shin20",
-     link="https://smart-ex.jp/en/", note="Чемодан больше 160 см по сумме сторон — место с багажной зоной."),
-   E("19:30", "20:00", "Поздний заезд в Нагое", "nagoya_h", "hotel", "input", walk=10, bk="h_nagoya",
-     note="Предупредите отель о заезде около 19:30."),
-   E("20:00", "21:00", "Ужин у вокзала (Yamamotoya — халяль)", "nagoya_h", "food", "planned", walk=10, cost=4000),
+   E("13:15", "13:45", "Забрать вещи", P("kyoto_st", "kyoto_h"), "hotel", "planned", ride=20, mode="Такси / автобус",
+     note=P("Вещи — в камерах хранения вокзала Киото, синкансэн уходит оттуда же. К платформе — за 15 мин.", "")),
+   E("14:10", "15:02", "Киото → Нагоя", "nagoya_st", "transport", "fixed", mode="Синкансэн Kodama 832, Green", frm="Киото", to="Нагоя", walk=10, buf=20, cost=11800, bk="shin20",
+     link="https://smart-ex.jp/en/", note="Билеты куплены (Hayatoku-3). Места и детали — в Smart EX. Крупный чемодан — в багажную зону."),
+   E("15:30", "16:00", "Заселение в Нагое", "nagoya_h", "hotel", "input", walk=10, bk="h_nagoya",
+     note="Если номер ещё не готов — оставить вещи на стойке."),
+   E("16:30", "18:30", "Вечер у вокзала: смотровая Sky Promenade (Midland Square)", "nagoya_st", "activity", "flex", walk=10, cost=1300,
+     note="Открытая смотровая на 44–46 этажах, вид на город и закат. Часы и цена — проверить."),
+   E("19:00", "20:00", "Ужин у вокзала (Yamamotoya — халяль)", "nagoya_h", "food", "planned", walk=10, cost=4000),
  ]),
  dict(n=5, city="Нагоя", label="Нагоя / Para Judo", wcity="Nagoya", sun=(35.17, 136.88),
       summary="Сад Noritake, замок, Осу; в 16:00 финалы пара-дзюдо; вечером Oasis 21",
@@ -400,20 +400,20 @@ DAYS = [
      note="Стеклянная крыша с водой на высоте 14 м, вечером подсвечена; вид на телебашню. Бесплатно."),
  ]),
  dict(n=6, city="Нагоя → Токио", label="Нагоя → Токио", wcity="Nagoya", sun=(35.17, 136.88),
-      summary="Ацута-дзингу, музей Toyota; вечером синкансэн в Токио",
+      summary="Утром Ацута-дзингу; в 13:08 синкансэн в Токио; вечер свободный",
       konbini="FamilyMart у вокзала Нагоя — перекус в поезд",
-      transfer=dict(frm="Нагоя", to="Токио", s="18:00", e="19:40", how="Синкансэн Nozomi", dur="1 ч 40 мин",
-                    after=["Метро до отеля", "Заселение", "Конбини", "Сон"]),
+      transfer=dict(frm="Нагоя", to="Токио", s="13:08", e="15:48", how="Синкансэн Kodama 824", dur="2 ч 40 мин",
+                    after=["Метро до отеля", "Заселение", "Вечер в Токио"]),
       ev=[
-   E("09:00", "10:30", "Святилище Ацута-дзингу", "atsuta", "activity", "planned", ride=15, walk=10, mode="Метро / Meitetsu", cost=500, km=1.5),
-   E("11:00", "13:00", "Музей Toyota (Commemorative Museum)", "toyota", "activity", "flex", ride=20, walk=5, mode="Meitetsu", cost=2000, km=1.5),
-   E("13:00", "14:00", "Обед", "toyota", "food", "planned", cost=3000),
-   E("14:30", "17:00", "Свободное время / отдых", "nagoya_h", "activity", "flex", ride=15),
-   E("17:15", "17:40", "Забрать вещи", "nagoya_h", "hotel", "planned"),
-   E("18:00", "19:40", "Нагоя → Токио", "tokyo_st", "transport", "input", mode="Синкансэн Nozomi", frm="Нагоя", to="Токио", walk=10, buf=20, cost=22600, bk="shin22",
-     link="https://smart-ex.jp/en/", note="~¥11 300 на человека. Время выбрать в Smart EX. Дешевле: Kodama по «Platt Kodama», ~3 ч, ~на ¥2 500 меньше (проверить)."),
-   E("20:15", "20:45", "Заселение в Токио", "tokyo_h", "hotel", "input", ride=20, walk=5, mode="Метро", cost=400, bk="h_tokyo",
+   E("08:30", "10:00", "Святилище Ацута-дзингу", "atsuta", "activity", "planned", ride=15, walk=10, mode="Метро / Meitetsu", cost=500, km=1.5),
+   E("10:30", "11:30", "Обед у вокзала Нагоя", "nagoya_st", "food", "planned", ride=15, mode="Meitetsu", cost=3000),
+   E("11:45", "12:30", "Забрать вещи", "nagoya_h", "hotel", "planned", note="К платформе — за 15–20 мин до 13:08."),
+   E("13:08", "15:48", "Нагоя → Токио", "tokyo_st", "transport", "fixed", mode="Синкансэн Kodama 824, Green", frm="Нагоя", to="Токио", walk=10, buf=20, cost=22600, bk="shin22",
+     link="https://smart-ex.jp/en/", note="Билеты куплены (Hayatoku-3). Kodama идёт со всеми остановками — 2 ч 40 мин. Перекус взять на вокзале."),
+   E("16:30", "17:00", "Заселение в Токио", "tokyo_h", "hotel", "input", ride=20, walk=5, mode="Метро", cost=400, bk="h_tokyo",
      note="Уэно / Окатимати или Асакуса — отель ещё не выбран."),
+   E("17:30", "20:30", "Свободный вечер в Токио", "tokyo_h", "activity", "flex",
+     note="Освободилось время: можно Асакусу вечером, Уэно или отдых. Музей Toyota в этот раз не успеваем."),
    E("21:00", "21:20", "Конбини", "tokyo_h", "konbini", "flex", cost=1500),
  ]),
  dict(n=7, city="Токио", label="Токио", wcity="Tokyo", sun=(35.68, 139.76),
@@ -522,7 +522,7 @@ def build_parts(days):
     Every stop of days 1-11 ends up in exactly one part (owners' ruling, 2026-09-30):
       arrive = day 1. fuji = day 2 up to & incl. the Kawaguchiko→Mishima bus (bk=bus_mishima).
       kyoto = day 2 from the Mishima→Kyoto Shinkansen (bk=shin18) onward, all of day 3, day 4 up
-      to & incl. "Забрать вещи из отеля". nagoya = day 4 from the Kyoto→Nagoya train (bk=shin20)
+      to & incl. "Забрать вещи". nagoya = day 4 from the Kyoto→Nagoya train (bk=shin20)
       onward, all of day 5, day 6 up to & incl. "Забрать вещи". tokyo = day 6 from the
       Nagoya→Tokyo train (bk=shin22) onward, all of days 7-11.
     """
@@ -535,7 +535,7 @@ def build_parts(days):
     d2, d4, d6 = by_n[2]["ev"], by_n[4]["ev"], by_n[6]["ev"]
     i_mishima = _find_idx(d2, bk="bus_mishima")
     i_shin18 = _find_idx(d2, bk="shin18")
-    i_kyoto_checkout = _find_idx(d4, title="Забрать вещи из отеля")
+    i_kyoto_checkout = _find_idx(d4, title="Забрать вещи")
     i_shin20 = _find_idx(d4, bk="shin20")
     i_nagoya_checkout = _find_idx(d6, title="Забрать вещи")
     i_shin22 = _find_idx(d6, bk="shin22")

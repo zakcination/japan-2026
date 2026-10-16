@@ -38,7 +38,7 @@ def test_parts_split_day_2_at_the_mishima_bus_and_the_kyoto_shinkansen():
 
 def test_parts_split_day_4_at_kyoto_checkout_and_the_nagoya_shinkansen():
     day4 = next(d for d in T["days"] if d["n"] == 4)
-    checkout = next(e["id"] for e in day4["ev"] if e["t"] == "Забрать вещи из отеля")
+    checkout = next(e["id"] for e in day4["ev"] if e["t"] == "Забрать вещи")
     shin20 = next(e["id"] for e in day4["ev"] if e.get("bk") == "shin20")
     kyoto = next(p for p in T["parts"] if p["id"] == "kyoto")
     nagoya = next(p for p in T["parts"] if p["id"] == "nagoya")
