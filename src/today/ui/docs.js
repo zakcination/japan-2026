@@ -30,6 +30,8 @@ function docTitle(n) {
   const s = String(n || 'Документ').replace(/\.[a-z0-9]+$/i, '');
   let m;
   if (/^China_QR/i.test(s)) return 'Китай · QR въезда';
+  if (/visit|vjw|japan|jp[_ -]?qr/i.test(s)) return 'Япония · Visit Japan Web QR' + (/(\d)$/.exec(s) ? ' ' + /(\d)$/.exec(s)[1] : '');
+  if (/insur|strah|polic|polis|mastercard|aig|forte|letter/i.test(s)) return 'Страховка' + (/(\d)$/.exec(s) ? ' ' + /(\d)$/.exec(s)[1] : '');
   if ((m = /^Shinkansen_(\d{2})-(\d{2})/i.exec(s))) return `Синкансэн ${m[1]}.${m[2]}`;
   return s.replace(/_/g, ' ').slice(0, 80);
 }
@@ -106,7 +108,7 @@ function openDocs() {
 function showDoc(d) {
   const url = URL.createObjectURL(d.blob);
   const v = document.createElement('div'); v.className = 'tc-docview'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-label', d.name);
-  v.innerHTML = `<div class="tc-docbar"><b>${esc(d.name)}</b><button type="button" class="tc-btn" id="docClose">Закрыть</button></div>
+  v.innerHTML = `<div class="tc-docbar"><b>${esc(d.name)}</b>${d.type === 'application/pdf' ? `<a class="tc-btn" id="docWhole" href="${url}" target="_blank" rel="noopener">Открыть PDF целиком</a>` : ''}<button type="button" class="tc-btn" id="docClose">Закрыть</button></div>
     ${d.type === 'application/pdf' ? `<iframe src="${url}" title="${esc(d.name)}"></iframe>` : `<img src="${url}" alt="${esc(d.name)}">`}
     <p class="tc-docfoot">Яркость экрана — на максимум, чтобы QR считался.</p>`;
   document.body.appendChild(v);
