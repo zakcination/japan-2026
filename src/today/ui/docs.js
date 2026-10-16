@@ -31,6 +31,7 @@ function docTitle(n) {
   let m;
   if (/^China_QR/i.test(s)) return 'Китай · QR въезда';
   if (/visit|vjw|japan|jp[_ -]?qr/i.test(s)) return 'Япония · Visit Japan Web QR' + (/(\d)$/.exec(s) ? ' ' + /(\d)$/.exec(s)[1] : '');
+  if (/sayakhat|saiahat|freedom/i.test(s)) return 'Страховка Freedom «Саяхат»';
   if (/insur|strah|polic|polis|mastercard|aig|forte|letter/i.test(s)) return 'Страховка' + (/(\d)$/.exec(s) ? ' ' + /(\d)$/.exec(s)[1] : '');
   if ((m = /^Shinkansen_(\d{2})-(\d{2})/i.exec(s))) return `Синкансэн ${m[1]}.${m[2]}`;
   return s.replace(/_/g, ' ').slice(0, 80);
