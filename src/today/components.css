@@ -806,3 +806,14 @@ span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction
 .as-hrow .tc-act span { min-width: 0; overflow-wrap: anywhere; }
 .as-hrow.cur .tc-act { color: var(--tint); }
 .as-hrow .tc-x[data-sure] { color: var(--late); }
+
+/* ---------- documents on the phone ---------- */
+.tc-docentry { background: var(--card); border-radius: 18px; border-top: 0; }
+.tc-x.armed { background: var(--bad); color: #fff; }
+.tc-docview { position: fixed; inset: 0; z-index: 2147483000; background: #fff; color: #000; display: flex; flex-direction: column; }
+.tc-docbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; }
+.tc-docbar b { font: 600 17px/1.2 -apple-system, system-ui, sans-serif; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-docbar .tc-btn { min-height: 44px; background: #eee; color: #000; }
+.tc-docview img { flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; background: #fff; }
+.tc-docview iframe { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
+.tc-docfoot { margin: 0; padding: 8px 16px calc(12px + env(safe-area-inset-bottom)); color: #555; font: 400 13px/1.3 -apple-system, system-ui, sans-serif; text-align: center; }

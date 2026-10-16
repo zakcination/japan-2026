@@ -18,6 +18,7 @@ function openSos() {
   const I = SOS.insurance;
   const ins = SOS.calls.find(c => /страх/i.test(c.t));
   sheet('SOS', `
+    <button type="button" class="tc-act tc-docentry" id="sosDocs">${icon('tix')}<span>Документы в телефоне<small>QR для Китая, страховка, паспорт — без интернета</small></span></button>
     ${ins ? `<p class="tc-sos-first" id="sosFirst">Сначала — страховая: <a class="tc-inl" href="tel:${esc(ins.n)}">${esc(ins.show || ins.n)}</a></p>` : ''}
     <div class="tc-group" id="sosCalls">${SOS.calls.map(call).join('')}</div>
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
@@ -49,6 +50,7 @@ function openSos() {
       try { localStorage.setItem(SOS_KEY, JSON.stringify(v)); m.querySelector('#sosMsg').textContent = 'Сохранено на телефоне'; }
       catch (e) { m.querySelector('#sosMsg').textContent = 'Не удалось сохранить'; }
     });
+    m.querySelector('#sosDocs').addEventListener('click', () => openDocs());
     m.querySelectorAll('.tc-sos-ja').forEach(b => b.addEventListener('click', () => sosBig(b.dataset.ja)));
   });
 }
