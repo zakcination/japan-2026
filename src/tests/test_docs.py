@@ -46,7 +46,7 @@ def test_my_documents_come_down_from_the_server_and_open_offline(app):
     if pg.locator("#docSync").is_visible():                                    # not yet pulled by the background sync
         pg.click("#docSync")
     until(pg, "document.querySelectorAll('#docList [data-doc]').length === 1")
-    assert "China_QR_Мирас" in pg.inner_text("#docList") and "Айкош" not in pg.inner_text("#docList")   # only my own
+    assert "Китай · QR въезда" in pg.inner_text("#docList") and pg.locator("#docList [data-doc]").count() == 1   # only my own, in Russian
     pg.context.set_offline(True)
     pg.click("#docList [data-doc]"); pg.wait_for_selector(".tc-docview img")
     assert pg.evaluate("document.querySelector('.tc-docview img').naturalWidth") == 1
