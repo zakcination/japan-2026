@@ -414,3 +414,13 @@ def test_menu_reaches_requests_and_the_journal_after_a_message(app):
     h.page.click("#asMore"); h.page.click("#asMJournal")
     h.page.wait_for_selector("#asJBack")
     assert not a.errors and not h.errors
+
+
+def test_a_message_cut_mid_word_shows_its_last_full_sentence(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake, now="2026-10-19T07:00:00+09:00"); pg = a.page
+    fake.ai_sent.append({"member": san, "key": "morning:2026-10-19", "day": "2026-10-19", "kind": "morning", "ref": "day:3",
+                         "title": "Курс на Киото", "body": "Посадка в 21:20. Затем ночь в рёкане в Готанде. Ц"})
+    pg.evaluate(P1); pg.click("#tcAsk")
+    until(pg, "/Курс на Киото/.test(document.getElementById('asRate').textContent)")
+    txt = pg.inner_text("#asRate")
+    assert "в Готанде." in txt and "Готанде. Ц" not in txt

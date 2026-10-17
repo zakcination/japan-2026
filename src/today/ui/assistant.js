@@ -698,12 +698,15 @@ function askPending() {
   return out;
 }
 const INBOX_LBL = { morning: 'Утро', evening: 'Вечер', place: 'После места' };
+/* a message cut mid-word on the server («…в Готанде. Ц») shows up to its last full sentence */
+const wholeText = t => { t = String(t || '').trim(); if (/[.!?…)»\u3002]$/u.test(t)) return t;
+  const k = Math.max(t.lastIndexOf('. '), t.lastIndexOf('! '), t.lastIndexOf('? ')); return k > 10 ? t.slice(0, k + 1) : t; };
 /* one compact card at a time: a star saves at once; a line of comment is optional; «Пропустить» hides it on this phone */
 function rateHTML() {
   if (!askP1()) return '';
   const today = japanNow().date, inbox = (ASK.ai.inbox || []).filter(m => String(m.day) === today && m.kind !== 'place').slice(0, 2);
   const items = askPending(), it = items[0], done = ASK.rated;
-  const msgs = inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(m.body || '')}</p></div>`).join('');
+  const msgs = inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(wholeText(m.body))}</p></div>`).join('');
   const thanks = done ? `<div class="as-card as-rate as-rated" data-rated="${esc(done.ref)}" data-kind="${done.kind}" data-day="${done.day}">
       <span class="as-rate-h"><b>«${esc(done.title)}» — ${'★'.repeat(done.stars)}${'☆'.repeat(5 - done.stars)}</b><small>сохранено</small></span>
       <div class="as-rate-row"><input type="text" maxlength="${done.kind === 'day' ? 300 : 120}" placeholder="Пара слов (по желанию)" aria-label="Комментарий">
