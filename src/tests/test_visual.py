@@ -86,6 +86,8 @@ def test_money_bars_one_column_per_day_and_sos_insurance_first(app):
     assert bars.count() == len(OURS["days"]) and len(tops) == 1                         # one row, «28» doesn't wrap
     a.page.click("#tcSos")
     first = a.page.locator("#sosFirst")
-    assert "Сначала — страховая" in first.inner_text() and first.locator("a").get_attribute("href") == "tel:+441273765321"
+    hrefs = [x.get_attribute("href") for x in first.locator("a").all()]
+    assert "Сначала — страховая" in first.inner_text() and hrefs == ["tel:+74959871775", "tel:+441273765321"]   # Freedom for the hosts, Mastercard for the rest
+    assert "Мирас, Айкош" in first.inner_text() and "Аманжан, Сания, Шахи" in first.inner_text()
     box = first.bounding_box(); calls = a.page.locator("#sosCalls").bounding_box()
     assert box["y"] < calls["y"]

@@ -5923,10 +5923,10 @@ function openSos() {
   const steps = c => `<details class="tc-more" data-sos="${c.k}"><summary>${esc(c.t)}</summary>
     <ol class="tc-sos-steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`;
   const I = SOS.insurance;
-  const ins = SOS.calls.find(c => /страх/i.test(c.t));
+  const ins = SOS.calls.filter(c => /страх/i.test(c.t) && !/whatsapp/i.test(c.t + (c.show || '')));   // one line per policy holder group
   sheet('SOS', `
     <button type="button" class="tc-act tc-docentry" id="sosDocs">${icon('tix')}<span>Документы в телефоне<small>QR для Китая, страховка, паспорт — без интернета</small></span></button>
-    ${ins ? `<p class="tc-sos-first" id="sosFirst">Сначала — страховая: <a class="tc-inl" href="tel:${esc(ins.n)}">${esc(ins.show || ins.n)}</a></p>` : ''}
+    ${ins.length ? `<p class="tc-sos-first" id="sosFirst">Сначала — страховая: ${ins.map(c => `<a class="tc-inl" href="tel:${esc(c.n)}">${esc(c.show || c.n)}</a>${(/\(([^)]+)\)/.exec(c.t) || [])[1] ? ' — ' + esc(/\(([^)]+)\)/.exec(c.t)[1]) : ''}`).join('; ')}</p>` : ''}
     <div class="tc-group" id="sosCalls">${SOS.calls.map(call).join('')}</div>
     <details class="tc-more"><summary>Китай — пересадка в Шанхае</summary>
       <div class="tc-group">${SOS.china.map(call).join('')}</div></details>
