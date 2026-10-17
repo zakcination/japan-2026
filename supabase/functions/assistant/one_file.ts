@@ -804,7 +804,7 @@ function digestRequest(m) {
   const p = m.profile, what = m.kind === 'morning'
     ? `Утреннее сообщение на день ${m.day} (${m.label}${m.summary ? ': ' + m.summary : ''}). Ближайшие пункты: ${m.stops.map(e => `${e.s} ${e.t}`).join('; ')}. Настрой, цель дня, совет по силам.`
     : `Вечернее сообщение после дня ${m.day} (${m.label}): спросить, как прошёл день, и предложить оценить его в приложении.`;
-  return { model: MODEL, max_tokens: 600, output_config: { effort: 'low' }, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+  return { model: MODEL, max_tokens: 1500, output_config: { effort: 'low' },               // room for thinking + two lines betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
     system: `Ты пишешь push-уведомление участнику поездки по Японии. Язык — ${LANGS[p.lang]}. Тон — ${TONE[p.tone]}. Ответ ровно из двух строк: заголовок до 40 символов, затем текст до 150 символов. Без кавычек, эмодзи — не больше одного, не выдумывай фактов.`,
     messages: [{ role: 'user', content: `${p.name ? 'Имя: ' + p.name + '. ' : ''}Энергия: ${ENERGY[p.energy]}.${p.interests ? ' Интересы: ' + p.interests + '.' : ''} ${what}` }] };
 }
@@ -812,7 +812,12 @@ function digestText(res, m) {
   const t = res && res.stop_reason !== 'refusal' ? ((res.content || []).filter(b => b && b.type === 'text').map(b => b.text).join('')).trim() : '';
   const lines = t.split('\n').map(x => x.trim()).filter(Boolean);
   if (lines.length < 2) return fallbackText(m);
-  return { title: str(lines[0], 60), body: str(lines.slice(1).join(' '), 200) };
+  let body = str(lines.slice(1).join(' '), 200);
+  if (res.stop_reason === 'max_tokens' || body.length >= 200 || !/[.!?…)»]$/.test(body)) {   // never a word cut in half
+    const k = Math.max(body.lastIndexOf('. '), body.lastIndexOf('! '), body.lastIndexOf('? '), /[.!?…]$/.test(body) ? body.length - 1 : -1);
+    body = k > 20 ? body.slice(0, k + 1) : fallbackText(m).body;
+  }
+  return { title: str(lines[0], 60), body };
 }
 const appUrl = (trip, m) => 'https://zakcination.github.io/japan-2026/?trip=' + encodeURIComponent(trip)
   + '#' + (m.kind === 'place' ? 'rate=' + encodeURIComponent(m.stop.id) : 'briefing');             // handled by handleDeepLink → askDeepLink

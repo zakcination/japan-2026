@@ -698,31 +698,45 @@ function askPending() {
   return out;
 }
 const INBOX_LBL = { morning: 'Утро', evening: 'Вечер', place: 'После места' };
+/* one compact card at a time: a star saves at once; a line of comment is optional; «Пропустить» hides it on this phone */
 function rateHTML() {
   if (!askP1()) return '';
   const today = japanNow().date, inbox = (ASK.ai.inbox || []).filter(m => String(m.day) === today && m.kind !== 'place').slice(0, 2);
-  const items = askPending();
-  return inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(m.body || '')}</p></div>`).join('')
-    + items.map(it => `<div class="as-card as-rate" data-rate="${esc(it.ref)}" data-kind="${it.kind}" data-day="${it.day}">
-      <b>${it.kind === 'day' ? 'Как прошёл день: ' + esc(it.title) + '?' : 'Как вам «' + esc(it.title) + '»?'}</b>
-      <div class="as-stars" role="radiogroup" aria-label="Оценка">${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="false" data-star="${n}" aria-label="${n} из 5">★</button>`).join('')}</div>
-      <input type="text" maxlength="${it.kind === 'day' ? 300 : 120}" placeholder="${it.kind === 'day' ? 'Пара слов о дне (по желанию)' : 'Одной строкой (по желанию)'}" aria-label="Комментарий">
-      <button type="button" class="tc-btn primary" data-rate-save disabled>Сохранить</button></div>`).join('');
+  const items = askPending(), it = items[0], done = ASK.rated;
+  const msgs = inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(m.body || '')}</p></div>`).join('');
+  const thanks = done ? `<div class="as-card as-rate as-rated" data-rated="${esc(done.ref)}" data-kind="${done.kind}" data-day="${done.day}">
+      <span class="as-rate-h"><b>«${esc(done.title)}» — ${'★'.repeat(done.stars)}${'☆'.repeat(5 - done.stars)}</b><small>сохранено</small></span>
+      <div class="as-rate-row"><input type="text" maxlength="${done.kind === 'day' ? 300 : 120}" placeholder="Пара слов (по желанию)" aria-label="Комментарий">
+      <button type="button" class="tc-btn" data-rate-note>${it ? 'Дальше' : 'Готово'}</button></div></div>` : '';
+  if (!it) return msgs + thanks;
+  return msgs + thanks + (done ? '' : `<div class="as-card as-rate" data-rate="${esc(it.ref)}" data-kind="${it.kind}" data-day="${it.day}" data-title="${esc(it.title)}">
+      <span class="as-rate-h"><b>${it.kind === 'day' ? 'Как прошёл день?' : 'Как вам «' + esc(it.title) + '»?'}</b>${items.length > 1 ? `<small>1 из ${items.length}</small>` : ''}</span>
+      <div class="as-rate-row"><div class="as-stars" role="radiogroup" aria-label="Оценка">${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="false" data-star="${n}" aria-label="${n} из 5">★</button>`).join('')}</div>
+      <button type="button" class="tc-link as-rate-skip" data-rate-skip>Пропустить</button></div></div>`);
 }
 function wireRate(m) {
   const box = m.querySelector('#asRate'); if (!box) return;
+  const redraw = () => { box.innerHTML = rateHTML(); renderShell(); };
   box.addEventListener('click', e => {
-    const st = e.target.closest('[data-star]'), card = e.target.closest('[data-rate]'); if (!card) return;
-    if (st) { const n = +st.dataset.star; card.dataset.stars = n;
-      card.querySelectorAll('[data-star]').forEach(b => { b.setAttribute('aria-checked', String(+b.dataset.star === n)); b.classList.toggle('on', +b.dataset.star <= n); });
-      card.querySelector('[data-rate-save]').disabled = false; return; }
-    if (e.target.closest('[data-rate-save]') && card.dataset.stars) {
-      const ref = card.dataset.rate, stars = +card.dataset.stars, comment = card.querySelector('input').value.trim();
-      Api.call('save_feedback', { p_ref: ref, p_kind: card.dataset.kind, p_stars: stars, p_comment: comment, p_day: +card.dataset.day || null }, null);
+    const st = e.target.closest('[data-star]'), card = e.target.closest('[data-rate]');
+    if (st && card) {                                           // a star is the answer: saved now
+      const stars = +st.dataset.star, ref = card.dataset.rate, kind = card.dataset.kind, day = +card.dataset.day || null;
+      Api.call('save_feedback', { p_ref: ref, p_kind: kind, p_stars: stars, p_comment: '', p_day: day }, null);
       ASK.ai.fb = { ...(ASK.ai.fb || {}), [ref]: stars }; putAi();
       if (ASK.focus === ref) ASK.focus = null;
-      box.innerHTML = rateHTML(); askNote('Спасибо! Оценка сохранена — её видите только вы, группе видно лишь среднее.');
-      renderShell();
+      ASK.rated = { ref, kind, day, stars, title: card.dataset.title || (kind === 'day' ? 'день' : '') };
+      redraw(); return;
+    }
+    if (e.target.closest('[data-rate-skip]') && card) {
+      ASK.ai.fb = { ...(ASK.ai.fb || {}), [card.dataset.rate]: 'skip' }; putAi();
+      if (ASK.focus === card.dataset.rate) ASK.focus = null;
+      redraw(); return;
+    }
+    const nb = e.target.closest('[data-rate-note]'), rc = e.target.closest('[data-rated]');
+    if (nb && rc && ASK.rated) {                                // the optional line updates the same rating
+      const note = rc.querySelector('input').value.trim(), r = ASK.rated;
+      if (note) Api.call('save_feedback', { p_ref: r.ref, p_kind: r.kind, p_stars: r.stars, p_comment: note, p_day: r.day }, null);
+      ASK.rated = null; redraw();
     }
   });
 }

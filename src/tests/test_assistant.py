@@ -231,14 +231,21 @@ def test_with_the_flag_places_that_ended_are_rated_privately_and_the_profile_syn
     until(pg, "Api.status().pending === 0 && /Доброе утро/.test(document.getElementById('asRate').textContent)")
     assert fake.ai_profiles[san]["name"] == "Саня" and fake.ai_profiles[san]["food"] == "халяль"
     assert "Доброе утро, <Саня>!" in pg.inner_text("#asRate")                       # the inbox is text, not markup
-    card = pg.locator("[data-rate='d3e3']")
-    assert "Тэнрю-дзи" in card.inner_text() and card.locator("[data-rate-save]").is_disabled()
-    card.locator("[data-star='4']").click()
-    card.locator("input").fill("Тихо и красиво")
-    card.locator("[data-rate-save]").click()
+    card = pg.locator("[data-rate]")
+    assert card.count() == 1 and "1 из 3" in card.inner_text()                     # one compact card at a time
+    first = card.get_attribute("data-rate")
+    card.locator("[data-star='4']").click()                                          # a star saves at once
     until(pg, "Api.status().pending === 0")
-    assert fake.ai_feedback[(san, "d3e3")] == {"ref": "d3e3", "kind": "place", "day": 3, "stars": 4, "comment": "Тихо и красиво"}
-    assert pg.locator("[data-rate='d3e3']").count() == 0 and "видите только вы" in pg.inner_text("#asLog")
+    assert fake.ai_feedback[(san, first)]["stars"] == 4
+    pg.locator("[data-rated] input").fill("Тихо и красиво"); pg.click("[data-rate-note]")
+    until(pg, "Api.status().pending === 0")
+    assert fake.ai_feedback[(san, first)]["comment"] == "Тихо и красиво"
+    nxt = pg.locator("[data-rate]")
+    assert nxt.count() == 1 and nxt.get_attribute("data-rate") != first and "1 из 2" in nxt.inner_text()
+    second = nxt.get_attribute("data-rate")
+    pg.click("[data-rate-skip]")                                                     # skipped: not sent, not asked again
+    assert pg.locator("[data-rate]").count() == 1 and pg.locator("[data-rate]").get_attribute("data-rate") not in (first, second)
+    assert (san, second) not in fake.ai_feedback
     assert pg.evaluate("Api.run('feedback_averages', {})") == []                   # one rating is never shown to the group
 
 

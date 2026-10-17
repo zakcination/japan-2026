@@ -329,12 +329,14 @@ def test_digest_texts_are_short_profile_only_and_fall_back():
       const req = G.digestRequest(m);
       return {{ req, ok: G.digestText({{ stop_reason: 'end_turn', content: [{{ type: 'text', text: 'Доброе утро, Саня!\\nСегодня Киото: Тэнрю-дзи в 08:30.' }}] }}, m),
         refused: G.digestText({{ stop_reason: 'refusal', content: [] }}, m), url: G.appUrl('miras-aikosh', m),
+        cut: G.digestText({{ stop_reason: 'max_tokens', content: [{{ type: 'text', text: 'Курс на Токио\\nПосадка в Ханэде в 21:20. Затем ночь в рёкане в Готанде. Ц' }}] }}, m),
         place: G.placeText({{ profile: {{ lang: 'en' }}, stop: {{ t: 'Kinkaku-ji' }} }}) }};""", profiles={S: {"name": "Саня", "lang": "ru", "tone": "fun"}})
     q = r["req"]
-    assert q["model"] == "claude-opus-5-5" and q["output_config"] == {"effort": "low"} and q["max_tokens"] <= 600 and "tools" not in q and "thinking" not in q
+    assert q["model"] == "claude-opus-5-5" and q["output_config"] == {"effort": "low"} and q["max_tokens"] <= 1500 and "tools" not in q and "thinking" not in q
     txt = q["system"] + q["messages"][0]["content"]
     assert "Саня" in txt and "08:30 Тэнрю-дзи" in txt and "юмором" in txt and "Мирас" not in txt and len(txt) < 1200
     assert r["ok"] == {"title": "Доброе утро, Саня!", "body": "Сегодня Киото: Тэнрю-дзи в 08:30."}
+    assert r["cut"]["body"] == "Посадка в Ханэде в 21:20. Затем ночь в рёкане в Готанде."   # a cut word never reaches the phone
     assert r["refused"]["title"] == "Доброе утро!" and r["url"].endswith("#briefing") and r["place"]["title"] == "How was «Kinkaku-ji»?"
 
 
