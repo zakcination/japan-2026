@@ -375,6 +375,22 @@ class FakeSupabase:
             if r["id"] == p_id: r["status"] = p_status
         return True
 
+    def rpc_save_chat(self, token, p_id, p_turns):
+        me = self._me(token)["id"]
+        if not isinstance(p_turns, list) or not p_id: raise RpcError(400, "bad chat")
+        self.ai_chats = getattr(self, "ai_chats", {})
+        self.ai_chats[(me, p_id)] = {"id": p_id, "at": self.clock(), "turns": copy.deepcopy(p_turns)}
+        return True
+
+    def rpc_delete_chat(self, token, p_id):
+        me = self._me(token)["id"]
+        getattr(self, "ai_chats", {}).pop((me, p_id), None)
+        return True
+
+    def rpc_my_chats(self, token):
+        me = self._me(token)["id"]
+        return copy.deepcopy([v for (m, _), v in sorted(getattr(self, "ai_chats", {}).items(), key=lambda kv: kv[1]["at"], reverse=True) if m == me])
+
     def rpc_ai_journal(self, token, p_days=7):
         me = self._me(token)
         if me["role"] != "host": raise RpcError(400, "hosts only")

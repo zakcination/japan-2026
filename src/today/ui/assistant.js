@@ -26,8 +26,41 @@ function askSaveChat() {
     if (!ASK.convId) ASK.convId = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     const rec = { id: ASK.convId, at: Date.now(), turns: ASK.turns.slice(-30).map(t => ({ ...t, images: null, thumbs: [] })) };
     C.list = [rec].concat(C.list.filter(x => x.id !== ASK.convId)).slice(0, 20);
+    askPushChat(rec);
   }
   C.cur = ASK.convId; askPutConvs();
+}
+/* the same conversations on every device I sign in on: saved to my own rows (save_chat), merged in on open (my_chats) */
+const askSignedIn = () => { try { return Api.enabled() && !!Api.me(); } catch (e) { return false; } };
+function askPushChat(rec) {
+  if (!askSignedIn() || !rec || !/^[A-Za-z0-9_-]{1,40}$/.test(rec.id)) return;
+  const turns = rec.turns.map(t => ({ role: t.role, text: String(t.text || '').slice(0, 4000), ...(t.bad ? { bad: true } : {}) })).filter(t => t.text);
+  Api.call('save_chat', { p_id: rec.id, p_turns: turns }, null);
+}
+let askPulling = null;
+function askPullChats() {
+  if (!askSignedIn() || !navigator.onLine || askPulling) return askPulling;
+  askPulling = Api.run('my_chats', {}).then(rows => {
+    if (!Array.isArray(rows)) return;
+    const C = ASK.convs, byId = new Map(C.list.map(x => [x.id, x]));
+    let changed = false;
+    for (const r of rows) {
+      if (!r || !/^[A-Za-z0-9_-]{1,40}$/.test(r.id) || !Array.isArray(r.turns)) continue;
+      const at = Date.parse(r.at) || 0, mine = byId.get(r.id);
+      if (!mine || (mine.at || 0) < at - 1000) {
+        const turns = r.turns.filter(t => t && (t.role === 'user' || t.role === 'assistant' || t.role === 'note') && typeof t.text === 'string')
+          .map(t => ({ role: t.role, text: t.text, ...(t.bad ? { bad: true } : {}) }));
+        byId.set(r.id, { id: r.id, at, turns }); changed = true;
+      }
+    }
+    for (const x of C.list) if (!rows.some(r => r.id === x.id) && x.turns.length) askPushChat(x);   // made here offline: send it up
+    if (!changed) return;
+    C.list = [...byId.values()].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 20);
+    if (ASK.convId) { const c = C.list.find(x => x.id === ASK.convId); if (c && !ASK.busy) ASK.turns = c.turns.map(t => ({ ...t })); }
+    askPutConvs();
+    if (document.getElementById('asWrap') && (ASK.view === 'history' || ASK.view === 'chat')) askRender();
+  }).catch(() => {}).finally(() => { askPulling = null; });
+  return askPulling;
 }
 /* leave the current conversation (it stays in «История»); a reply still on its way is dropped */
 function askSwitch(id) {
@@ -79,7 +112,7 @@ const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: 
 function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
-  askSyncProfile(); askLoadAi(); askLoadSeed();
+  askSyncProfile(); askLoadAi(); askLoadSeed(); askPullChats();
   ASK.view = askProfile() ? 'chat' : 'profile';
   askRender();
 }
@@ -202,8 +235,8 @@ function historyHTML() {
     ${L.length ? `<div class="tc-group" id="asHList">${L.map(c => `<div class="as-hrow${c.id === ASK.convId ? ' cur' : ''}">
       <button type="button" class="tc-act as-hopen" data-conv="${esc(c.id)}"><span>${esc(askConvTitle(c))}<small>${esc(japan(new Date(c.at).toISOString()))} · ${c.turns.filter(t => t.role === 'user').length} ${Core.plural(c.turns.filter(t => t.role === 'user').length, 'вопрос', 'вопроса', 'вопросов')}${c.id === ASK.convId ? ' · открыт' : ''}</small></span></button>
       <button type="button" class="tc-x" data-convdel="${esc(c.id)}" aria-label="Удалить разговор: ${esc(askConvTitle(c))}">${icon('close')}</button></div>`).join('')}</div>`
-      : '<p class="tc-sub">Разговоров пока нет. Они хранятся только на этом телефоне.</p>'}
-    <p class="tc-foot">Хранятся на этом телефоне: до 20 разговоров, текст без фото.</p>
+      : '<p class="tc-sub">Разговоров пока нет.</p>'}
+    <p class="tc-foot">${askSignedIn() ? 'До 20 разговоров, текст без фото. Видны вам на всех устройствах, где вы вошли в группу; другим — нет.' : 'Хранятся на этом устройстве: до 20 разговоров, текст без фото. Войдите в группу — и они будут на всех ваших устройствах.'}</p>
     <button type="button" class="tc-btn" id="asHBack">Назад к чату</button>`;
 }
 function wireHistory(m) {
@@ -213,6 +246,7 @@ function wireHistory(m) {
   m.querySelectorAll('[data-convdel]').forEach(b => b.addEventListener('click', () => twoTap(b, 'Удалить?', () => {
     const id = b.dataset.convdel;
     ASK.convs.list = ASK.convs.list.filter(x => x.id !== id);
+    if (askSignedIn()) Api.call('delete_chat', { p_id: id }, null);
     if (id === ASK.convId) { ASK.req++; ASK.busy = false; ASK.convId = null; ASK.turns = []; ASK.convs.cur = null; }
     askPutConvs(); askRender();
   })));

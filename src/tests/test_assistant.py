@@ -424,3 +424,29 @@ def test_a_message_cut_mid_word_shows_its_last_full_sentence(app):
     until(pg, "/Курс на Киото/.test(document.getElementById('asRate').textContent)")
     txt = pg.inner_text("#asRate")
     assert "в Готанде." in txt and "Готанде. Ц" not in txt
+
+
+def test_conversations_follow_me_to_another_device_and_stay_mine(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake); pg = a.page
+    pg.click("#tcAsk")
+    fake.assistant_reply = {"reply": "Рамен у станции.", "actions": []}
+    ask(pg, "Где обед?")
+    until(pg, "true")
+    assert [c["turns"][0]["text"] for (m, _), c in fake.ai_chats.items() if m == san] == ["Где обед?"]
+    pg.evaluate("localStorage.removeItem('japan2026.assistant.convs.v1')")                 # the same person on a Mac: nothing local
+    pg.reload(); pg.wait_for_selector("#today", state="attached"); pg.evaluate("renderShell()")
+    pg.click("#tcAsk")
+    _hist(pg)
+    until(pg, "document.querySelectorAll('#asHList .as-hrow').length === 1")
+    assert "Где обед?" in pg.inner_text("#asHList") and "на всех устройствах" in pg.inner_text("#asWrap")
+    pg.locator("#asHList [data-conv]").click()
+    assert "Рамен у станции." in pg.inner_text("#asLog")
+    other = fake._add("Аманжан", "guest")
+    assert fake.rpc_my_chats(next(t for t, u in fake.tokens.items() if u)) is not None
+    assert all(m != other for (m, _) in fake.ai_chats)                                       # rows are keyed to their author
+    _hist(pg)
+    row = pg.locator("#asHList .as-hrow"); row.locator("[data-convdel]").click(); row.locator("[data-convdel]").click()
+    until(pg, "true")
+    pg.wait_for_timeout(300)
+    assert not [k for k in fake.ai_chats if k[0] == san]                                    # deleted everywhere
+    assert not a.errors

@@ -689,6 +689,37 @@ end $$;
 revoke all on function public.file_request(text, text), public.app_requests_list(), public.set_request_status(bigint, text) from public, anon, authenticated;
 grant execute on function public.file_request(text, text), public.app_requests_list(), public.set_request_status(bigint, text) to authenticated;
 
+-- the assistant chats, so a member's conversations follow them to any signed-in device; only the author reads them
+create table if not exists public.ai_chats (member uuid references public.members(id) on delete cascade, id text not null,
+  at timestamptz not null default now(), turns jsonb not null, primary key (member, id));
+alter table public.ai_chats enable row level security;
+revoke all on public.ai_chats from anon, authenticated;
+create or replace function public.save_chat(p_id text, p_turns jsonb) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  if coalesce(p_id, '') !~ '^[A-Za-z0-9_-]{1,40}$' or jsonb_typeof(p_turns) is distinct from 'array' or pg_column_size(p_turns) > 120000 then
+    raise exception 'bad chat' using errcode = 'P0001'; end if;
+  insert into public.ai_chats values (m.id, p_id, now(), p_turns) on conflict (member, id) do update set turns = excluded.turns, at = now();
+  delete from public.ai_chats where member = m.id and id not in (select id from public.ai_chats where member = m.id order by at desc limit 20);
+  return true;
+end $$;
+create or replace function public.delete_chat(p_id text) returns boolean language plpgsql security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  delete from public.ai_chats where member = m.id and id = p_id;
+  return true;
+end $$;
+create or replace function public.my_chats() returns jsonb language plpgsql stable security definer
+set search_path = public, extensions as $$
+declare m public.members := public._me();
+begin
+  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'at', at, 'turns', turns) order by at desc) from public.ai_chats where member = m.id), '[]');
+end $$;
+revoke all on function public.save_chat(text, jsonb), public.delete_chat(text), public.my_chats() from public, anon, authenticated;
+grant execute on function public.save_chat(text, jsonb), public.delete_chat(text), public.my_chats() to authenticated;
+
 -- the cron tick: the same notify secret, the assistant's cron deployment next to notify (…/functions/v1/assistant-cron)
 create or replace function public._ai_tick() returns void language plpgsql security definer
 set search_path = public, extensions as $$
