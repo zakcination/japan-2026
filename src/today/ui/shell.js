@@ -22,6 +22,7 @@ const ICONS = {
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   clip: '<path d="M16 7l-7.5 7.5a2.5 2.5 0 0 0 3.5 3.5L19.5 10a4.5 4.5 0 0 0-6.4-6.4L5.6 11.1"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
   bulb: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   sunrise: '<path d="M4 18h16M7 14a5 5 0 0 1 10 0M12 3v4M9.5 5.5 12 3l2.5 2.5M4.9 9.9l1.4 1.4M19.1 9.9l-1.4 1.4M2 22h20"/>',
@@ -199,8 +200,10 @@ function fullSheet(m) {
   const sh = m.querySelector('.tc-sheet'); if (!sh) return;
   sh.classList.add('tc-full'); m.classList.add('tc-full-bg');
   const vv = window.visualViewport;
-  const fit = () => { if (!m.isConnected || m.hidden || !sh.classList.contains('tc-full')) return;
-    sh.style.height = vv ? vv.height + 'px' : ''; m.style.transform = vv && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : ''; };
+  /* the listener outlives this sheet (sheet() rebuilds it): always size the sheet that is on screen now */
+  const fit = () => { const cur = m.querySelector('.tc-sheet.tc-full'); if (!m.isConnected || m.hidden || !cur) return;
+    cur.style.height = vv ? vv.height + 'px' : ''; m.style.transform = vv && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : '';
+    cur.classList.toggle('kb', !!vv && vv.height < window.innerHeight - 120); };           // keyboard up: the field and the answers only
   if (vv && !m.dataset.vv) { m.dataset.vv = '1'; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
   fit();
 }

@@ -829,3 +829,12 @@ span.tc-face.tc-face { display: inline-grid; place-items: center; flex-direction
 .as-rate-skip { min-height: 44px; color: var(--sec); }
 .as-rated { background: var(--inset); }
 .as-inbox p { overflow-wrap: anywhere; white-space: normal; }
+
+/* keyboard up in the full-screen chat: hide what is not the conversation or the field */
+.tc-sheet.tc-full.kb #asRate, .tc-sheet.tc-full.kb .as-ex, .tc-sheet.tc-full.kb .as-head small { display: none; }
+.as-inbox .as-rate-h .tc-x { width: 32px; height: 32px; margin: -6px -6px 0 0; }
+.as-sq { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.as-sq legend { padding: 0 0 8px; font: 600 min(1rem, 23.8px)/1.3 var(--sf); }
+.as-sopts { display: flex; flex-wrap: wrap; gap: 8px; }
+.as-sopts .as-chip[aria-pressed="true"] { background: var(--tint); color: #fff; }
+.as-sstars .as-chip { min-width: 44px; justify-content: center; letter-spacing: -2px; }

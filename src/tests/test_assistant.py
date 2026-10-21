@@ -450,3 +450,30 @@ def test_conversations_follow_me_to_another_device_and_stay_mine(app):
     pg.wait_for_timeout(300)
     assert not [k for k in fake.ai_chats if k[0] == san]                                    # deleted everywhere
     assert not a.errors
+
+
+def test_the_morning_message_pops_up_once_and_a_short_survey_reaches_the_hosts(app):
+    fake = FakeSupabase.seeded(); a, san = guest(app, fake, now="2026-10-19T07:00:00+09:00"); pg = a.page
+    fake.ai_sent.append({"member": san, "key": "morning:2026-10-19", "day": "2026-10-19", "kind": "morning", "ref": "day:3",
+                         "title": "Курс на Киото", "body": "Посадка в 21:20."})
+    pg.evaluate(P1); pg.click("#tcAsk")
+    until(pg, "/Курс на Киото/.test(document.getElementById('asRate').textContent)")
+    pg.click("#tcSheetX"); pg.click("#tcAsk")                                                 # second open: the space is the chat's
+    pg.wait_for_timeout(300)
+    assert "Курс на Киото" not in pg.inner_text("#asRate")
+    assert "5 вопросов" in pg.inner_text("#asRate")
+    pg.click("[data-survey-go]")
+    pg.locator('[data-sq="often"] [data-sa="0"]').click()
+    pg.locator('[data-sq="good"] [data-sa="0"]').click(); pg.locator('[data-sq="good"] [data-sa="3"]').click()
+    pg.locator('[data-sq="bad"] [data-sa="0"]').click(); pg.locator('[data-sq="bad"] [data-sa="1"]').click()
+    pg.click("#asSvGo")
+    assert "общую оценку" in pg.inner_text("#asSvMsg")                                        # stars are required
+    pg.locator('[data-sq="stars"] [data-sa="3"]').click()
+    pg.fill("#asSvText", "Больше про еду")
+    pg.click("#asSvGo")
+    until(pg, "!!document.getElementById('asLog')")
+    fb = fake.ai_feedback[(san, "survey:chat")]
+    assert fb["stars"] == 4 and fb["kind"] == "day"
+    assert fb["comment"] == "Частота: Каждый день. Полезно: Что дальше по плану, Переводчик. Мешает: Клавиатура закрывает поле ввода, Сообщение сверху занимает место. Ещё: Больше про еду"
+    assert "5 вопросов" not in pg.inner_text("#asRate") and "Спасибо за отзыв" in pg.inner_text("#asLog")
+    assert not a.errors

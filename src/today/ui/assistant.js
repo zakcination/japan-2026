@@ -17,7 +17,7 @@ function askLoadConvs() {
   if (!c.list.some(x => x.id === c.cur)) c.cur = null;
   return c;
 }
-const ASK = { convs: askLoadConvs(), busy: false, view: 'chat', pics: [], rec: null, req: 0 };
+const ASK = { convs: askLoadConvs(), busy: false, view: 'chat', pics: [], rec: null, req: 0, shownNow: new Set() };
 ASK.convId = ASK.convs.cur; ASK.turns = ((ASK.convs.list.find(x => x.id === ASK.convId) || {}).turns || []).slice(-30);
 const askPutConvs = () => { try { localStorage.setItem(ASK_CONVS, JSON.stringify(ASK.convs)); } catch (e) {} };
 function askSaveChat() {
@@ -112,17 +112,18 @@ const askRates = () => { try { const r = expRates(); return { KZT: +r.KZT, USD: 
 function openAskProfile() { askLoadSeed(); ASK.view = 'profile'; askRender(); }
 function openAssistant() {
   if (!askOn()) return;
-  askSyncProfile(); askLoadAi(); askLoadSeed(); askPullChats();
+  askSyncProfile(); askLoadAi(); askLoadSeed(); askPullChats(); ASK.shownNow = new Set();   // what popped up last time stays hidden now
   ASK.view = askProfile() ? 'chat' : 'profile';
   askRender();
 }
 function askRender() {
-  const title = ASK.view === 'history' ? 'История' : ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал и заявки' : ASK.view === 'request' ? 'Улучшить приложение' : 'Спутник';
-  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : ASK.view === 'request' ? requestHTML() : ASK.view === 'history' ? historyHTML() : chatHTML()}</div>`, m => {
+  const title = ASK.view === 'history' ? 'История' : ASK.view === 'profile' ? 'Профиль' : ASK.view === 'translate' ? 'Переводчик' : ASK.view === 'journal' ? 'Журнал и заявки' : ASK.view === 'request' ? 'Улучшить приложение' : ASK.view === 'survey' ? 'Отзыв о чате' : 'Спутник';
+  sheet(title, `<div class="as-wrap" id="asWrap">${ASK.view === 'profile' ? profileHTML() : ASK.view === 'translate' ? translateHTML() : ASK.view === 'journal' ? journalHTML() : ASK.view === 'request' ? requestHTML() : ASK.view === 'survey' ? surveyHTML() : ASK.view === 'history' ? historyHTML() : chatHTML()}</div>`, m => {
     fullSheet(m);
     m.querySelector('.tc-sheet').classList.toggle('as-chat', ASK.view === 'chat');
     if (ASK.view === 'journal') { wireJournal(m); return; }
     if (ASK.view === 'request') { wireRequest(m); return; }
+    if (ASK.view === 'survey') { wireSurvey(m); return; }
     if (ASK.view === 'history') { wireHistory(m); return; }
     if (ASK.view === 'profile') wireProfile(m); else if (ASK.view === 'translate') wireTranslate(m); else wireChat(m);
   });
@@ -225,6 +226,7 @@ function chatHeadHTML() {
       <button type="button" class="tc-act" role="menuitem" id="asMNew">${icon('edit')}<span>Новый чат</span></button>
       <button type="button" class="tc-act" role="menuitem" id="asMHist">${icon('clock')}<span>История<small>${ASK.convs.list.length ? Core.plural(ASK.convs.list.length, 'разговор', 'разговора', 'разговоров').replace(/^/, ASK.convs.list.length + ' ') : 'пока пусто'}</small></span></button>
       <button type="button" class="tc-act" role="menuitem" id="asToProf">${icon('person')}<span>Профиль</span></button>
+      <button type="button" class="tc-act" role="menuitem" id="asMSurvey">${icon('star')}<span>Отзыв о чате<small>${askSurveyState() === 'done' ? 'спасибо, можно изменить' : '5 вопросов'}</small></span></button>
       <button type="button" class="tc-act" role="menuitem" id="asMReq">${icon('bulb')}<span>Предложить улучшение</span></button>
       ${(Api.me() || {}).role === 'host' ? `<button type="button" class="tc-act" role="menuitem" id="asMJournal">${icon('day')}<span>Журнал и заявки</span></button>` : ''}</div>`;
 }
@@ -250,6 +252,46 @@ function wireHistory(m) {
     if (id === ASK.convId) { ASK.req++; ASK.busy = false; ASK.convId = null; ASK.turns = []; ASK.convs.cur = null; }
     askPutConvs(); askRender();
   })));
+}
+/* a short multiple-choice survey about the chat: one row in ai_feedback (ref survey:chat) — stars + the answers as a line */
+const SURVEY = [
+  { id: 'often', q: 'Как часто вы пользуетесь чатом?', one: true, a: ['Каждый день', 'Пару раз за поездку', 'Почти нет', 'Ни разу'] },
+  { id: 'good', q: 'Что в чате полезнее всего?', a: ['Что дальше по плану', 'Еда и места рядом', 'Дорога и транспорт', 'Переводчик', 'Деньги и курс', 'Фото: меню, вывески', 'Дела и правки плана'] },
+  { id: 'bad', q: 'Что мешает?', a: ['Клавиатура закрывает поле ввода', 'Сообщение сверху занимает место', 'Долго жду ответ', 'Ответы слишком длинные', 'Бывают неточные ответы', 'Не знаю, что спросить', 'Без интернета не работает', 'Ничего не мешает'] },
+  { id: 'stars', q: 'Общая оценка чата', one: true, a: ['1', '2', '3', '4', '5'], stars: true },
+];
+function surveyHTML() {
+  return `<p class="tc-sub">Отметьте всё, что подходит. Ответы видят только хозяева — чтобы улучшить чат во второй половине поездки.</p>
+    ${SURVEY.map(s => `<fieldset class="as-sq" data-sq="${s.id}"><legend>${esc(s.q)}</legend><div class="as-sopts${s.stars ? ' as-sstars' : ''}">
+      ${s.a.map((a, i) => `<button type="button" class="as-chip" data-sa="${i}" aria-pressed="false" role="${s.one ? 'radio' : 'checkbox'}">${s.stars ? '★'.repeat(i + 1) : esc(a)}</button>`).join('')}</div></fieldset>`).join('')}
+    <label class="tc-f" for="asSvText"><span>Что добавить или исправить? (по желанию)</span><textarea id="asSvText" rows="2" maxlength="160"></textarea></label>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary" id="asSvGo">Отправить</button><button type="button" class="tc-btn" id="asSvBack">Назад к чату</button></div>
+    <p class="as-note" id="asSvMsg" role="status"></p>`;
+}
+function wireSurvey(m) {
+  const back = () => { ASK.view = 'chat'; askRender(); };
+  m.querySelector('#asSvBack').addEventListener('click', back);
+  m.querySelectorAll('[data-sq]').forEach(fs => fs.addEventListener('click', e => {
+    const b = e.target.closest('[data-sa]'); if (!b) return;
+    const one = SURVEY.find(s => s.id === fs.dataset.sq).one, on = b.getAttribute('aria-pressed') !== 'true';
+    if (one) fs.querySelectorAll('[data-sa]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    if (fs.dataset.sq === 'bad' && on) fs.querySelectorAll('[data-sa]').forEach(x => {   // «Ничего не мешает» excludes the rest
+      const last = +x.dataset.sa === SURVEY[2].a.length - 1; if ((+b.dataset.sa === SURVEY[2].a.length - 1) !== last) x.setAttribute('aria-pressed', 'false'); });
+    b.setAttribute('aria-pressed', String(one ? true : on));
+  }));
+  m.querySelector('#asSvGo').addEventListener('click', () => {
+    const msg = t => { m.querySelector('#asSvMsg').textContent = t; };
+    const pick = id => [...m.querySelectorAll(`[data-sq="${id}"] [aria-pressed="true"]`)].map(b => SURVEY.find(s => s.id === id).a[+b.dataset.sa]);
+    const stars = +(pick('stars')[0] || 0);
+    if (!stars) { msg('Поставьте общую оценку — звёзды внизу.'); return; }
+    if (!navigator.onLine) { msg('Нужен интернет, чтобы отправить. Ответы останутся на экране.'); return; }
+    const head = [['Частота', pick('often')], ['Полезно', pick('good')], ['Мешает', pick('bad')]].filter(x => x[1].length).map(x => x[0] + ': ' + x[1].join(', ')).join('. ');
+    const more = m.querySelector('#asSvText').value.trim();
+    const line = (head + (more ? '. Ещё: ' + more : '')).slice(0, 300);
+    Api.run('save_feedback', { p_ref: 'survey:chat', p_kind: 'day', p_stars: stars, p_comment: line, p_day: null })
+      .then(() => { try { localStorage.setItem(ASK_SURVEY, 'done'); } catch (e) {} ASK.turns.push({ role: 'note', text: 'Спасибо за отзыв! Он уже у хозяев.' }); back(); })
+      .catch(e => msg('Не отправилось' + (e && e.status ? ` (${e.status})` : '') + ' — попробуйте ещё раз.'));
+  });
 }
 /* anyone: a request to improve or fix the app — goes to the hosts' queue (app_requests), then to Claude Code as a task */
 function requestHTML() {
@@ -403,6 +445,7 @@ function wireChat(m) {
   m.querySelector('#asMHist').addEventListener('click', to('history'));
   m.querySelector('#asToProf').addEventListener('click', to('profile'));
   m.querySelector('#asMReq').addEventListener('click', to('request'));
+  m.querySelector('#asMSurvey').addEventListener('click', to('survey'));
   const mj = m.querySelector('#asMJournal'); if (mj) mj.addEventListener('click', to('journal'));
   m.querySelector('#asWrap').addEventListener('click', e => { if (e.target.closest('[data-sos]') && typeof openSos === 'function') { closeSheet(); openSos(); } });
   form.addEventListener('submit', e => { e.preventDefault(); askSend(ta.value); });
@@ -731,6 +774,13 @@ function askPending() {
   }
   return out;
 }
+const ASK_SEEN = 'japan2026.assistant.seen.v1', ASK_SURVEY = 'japan2026.assistant.survey.v1';
+const askInboxKey = m => `${m.day}:${m.kind}`;
+const askSeen = () => { try { return new Set(JSON.parse(localStorage.getItem(ASK_SEEN) || '[]')); } catch (e) { return new Set(); } };
+function askMarkSeen(k) { ASK.shownNow = ASK.shownNow || new Set(); if (ASK.shownNow.has(k) && askSeen().has(k)) return; ASK.shownNow.add(k);
+  const s = askSeen(); s.add(k); try { localStorage.setItem(ASK_SEEN, JSON.stringify([...s].slice(-40))); } catch (e) {} }
+const askSurveyState = () => { try { return localStorage.getItem(ASK_SURVEY) || ''; } catch (e) { return ''; } };
+const askSurveyDue = () => askSignedIn() && !askSurveyState();
 const INBOX_LBL = { morning: 'Утро', evening: 'Вечер', place: 'После места' };
 /* a message cut mid-word on the server («…в Готанде. Ц») shows up to its last full sentence */
 const wholeText = t => { t = String(t || '').trim(); if (/[.!?…)»\u3002]$/u.test(t)) return t;
@@ -740,7 +790,12 @@ function rateHTML() {
   if (!askP1()) return '';
   const today = japanNow().date, inbox = (ASK.ai.inbox || []).filter(m => String(m.day) === today && m.kind !== 'place').slice(0, 2);
   const items = askPending(), it = items[0], done = ASK.rated;
-  const msgs = inbox.map(m => `<div class="as-msg ai as-inbox"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small><b>${esc(m.title || '')}</b><p>${nl(wholeText(m.body))}</p></div>`).join('');
+  const fresh = inbox.filter(m => !askSeen().has(askInboxKey(m)) || ASK.shownNow.has(askInboxKey(m)));
+  fresh.forEach(m => askMarkSeen(askInboxKey(m)));                      // a morning / evening message pops up once, then the space is the chat's
+  const msgs = fresh.map(m => `<div class="as-msg ai as-inbox"><span class="as-rate-h"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small>
+      <button type="button" class="tc-x" data-inbox-x="${esc(askInboxKey(m))}" aria-label="Скрыть">${icon('close')}</button></span><b>${esc(m.title || '')}</b><p>${nl(wholeText(m.body))}</p></div>`).join('')
+    + (askSurveyDue() ? `<div class="as-card as-rate as-survey"><span class="as-rate-h"><b>Как вам чат? 5 вопросов, 30 секунд</b></span>
+      <div class="as-rate-row"><button type="button" class="tc-btn primary" data-survey-go>Ответить</button><button type="button" class="tc-link as-rate-skip" data-survey-later>Не сейчас</button></div></div>` : '');
   const thanks = done ? `<div class="as-card as-rate as-rated" data-rated="${esc(done.ref)}" data-kind="${done.kind}" data-day="${done.day}">
       <span class="as-rate-h"><b>«${esc(done.title)}» — ${'★'.repeat(done.stars)}${'☆'.repeat(5 - done.stars)}</b><small>сохранено</small></span>
       <div class="as-rate-row"><input type="text" maxlength="${done.kind === 'day' ? 300 : 120}" placeholder="Пара слов (по желанию)" aria-label="Комментарий">
@@ -755,6 +810,10 @@ function wireRate(m) {
   const box = m.querySelector('#asRate'); if (!box) return;
   const redraw = () => { box.innerHTML = rateHTML(); renderShell(); };
   box.addEventListener('click', e => {
+    const ix = e.target.closest('[data-inbox-x]');
+    if (ix) { ASK.shownNow.delete(ix.dataset.inboxX); redraw(); return; }
+    if (e.target.closest('[data-survey-go]')) { ASK.view = 'survey'; askRender(); return; }
+    if (e.target.closest('[data-survey-later]')) { try { localStorage.setItem(ASK_SURVEY, 'later'); } catch (er) {} redraw(); return; }
     const st = e.target.closest('[data-star]'), card = e.target.closest('[data-rate]');
     if (st && card) {                                           // a star is the answer: saved now
       const stars = +st.dataset.star, ref = card.dataset.rate, kind = card.dataset.kind, day = +card.dataset.day || null;
