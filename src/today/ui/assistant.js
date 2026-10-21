@@ -226,7 +226,7 @@ function chatHeadHTML() {
       <button type="button" class="tc-act" role="menuitem" id="asMNew">${icon('edit')}<span>Новый чат</span></button>
       <button type="button" class="tc-act" role="menuitem" id="asMHist">${icon('clock')}<span>История<small>${ASK.convs.list.length ? Core.plural(ASK.convs.list.length, 'разговор', 'разговора', 'разговоров').replace(/^/, ASK.convs.list.length + ' ') : 'пока пусто'}</small></span></button>
       <button type="button" class="tc-act" role="menuitem" id="asToProf">${icon('person')}<span>Профиль</span></button>
-      <button type="button" class="tc-act" role="menuitem" id="asMSurvey">${icon('star')}<span>Отзыв о чате<small>${askSurveyState() === 'done' ? 'спасибо, можно изменить' : '5 вопросов'}</small></span></button>
+      <button type="button" class="tc-act" role="menuitem" id="asMSurvey">${icon('star')}<span>Отзыв о чате<small>${askSurveyState() === 'done' ? 'спасибо, можно изменить' : '4 вопроса'}</small></span></button>
       <button type="button" class="tc-act" role="menuitem" id="asMReq">${icon('bulb')}<span>Предложить улучшение</span></button>
       ${(Api.me() || {}).role === 'host' ? `<button type="button" class="tc-act" role="menuitem" id="asMJournal">${icon('day')}<span>Журнал и заявки</span></button>` : ''}</div>`;
 }
@@ -254,6 +254,7 @@ function wireHistory(m) {
   })));
 }
 /* a short multiple-choice survey about the chat: one row in ai_feedback (ref survey:chat) — stars + the answers as a line */
+const SURVEY_TICK = ['Клавиатура мешает?', 'Ответы долгие?', 'Что полезнее всего?', 'Переводчик выручил?', 'Чего не хватает?'].map(t => `<i>${t}</i>`).join('');
 const SURVEY = [
   { id: 'often', q: 'Как часто вы пользуетесь чатом?', one: true, a: ['Каждый день', 'Пару раз за поездку', 'Почти нет', 'Ни разу'] },
   { id: 'good', q: 'Что в чате полезнее всего?', a: ['Что дальше по плану', 'Еда и места рядом', 'Дорога и транспорт', 'Переводчик', 'Деньги и курс', 'Фото: меню, вывески', 'Дела и правки плана'] },
@@ -261,11 +262,12 @@ const SURVEY = [
   { id: 'stars', q: 'Общая оценка чата', one: true, a: ['1', '2', '3', '4', '5'], stars: true },
 ];
 function surveyHTML() {
-  return `<p class="tc-sub">Отметьте всё, что подходит. Ответы видят только хозяева — чтобы улучшить чат во второй половине поездки.</p>
-    ${SURVEY.map(s => `<fieldset class="as-sq" data-sq="${s.id}"><legend>${esc(s.q)}</legend><div class="as-sopts${s.stars ? ' as-sstars' : ''}">
-      ${s.a.map((a, i) => `<button type="button" class="as-chip" data-sa="${i}" aria-pressed="false" role="${s.one ? 'radio' : 'checkbox'}">${s.stars ? '★'.repeat(i + 1) : esc(a)}</button>`).join('')}</div></fieldset>`).join('')}
+  return `<div class="as-sv-top"><div class="as-sv-bar" aria-hidden="true"><span id="asSvBar"></span></div><small id="asSvCount">0 из ${SURVEY.length}</small></div>
+    <p class="tc-sub">Отметьте всё, что подходит. Ответы видят только хозяева — чтобы улучшить чат во второй половине поездки.</p>
+    ${SURVEY.map((s, k) => `<fieldset class="as-sq" data-sq="${s.id}" style="--k:${k}"><legend><span class="as-sq-n">${k + 1}</span>${esc(s.q)}</legend><div class="as-sopts${s.stars ? ' as-sstars' : ''}">
+      ${s.a.map((a, i) => `<button type="button" class="as-chip" data-sa="${i}" aria-pressed="false" role="${s.one ? 'radio' : 'checkbox'}"${s.stars ? ` aria-label="${i + 1} из 5"` : ''}>${s.stars ? '★' : esc(a)}</button>`).join('')}</div></fieldset>`).join('')}
     <label class="tc-f" for="asSvText"><span>Что добавить или исправить? (по желанию)</span><textarea id="asSvText" rows="2" maxlength="160"></textarea></label>
-    <div class="tc-actions two"><button type="button" class="tc-btn primary" id="asSvGo">Отправить</button><button type="button" class="tc-btn" id="asSvBack">Назад к чату</button></div>
+    <div class="tc-actions two"><button type="button" class="tc-btn primary as-sv-go" id="asSvGo">Отправить</button><button type="button" class="tc-btn" id="asSvBack">Назад к чату</button></div>
     <p class="as-note" id="asSvMsg" role="status"></p>`;
 }
 function wireSurvey(m) {
@@ -278,7 +280,16 @@ function wireSurvey(m) {
     if (fs.dataset.sq === 'bad' && on) fs.querySelectorAll('[data-sa]').forEach(x => {   // «Ничего не мешает» excludes the rest
       const last = +x.dataset.sa === SURVEY[2].a.length - 1; if ((+b.dataset.sa === SURVEY[2].a.length - 1) !== last) x.setAttribute('aria-pressed', 'false'); });
     b.setAttribute('aria-pressed', String(one ? true : on));
+    if (fs.dataset.sq === 'stars') fs.querySelectorAll('[data-sa]').forEach(x => x.classList.toggle('lit', +x.dataset.sa <= +b.dataset.sa));
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    progress();
   }));
+  const progress = () => {
+    const n = SURVEY.filter(s => m.querySelector(`[data-sq="${s.id}"] [aria-pressed="true"]`)).length;
+    m.querySelector('#asSvBar').style.width = (n / SURVEY.length * 100) + '%';
+    m.querySelector('#asSvCount').textContent = n === SURVEY.length ? 'Готово ✓' : `${n} из ${SURVEY.length}`;
+    m.querySelectorAll('[data-sq]').forEach(f => f.classList.toggle('done', !!f.querySelector('[aria-pressed="true"]')));
+  };
   m.querySelector('#asSvGo').addEventListener('click', () => {
     const msg = t => { m.querySelector('#asSvMsg').textContent = t; };
     const pick = id => [...m.querySelectorAll(`[data-sq="${id}"] [aria-pressed="true"]`)].map(b => SURVEY.find(s => s.id === id).a[+b.dataset.sa]);
@@ -289,7 +300,10 @@ function wireSurvey(m) {
     const more = m.querySelector('#asSvText').value.trim();
     const line = (head + (more ? '. Ещё: ' + more : '')).slice(0, 300);
     Api.run('save_feedback', { p_ref: 'survey:chat', p_kind: 'day', p_stars: stars, p_comment: line, p_day: null })
-      .then(() => { try { localStorage.setItem(ASK_SURVEY, 'done'); } catch (e) {} ASK.turns.push({ role: 'note', text: 'Спасибо за отзыв! Он уже у хозяев.' }); back(); })
+      .then(() => { try { localStorage.setItem(ASK_SURVEY, 'done'); } catch (e) {} ASK.turns.push({ role: 'note', text: 'Спасибо за отзыв! Он уже у хозяев.' });
+        const w = m.querySelector('#asWrap'); w.innerHTML = `<div class="as-sv-done" role="status"><span class="as-sv-check">✓</span><b>Спасибо!</b><small>Отзыв уже у хозяев</small>
+          ${Array.from({ length: 14 }, (_, i) => `<i class="as-conf" style="--i:${i}"></i>`).join('')}</div>`;
+        setTimeout(() => { if (ASK.view === 'survey') back(); }, 1400); })
       .catch(e => msg('Не отправилось' + (e && e.status ? ` (${e.status})` : '') + ' — попробуйте ещё раз.'));
   });
 }
@@ -794,7 +808,8 @@ function rateHTML() {
   fresh.forEach(m => askMarkSeen(askInboxKey(m)));                      // a morning / evening message pops up once, then the space is the chat's
   const msgs = fresh.map(m => `<div class="as-msg ai as-inbox"><span class="as-rate-h"><small class="tc-sub">${esc(INBOX_LBL[m.kind] || 'Ассистент')}</small>
       <button type="button" class="tc-x" data-inbox-x="${esc(askInboxKey(m))}" aria-label="Скрыть">${icon('close')}</button></span><b>${esc(m.title || '')}</b><p>${nl(wholeText(m.body))}</p></div>`).join('')
-    + (askSurveyDue() ? `<div class="as-card as-rate as-survey"><span class="as-rate-h"><b>Как вам чат? 5 вопросов, 30 секунд</b></span>
+    + (askSurveyDue() ? `<div class="as-card as-rate as-survey"><span class="as-rate-h"><b><span class="as-sv-spark" aria-hidden="true">✦</span> Как вам чат? 4 вопроса, 30 секунд</b></span>
+      <div class="as-ticker" aria-hidden="true"><span>${SURVEY_TICK}${SURVEY_TICK}</span></div>
       <div class="as-rate-row"><button type="button" class="tc-btn primary" data-survey-go>Ответить</button><button type="button" class="tc-link as-rate-skip" data-survey-later>Не сейчас</button></div></div>` : '');
   const thanks = done ? `<div class="as-card as-rate as-rated" data-rated="${esc(done.ref)}" data-kind="${done.kind}" data-day="${done.day}">
       <span class="as-rate-h"><b>«${esc(done.title)}» — ${'★'.repeat(done.stars)}${'☆'.repeat(5 - done.stars)}</b><small>сохранено</small></span>

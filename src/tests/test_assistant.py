@@ -461,7 +461,7 @@ def test_the_morning_message_pops_up_once_and_a_short_survey_reaches_the_hosts(a
     pg.click("#tcSheetX"); pg.click("#tcAsk")                                                 # second open: the space is the chat's
     pg.wait_for_timeout(300)
     assert "Курс на Киото" not in pg.inner_text("#asRate")
-    assert "5 вопросов" in pg.inner_text("#asRate")
+    assert "4 вопроса" in pg.inner_text("#asRate")
     pg.click("[data-survey-go]")
     pg.locator('[data-sq="often"] [data-sa="0"]').click()
     pg.locator('[data-sq="good"] [data-sa="0"]').click(); pg.locator('[data-sq="good"] [data-sa="3"]').click()
@@ -475,5 +475,5 @@ def test_the_morning_message_pops_up_once_and_a_short_survey_reaches_the_hosts(a
     fb = fake.ai_feedback[(san, "survey:chat")]
     assert fb["stars"] == 4 and fb["kind"] == "day"
     assert fb["comment"] == "Частота: Каждый день. Полезно: Что дальше по плану, Переводчик. Мешает: Клавиатура закрывает поле ввода, Сообщение сверху занимает место. Ещё: Больше про еду"
-    assert "5 вопросов" not in pg.inner_text("#asRate") and "Спасибо за отзыв" in pg.inner_text("#asLog")
+    assert "4 вопроса" not in pg.inner_text("#asRate") and "Спасибо за отзыв" in pg.inner_text("#asLog")
     assert not a.errors
